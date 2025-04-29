@@ -82,6 +82,107 @@ const evaluateMove = (
 };
 
 // Find the best move for the AI based on the current board state
+// Find the best position for a specific piece
+export const findBestPosition = (
+  board: Board,
+  piece: PieceType,
+  difficulty: AIDifficulty
+): Position | null => {
+  const emptyPositions: Position[] = [];
+  const opponentPiecePositions: Position[] = [];
+  
+  // Find all empty cells and opponent pieces
+  for (let row = 0; row < 6; row++) {
+    for (let col = 0; col < 6; col++) {
+      const cell = board[row][col];
+      
+      if (cell.piece === PieceType.EMPTY) {
+        emptyPositions.push({ row, col });
+      } else if (cell.owner === Player.PLAYER1) {
+        opponentPiecePositions.push({ row, col });
+      }
+    }
+  }
+  
+  // No valid positions
+  if (emptyPositions.length === 0 && opponentPiecePositions.length === 0) {
+    return null;
+  }
+  
+  // Generate all possible positions
+  type Move = { position: Position; score: number };
+  const possibleMoves: Move[] = [];
+  
+  // Try placing the piece on empty cells
+  for (const position of emptyPositions) {
+    // Special piece can only go on empty cells
+    const score = evaluateMove(board, position, piece, Player.PLAYER2, false);
+    possibleMoves.push({ position, score });
+  }
+  
+  // Try capturing opponent pieces (if not a special piece)
+  if (piece !== PieceType.SPECIAL) {
+    for (const position of opponentPiecePositions) {
+      const targetCell = board[position.row][position.col];
+      
+      // Can't capture special pieces
+      if (targetCell.piece === PieceType.SPECIAL) continue;
+      
+      // Check if this piece can capture the opponent's piece
+      if (isValidMove(board, position, piece, Player.PLAYER2)) {
+        const score = evaluateMove(board, position, piece, Player.PLAYER2, true);
+        possibleMoves.push({ position, score });
+      }
+    }
+  }
+  
+  // No valid moves found
+  if (possibleMoves.length === 0) {
+    return null;
+  }
+  
+  // Sort moves by score (best first)
+  possibleMoves.sort((a, b) => b.score - a.score);
+  
+  // Adjust AI behavior based on difficulty level
+  switch (difficulty) {
+    case AIDifficulty.BEGINNER:
+      // Beginner AI chooses completely randomly from all possible moves
+      const beginnerIndex = Math.floor(Math.random() * possibleMoves.length);
+      return possibleMoves[beginnerIndex].position;
+      
+    case AIDifficulty.EASY:
+      // Easy AI chooses randomly among top 80% of moves
+      const easyIndex = Math.floor(Math.random() * Math.ceil(possibleMoves.length * 0.8));
+      return possibleMoves[easyIndex].position;
+    
+    case AIDifficulty.NORMAL:
+      // Normal AI chooses randomly among top 60% of moves
+      const normalIndex = Math.floor(Math.random() * Math.ceil(possibleMoves.length * 0.6));
+      return possibleMoves[normalIndex].position;
+      
+    case AIDifficulty.MEDIUM:
+      // Medium AI chooses randomly among top 40% of moves
+      const mediumIndex = Math.floor(Math.random() * Math.ceil(possibleMoves.length * 0.4));
+      return possibleMoves[mediumIndex].position;
+      
+    case AIDifficulty.HARD:
+      // Hard AI chooses randomly among top 20% of moves
+      const hardIndex = Math.floor(Math.random() * Math.ceil(possibleMoves.length * 0.2));
+      return possibleMoves[hardIndex].position;
+      
+    case AIDifficulty.EXPERT:
+      // Expert AI always chooses the absolute best move
+      return possibleMoves[0].position;
+      
+    default:
+      // Default to normal difficulty
+      const defaultIndex = Math.floor(Math.random() * Math.ceil(possibleMoves.length * 0.6));
+      return possibleMoves[defaultIndex].position;
+  }
+};
+
+// This function is kept for backward compatibility
 export const findBestMove = (
   board: Board, 
   inventory: PlayerInventory, 

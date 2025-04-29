@@ -149,6 +149,10 @@ const defaultTranslations: Record<string, Record<Language, string>> = {
     en: 'AI has selected a piece',
     ja: 'AIが駒を選択しました'
   },
+  'message.aiDecidingPlacement': {
+    en: 'AI is deciding where to place the piece...',
+    ja: 'AIが駒の配置場所を考えています...'
+  },
   'game.player1': {
     en: 'Player 1',
     ja: 'プレイヤー1'

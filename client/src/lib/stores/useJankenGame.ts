@@ -8,7 +8,7 @@ import {
   getRandomPiece, 
   isValidMove 
 } from '../gameUtils';
-import { AIDifficulty, findBestMove } from '../aiUtils';
+import { AIDifficulty, findBestMove, findBestPosition } from '../aiUtils';
 import { useAudio } from './useAudio';
 import { useLanguage } from './useLanguage';
 
@@ -383,7 +383,8 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       player2Inventory,
       phase,
       aiDifficulty,
-      isAIEnabled
+      isAIEnabled,
+      selectedPiece
     } = get();
     
     // Only run if AI is enabled, it's Player 2's turn, and game is in the correct phase
@@ -394,27 +395,54 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     // Set AI to "thinking" mode
     set({ isAIThinking: true });
     
-    // Add a slight delay to make it feel like the AI is "thinking"
-    setTimeout(() => {
-      // Find the best move for the AI
-      const bestMove = findBestMove(board, player2Inventory, aiDifficulty);
+    // First, if we don't have a selected piece yet, get a random piece like human players
+    if (selectedPiece === null) {
+      // Randomly select a piece just like human players
+      get().getRandomPieceForCurrentPlayer();
       
-      if (bestMove) {
-        // Set the selected piece
-        set({ 
-          selectedPiece: bestMove.piece,
-          isAIThinking: false,
-          message: 'message.aiSelectedPiece'
-        });
+      // We'll continue the AI move after a short thinking delay
+      setTimeout(() => {
+        // Now get the updated selected piece
+        const updatedSelectedPiece = get().selectedPiece;
+        
+        if (updatedSelectedPiece !== null) {
+          // Add a message that AI is deciding where to place the piece
+          set({ message: 'message.aiDecidingPlacement' });
+          
+          // Continue with placement decision after a short delay
+          setTimeout(() => get().makeAIMove(), 500);
+        } else {
+          // Something went wrong, end AI thinking
+          set({ isAIThinking: false });
+        }
+      }, 800); // Thinking time for piece selection
+      
+      return;
+    }
+    
+    // If we already have a selected piece, find the best position for it
+    setTimeout(() => {
+      const { board, selectedPiece, aiDifficulty } = get();
+      
+      // Find best position for the already selected piece (at this point, selectedPiece should never be null)
+      if (selectedPiece === null) {
+        set({ isAIThinking: false });
+        return;
+      }
+      
+      const bestPosition = findBestPosition(board, selectedPiece, aiDifficulty);
+      
+      if (bestPosition) {
+        set({ isAIThinking: false });
         
         // Add a short delay before placing the piece
         setTimeout(() => {
-          get().selectCell(bestMove.position);
+          get().selectCell(bestPosition);
         }, 500);
       } else {
         // No valid moves, end AI thinking
         set({ isAIThinking: false });
       }
-    }, 1000); // 1 second thinking delay
+    }, 1000); // 1 second thinking delay for placement decision
   }
 }));
