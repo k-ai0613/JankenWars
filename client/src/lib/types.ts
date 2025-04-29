@@ -16,6 +16,22 @@ export enum Player {
   NONE = 'NONE'
 }
 
+// Helper function to safely convert any player value to actual Player enum
+export function normalizePlayer(player: Player | string): Player {
+  // If it's already a proper enum instance
+  if (player === Player.PLAYER1) return Player.PLAYER1;
+  if (player === Player.PLAYER2) return Player.PLAYER2;
+  if (player === Player.NONE) return Player.NONE;
+  
+  // If it's a string, convert it
+  const playerStr = String(player).toUpperCase();
+  if (playerStr.includes('PLAYER1')) return Player.PLAYER1;
+  if (playerStr.includes('PLAYER2')) return Player.PLAYER2;
+  
+  // Default fallback
+  return Player.NONE;
+}
+
 // Cell interface represents a square on the board
 export interface Cell {
   piece: PieceType;

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Board, Cell, GamePhase, GameResult, PieceType, Player, Position } from '../types';
+import { Board, Cell, GamePhase, GameResult, PieceType, Player, Position, normalizePlayer } from '../types';
 import { 
   checkDraw, 
   checkWin, 
