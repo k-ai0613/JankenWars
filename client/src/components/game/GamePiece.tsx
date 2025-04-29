@@ -27,10 +27,10 @@ export const GamePiece: React.FC<GamePieceProps> = ({
     lg: 'text-4xl',
   }[size];
 
-  // Determine owner color
+  // Determine owner color and gradient
   const ownerClass = owner === Player.PLAYER1 
-    ? 'text-blue-500' 
-    : 'text-red-500';
+    ? 'text-blue-500 drop-shadow-[0_0_2px_rgba(59,130,246,0.5)]' 
+    : 'text-red-500 drop-shadow-[0_0_2px_rgba(239,68,68,0.5)]';
 
   // Selected piece has a highlight
   const selectedClass = selected ? 'ring-2 ring-yellow-400' : '';

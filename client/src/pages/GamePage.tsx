@@ -289,7 +289,7 @@ export function GamePage() {
   };
 
   return (
-    <div className="container mx-auto p-4 min-h-screen bg-slate-50 relative overflow-hidden">
+    <div className="container mx-auto p-4 min-h-screen relative overflow-hidden bg-gradient-to-b from-blue-50 via-indigo-50 to-purple-50">
       {/* Animation effects */}
       {winAnimation && (
         <Confetti

@@ -44,19 +44,20 @@ const GameSquare: React.FC<GameSquareProps> = ({
     idle: {},
     capturing: {
       boxShadow: [
-        '0px 0px 0px rgba(254, 240, 138, 0)', 
-        '0px 0px 30px rgba(254, 240, 138, 1)', 
-        '0px 0px 0px rgba(254, 240, 138, 0)'
+        '0px 0px 0px rgba(245, 158, 11, 0)', 
+        '0px 0px 30px rgba(245, 158, 11, 0.8)', 
+        '0px 0px 0px rgba(245, 158, 11, 0)'
       ],
-      scale: [1, 1.05, 1],
+      scale: [1, 1.1, 1],
       backgroundColor: [
         'rgba(255, 255, 255, 0)', 
-        'rgba(254, 240, 138, 0.3)', 
+        'rgba(245, 158, 11, 0.4)', 
         'rgba(255, 255, 255, 0)'
       ],
+      rotateZ: [0, 2, -2, 0],
       transition: {
         duration: 0.8,
-        times: [0, 0.4, 1],
+        times: [0, 0.3, 0.7, 1],
         ease: "easeInOut"
       }
     }
@@ -65,17 +66,31 @@ const GameSquare: React.FC<GameSquareProps> = ({
   return (
     <motion.div 
       className={cn(
-        "w-full h-full border border-gray-300 flex items-center justify-center",
+        "w-full h-full flex items-center justify-center relative",
         "transition-colors duration-200 ease-in-out",
-        isValidMove ? "bg-green-100 cursor-pointer hover:bg-green-200" : "bg-gray-50",
+        "rounded-md overflow-hidden shadow-inner",
+        isValidMove 
+          ? "bg-gradient-to-br from-green-100 to-green-200 cursor-pointer ring-2 ring-green-300 hover:from-green-200 hover:to-green-300" 
+          : "bg-gradient-to-br from-amber-50 to-amber-100",
         cell.piece !== "EMPTY" && "bg-opacity-90"
       )}
       onClick={handleClick}
       data-testid={`cell-${position.row}-${position.col}`}
       variants={cellVariants}
       animate={isCapturing ? "capturing" : "idle"}
+      whileHover={isValidMove ? { scale: 1.03 } : {}}
+      whileTap={isValidMove ? { scale: 0.98 } : {}}
     >
-      <GamePiece type={cell.piece} owner={cell.owner} />
+      {/* Cell border effects */}
+      <div className="absolute inset-0 border-2 border-amber-200 opacity-40 rounded-sm pointer-events-none"></div>
+      
+      {/* Light reflection effect */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white to-transparent opacity-10 pointer-events-none"></div>
+      
+      {/* Game piece */}
+      <div className="relative z-10">
+        <GamePiece type={cell.piece} owner={cell.owner} />
+      </div>
     </motion.div>
   );
 };
