@@ -57,6 +57,9 @@ interface JankenGameState {
   clearLoseAnimation: () => void;
   clearDrawAnimation: () => void;
   
+  // AI helper function for explicit piece placement
+  selectCellForPlayer: (position: Position, player: Player, piece: PieceType) => void;
+  
   // AI actions
   toggleAI: () => void;
   setAIDifficulty: (difficulty: AIDifficulty) => void;
@@ -150,18 +153,28 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     // Play sound effect
     const audioStore = useAudio.getState();
     
-    // Ensure currentPlayer value is valid
-    const safeCurrentPlayer = currentPlayer || Player.PLAYER1; // Fallback if undefined
-    console.log('Current player before cell update:', safeCurrentPlayer);
+    // プレイヤーを文字列で明確に判別
+    const isPlayer1 = String(currentPlayer) === String(Player.PLAYER1);
+    const isPlayer2 = String(currentPlayer) === String(Player.PLAYER2);
+    const playerStr = isPlayer1 ? 'PLAYER1' : (isPlayer2 ? 'PLAYER2' : 'UNKNOWN');
+    const actualOwner = isPlayer1 ? Player.PLAYER1 : (isPlayer2 ? Player.PLAYER2 : Player.NONE);
+    
+    console.log('Current player before cell update:', {
+      currentPlayer,
+      isPlayer1,
+      isPlayer2,
+      playerStr,
+      actualOwner
+    });
     
     // If the cell is empty
     if (targetCell.piece === PieceType.EMPTY) {
       // Place the piece on empty cell (not locked)
-      console.log('Placing piece on empty cell for player:', safeCurrentPlayer);
+      console.log('Placing piece on empty cell for player:', playerStr);
       
       newBoard[position.row][position.col] = {
         piece: selectedPiece,
-        owner: safeCurrentPlayer, // Use validated player
+        owner: actualOwner, // 厳密に構造化されたプレイヤー値を使用
         hasBeenUsed: false // Not locked yet, can be captured with janken rules
       };
       
@@ -170,11 +183,11 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     } else {
       // Janken battle - replace opponent's piece and lock this cell
       const defendingPiece = targetCell.piece;
-      console.log('Janken battle:', { attackingPiece: selectedPiece, defendingPiece, attacker: safeCurrentPlayer });
+      console.log('Janken battle:', { attackingPiece: selectedPiece, defendingPiece, attacker: playerStr });
       
       newBoard[position.row][position.col] = {
         piece: selectedPiece,
-        owner: safeCurrentPlayer, // Use validated player
+        owner: actualOwner, // 厳密に構造化されたプレイヤー値を使用
         hasBeenUsed: true // Lock this cell after janken battle
       };
       
@@ -376,6 +389,141 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     set({ drawAnimation: false });
   },
   
+  // AIの駒配置用のヘルパー関数 - strict modeでブロック内にfunction宣言できないため、外に出す
+  selectCellForPlayer: (position: Position, player: Player, piece: PieceType) => {
+    const { 
+      board, 
+      player1Inventory, 
+      player2Inventory 
+    } = get();
+    
+    console.log('selectCellForPlayer called:', { position, player, piece });
+    
+    // Check if move is valid
+    if (!isValidMove(board, position, piece, player)) {
+      console.warn('Invalid AI move');
+      set({ message: 'message.invalidMove', isAIThinking: false });
+      return;
+    }
+    
+    // Clone the board
+    const newBoard = [...board.map(row => [...row])];
+    
+    // Create a new inventory - AIはプレイヤー2なので、player2Inventoryを使用
+    const currentInventory = { ...player2Inventory };
+    
+    // Reduce the count of the selected piece
+    if (piece && piece !== PieceType.EMPTY && 
+        (piece === PieceType.ROCK || 
+         piece === PieceType.PAPER || 
+         piece === PieceType.SCISSORS || 
+         piece === PieceType.SPECIAL)) {
+      currentInventory[piece]--;
+    }
+    
+    // Update the cell
+    const targetCell = newBoard[position.row][position.col];
+    
+    // Play sound effect
+    const audioStore = useAudio.getState();
+    
+    // Player2を強制
+    console.log('Forcing AI owner to PLAYER2');
+    
+    // If the cell is empty
+    if (targetCell.piece === PieceType.EMPTY) {
+      // Place the piece on empty cell (not locked)
+      newBoard[position.row][position.col] = {
+        piece: piece,
+        owner: Player.PLAYER2, // 明示的にPlayer.PLAYER2
+        hasBeenUsed: false // Not locked yet, can be captured with janken rules
+      };
+      
+      // Play success sound
+      audioStore.playSuccess();
+    } else {
+      // Janken battle - replace opponent's piece and lock this cell
+      const defendingPiece = targetCell.piece;
+      
+      newBoard[position.row][position.col] = {
+        piece: piece,
+        owner: Player.PLAYER2, // 明示的にPlayer.PLAYER2
+        hasBeenUsed: true // Lock this cell after janken battle
+      };
+      
+      // Play hit sound
+      audioStore.playHit();
+      
+      // Trigger capture animation
+      set({ captureAnimation: position });
+      
+      // Display a message about the janken battle result
+      let jankenResultMessage = '';
+      
+      // Create a specific message based on what pieces were involved
+      // In Japanese Janken Rules:
+      // - Rock (グー) beats Scissors (チョキ)
+      // - Scissors (チョキ) beats Paper (パー)
+      // - Paper (パー) beats Rock (グー)
+      if (piece === PieceType.ROCK && defendingPiece === PieceType.SCISSORS) {
+        jankenResultMessage = 'message.rockVsScissors';
+      } else if (piece === PieceType.SCISSORS && defendingPiece === PieceType.PAPER) {
+        jankenResultMessage = 'message.scissorsVsPaper';
+      } else if (piece === PieceType.PAPER && defendingPiece === PieceType.ROCK) {
+        jankenResultMessage = 'message.paperVsRock';
+      }
+      
+      // Set the message key for translation
+      set({ message: jankenResultMessage });
+    }
+    
+    // Update inventories
+    const newState = {
+      board: newBoard,
+      selectedPiece: null,
+      player2Inventory: currentInventory
+    };
+    
+    // Check for win condition
+    if (checkWin(newBoard, Player.PLAYER2)) {  // AI playerのwin条件
+      // The AI won!
+      set({
+        ...newState,
+        result: GameResult.PLAYER2_WIN,
+        phase: GamePhase.GAME_OVER,
+        message: 'message.player2Win',
+        winAnimation: true
+      });
+      
+      return;
+    }
+    
+    // Check for draw condition
+    if (checkDraw(newBoard, player1Inventory, currentInventory)) {
+      set({
+        ...newState,
+        result: GameResult.DRAW,
+        phase: GamePhase.GAME_OVER,
+        message: 'message.draw',
+        drawAnimation: true
+      });
+      
+      return;
+    }
+    
+    // Switch player to Player 1
+    set({
+      ...newState,
+      currentPlayer: Player.PLAYER1,
+      message: 'message.player1Turn'
+    });
+    
+    // Get random piece for Player 1's next turn
+    setTimeout(() => {
+      get().getRandomPieceForCurrentPlayer();
+    }, 100);
+  },
+
   // AI actions
   toggleAI: () => {
     const { isAIEnabled } = get();
@@ -468,143 +616,10 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
           setTimeout(() => {
             console.log('AI placing piece at:', bestPosition, 'EXPLICIT PLAYER2');
             // AIの場合、プレイヤー2を明示的に強制します
-            selectCellForPlayer(bestPosition, Player.PLAYER2, selectedPiece);
+            get().selectCellForPlayer(bestPosition, Player.PLAYER2, selectedPiece);
           }, 400);
           
-          // この関数はプレイヤーを明示的に指定して駒を置きます
-          function selectCellForPlayer(position: Position, player: Player, piece: PieceType) {
-            const { 
-              board, 
-              player1Inventory, 
-              player2Inventory 
-            } = get();
-            
-            console.log('selectCellForPlayer called:', { position, player, piece });
-            
-            // Check if move is valid
-            if (!isValidMove(board, position, piece, player)) {
-              console.warn('Invalid AI move');
-              set({ message: 'message.invalidMove', isAIThinking: false });
-              return;
-            }
-            
-            // Clone the board
-            const newBoard = [...board.map(row => [...row])];
-            
-            // Create a new inventory - AIはプレイヤー2なので、player2Inventoryを使用
-            const currentInventory = { ...player2Inventory };
-            
-            // Reduce the count of the selected piece
-            if (piece && piece !== PieceType.EMPTY && 
-                (piece === PieceType.ROCK || 
-                 piece === PieceType.PAPER || 
-                 piece === PieceType.SCISSORS || 
-                 piece === PieceType.SPECIAL)) {
-              currentInventory[piece]--;
-            }
-            
-            // Update the cell
-            const targetCell = newBoard[position.row][position.col];
-            
-            // Play sound effect
-            const audioStore = useAudio.getState();
-            
-            // Player2を強制
-            console.log('Forcing AI owner to PLAYER2');
-            
-            // If the cell is empty
-            if (targetCell.piece === PieceType.EMPTY) {
-              // Place the piece on empty cell (not locked)
-              newBoard[position.row][position.col] = {
-                piece: piece,
-                owner: Player.PLAYER2, // 明示的にPlayer.PLAYER2
-                hasBeenUsed: false // Not locked yet, can be captured with janken rules
-              };
-              
-              // Play success sound
-              audioStore.playSuccess();
-            } else {
-              // Janken battle - replace opponent's piece and lock this cell
-              const defendingPiece = targetCell.piece;
-              
-              newBoard[position.row][position.col] = {
-                piece: piece,
-                owner: Player.PLAYER2, // 明示的にPlayer.PLAYER2
-                hasBeenUsed: true // Lock this cell after janken battle
-              };
-              
-              // Play hit sound
-              audioStore.playHit();
-              
-              // Trigger capture animation
-              set({ captureAnimation: position });
-              
-              // Display a message about the janken battle result
-              let jankenResultMessage = '';
-              
-              // Create a specific message based on what pieces were involved
-              // In Japanese Janken Rules:
-              // - Rock (グー) beats Scissors (チョキ)
-              // - Scissors (チョキ) beats Paper (パー)
-              // - Paper (パー) beats Rock (グー)
-              if (piece === PieceType.ROCK && defendingPiece === PieceType.SCISSORS) {
-                jankenResultMessage = 'message.rockVsScissors';
-              } else if (piece === PieceType.SCISSORS && defendingPiece === PieceType.PAPER) {
-                jankenResultMessage = 'message.scissorsVsPaper';
-              } else if (piece === PieceType.PAPER && defendingPiece === PieceType.ROCK) {
-                jankenResultMessage = 'message.paperVsRock';
-              }
-              
-              // Set the message key for translation
-              set({ message: jankenResultMessage });
-            }
-            
-            // Update inventories
-            const newState = {
-              board: newBoard,
-              selectedPiece: null,
-              player2Inventory: currentInventory
-            };
-            
-            // Check for win condition
-            if (checkWin(newBoard, Player.PLAYER2)) {  // AI playerのwin条件
-              // The AI won!
-              set({
-                ...newState,
-                result: GameResult.PLAYER2_WIN,
-                phase: GamePhase.GAME_OVER,
-                message: 'message.player2Win',
-                winAnimation: true
-              });
-              
-              return;
-            }
-            
-            // Check for draw condition
-            if (checkDraw(newBoard, player1Inventory, currentInventory)) {
-              set({
-                ...newState,
-                result: GameResult.DRAW,
-                phase: GamePhase.GAME_OVER,
-                message: 'message.draw',
-                drawAnimation: true
-              });
-              
-              return;
-            }
-            
-            // Switch player to Player 1
-            set({
-              ...newState,
-              currentPlayer: Player.PLAYER1,
-              message: 'message.player1Turn'
-            });
-            
-            // Get random piece for Player 1's next turn
-            setTimeout(() => {
-              get().getRandomPieceForCurrentPlayer();
-            }, 100);
-          }
+          // 外部に定義したselectCellForPlayer関数を利用しています
         } else {
           // No valid moves, end AI thinking
           set({ isAIThinking: false });
