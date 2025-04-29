@@ -20,10 +20,10 @@ export const GamePiece: React.FC<GamePieceProps> = ({
     return null;
   }
 
-  // Determine icon and container sizes based on the size prop
-  const iconSize = {
+  // Determine font size based on the size prop
+  const fontSize = {
     sm: 'text-sm',
-    md: 'text-lg',
+    md: 'text-xl',
     lg: 'text-2xl',
   }[size];
 
@@ -39,7 +39,7 @@ export const GamePiece: React.FC<GamePieceProps> = ({
     : 'text-red-600 bg-red-200 border-red-400';
   
   // Combine all classes
-  const pieceClass = `${ownerColor} ${containerSize} ${iconSize} p-2 rounded-full border-2 shadow-md flex items-center justify-center`;
+  const pieceClass = `${ownerColor} ${containerSize} ${fontSize} rounded-full border-2 shadow-md flex items-center justify-center`;
 
   // Selected piece has a highlight
   const selectedClass = selected ? 'ring-2 ring-yellow-400' : '';
@@ -48,13 +48,13 @@ export const GamePiece: React.FC<GamePieceProps> = ({
   const renderPieceIcon = () => {
     switch (type) {
       case PieceType.ROCK:
-        return <FaHandRock />;
+        return '✊';
       case PieceType.PAPER:
-        return <FaHandPaper />;
+        return '✋';
       case PieceType.SCISSORS:
-        return <FaHandScissors />;
+        return '✌️';
       case PieceType.SPECIAL:
-        return <FaStar />;
+        return '⭐';
       default:
         return null;
     }

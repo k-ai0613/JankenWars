@@ -46,42 +46,42 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({
       </h3>
       
       <div className="grid grid-cols-2 gap-3">
-        <div className="flex items-center gap-2 p-2 rounded-lg bg-white/50 backdrop-blur-sm border border-slate-100 shadow-sm">
+        <div className="flex items-center gap-2 p-2 rounded-lg bg-white/70 backdrop-blur-sm border border-slate-200 shadow-sm hover:bg-white/90 transition-colors">
           <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
             <GamePiece type={PieceType.ROCK} owner={player} size="sm" 
               selected={selectedPiece === PieceType.ROCK} />
           </div>
-          <span className={`text-sm font-medium ${selectedPiece === PieceType.ROCK ? 'font-bold' : ''}`}>
+          <span className={`text-base font-medium ${selectedPiece === PieceType.ROCK ? 'font-bold' : ''}`}>
             × {inventory[PieceType.ROCK]}
           </span>
         </div>
         
-        <div className="flex items-center gap-2 p-2 rounded-lg bg-white/50 backdrop-blur-sm border border-slate-100 shadow-sm">
+        <div className="flex items-center gap-2 p-2 rounded-lg bg-white/70 backdrop-blur-sm border border-slate-200 shadow-sm hover:bg-white/90 transition-colors">
           <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
             <GamePiece type={PieceType.PAPER} owner={player} size="sm" 
               selected={selectedPiece === PieceType.PAPER} />
           </div>
-          <span className={`text-sm font-medium ${selectedPiece === PieceType.PAPER ? 'font-bold' : ''}`}>
+          <span className={`text-base font-medium ${selectedPiece === PieceType.PAPER ? 'font-bold' : ''}`}>
             × {inventory[PieceType.PAPER]}
           </span>
         </div>
         
-        <div className="flex items-center gap-2 p-2 rounded-lg bg-white/50 backdrop-blur-sm border border-slate-100 shadow-sm">
+        <div className="flex items-center gap-2 p-2 rounded-lg bg-white/70 backdrop-blur-sm border border-slate-200 shadow-sm hover:bg-white/90 transition-colors">
           <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
             <GamePiece type={PieceType.SCISSORS} owner={player} size="sm" 
               selected={selectedPiece === PieceType.SCISSORS} />
           </div>
-          <span className={`text-sm font-medium ${selectedPiece === PieceType.SCISSORS ? 'font-bold' : ''}`}>
+          <span className={`text-base font-medium ${selectedPiece === PieceType.SCISSORS ? 'font-bold' : ''}`}>
             × {inventory[PieceType.SCISSORS]}
           </span>
         </div>
         
-        <div className="flex items-center gap-2 p-2 rounded-lg bg-white/50 backdrop-blur-sm border border-slate-100 shadow-sm">
+        <div className="flex items-center gap-2 p-2 rounded-lg bg-white/70 backdrop-blur-sm border border-slate-200 shadow-sm hover:bg-white/90 transition-colors">
           <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
             <GamePiece type={PieceType.SPECIAL} owner={player} size="sm" 
               selected={selectedPiece === PieceType.SPECIAL} />
           </div>
-          <span className={`text-sm font-medium ${selectedPiece === PieceType.SPECIAL ? 'font-bold' : ''}`}>
+          <span className={`text-base font-medium ${selectedPiece === PieceType.SPECIAL ? 'font-bold' : ''}`}>
             × {inventory[PieceType.SPECIAL]}
           </span>
         </div>
