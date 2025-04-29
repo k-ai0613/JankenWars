@@ -33,10 +33,10 @@ export const GamePiece: React.FC<GamePieceProps> = ({
     lg: 'w-14 h-14'
   }[size];
   
-  // Determine owner color styles - stronger text color for better visibility
+  // Determine owner color styles - stronger text colors for maximum visibility
   const ownerColor = owner === Player.PLAYER1 
-    ? 'text-blue-800 font-bold' 
-    : 'text-red-800 font-bold';
+    ? 'text-blue-800 font-bold text-3xl' 
+    : 'text-red-800 font-bold text-3xl';
   
   // Determine label for piece type (Unicode characters for better visibility)
   const pieceLabel = {
@@ -53,8 +53,8 @@ export const GamePiece: React.FC<GamePieceProps> = ({
     lg: 'w-7 h-7 text-sm -mt-2 -mr-2'
   }[size];
   
-  // Combine all classes - using common white background for all pieces
-  const pieceClass = `${ownerColor} ${containerSize} ${fontSize} rounded-full bg-white border border-gray-300 shadow-sm flex items-center justify-center relative`;
+  // Combine all classes - using common white background for all pieces with improved styling
+  const pieceClass = `${ownerColor} ${containerSize} rounded-full bg-white border-2 ${owner === Player.PLAYER1 ? 'border-blue-500' : 'border-red-500'} shadow-md flex items-center justify-center relative`;
 
   // Selected piece has a highlight
   const selectedClass = selected ? 'ring-2 ring-yellow-400' : '';

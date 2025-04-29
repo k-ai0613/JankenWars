@@ -63,23 +63,34 @@ const GameSquare: React.FC<GameSquareProps> = ({
     }
   };
 
+  // Determine background color based on conditions
+  let bgColorClass = "";
+  
+  if (isValidMove) {
+    // Valid move highlight
+    bgColorClass = "bg-gradient-to-br from-green-100 to-green-200 cursor-pointer ring-2 ring-green-300 hover:from-green-200 hover:to-green-300";
+  } else if (cell.hasBeenUsed && cell.piece !== PieceType.EMPTY) {
+    // Janken battle happened - neutral background
+    bgColorClass = "bg-gradient-to-br from-amber-50 to-amber-100";
+  } else if (cell.piece !== PieceType.EMPTY) {
+    // Regular piece placement - player color
+    if (cell.owner === Player.PLAYER1) {
+      bgColorClass = "bg-gradient-to-br from-blue-100 to-blue-200";
+    } else {
+      bgColorClass = "bg-gradient-to-br from-red-100 to-red-200";
+    }
+  } else {
+    // Empty cell
+    bgColorClass = "bg-gradient-to-br from-amber-50 to-amber-100";
+  }
+  
   return (
     <motion.div 
       className={cn(
         "w-full h-full min-w-[60px] min-h-[60px] flex items-center justify-center relative",
         "transition-colors duration-200 ease-in-out",
         "rounded-md overflow-hidden shadow-inner",
-        isValidMove 
-          ? "bg-gradient-to-br from-green-100 to-green-200 cursor-pointer ring-2 ring-green-300 hover:from-green-200 hover:to-green-300" 
-          : cell.piece !== PieceType.EMPTY
-            ? cell.owner === Player.PLAYER1
-              ? cell.hasBeenUsed
-                ? "bg-gradient-to-br from-amber-50 to-amber-100" // Janken battle happened, neutral background
-                : "bg-gradient-to-br from-blue-100 to-blue-200" // Player 1 background
-              : cell.hasBeenUsed
-                ? "bg-gradient-to-br from-amber-50 to-amber-100" // Janken battle happened, neutral background
-                : "bg-gradient-to-br from-red-100 to-red-200" // Player 2 background
-            : "bg-gradient-to-br from-amber-50 to-amber-100", // Empty cell
+        bgColorClass,
         (cell.piece !== PieceType.EMPTY) && "bg-opacity-90"
       )}
       onClick={handleClick}
