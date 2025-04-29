@@ -1,4 +1,4 @@
-import { create } from "zustand";
+import { create } from 'zustand';
 
 interface AudioState {
   backgroundMusic: HTMLAudioElement | null;
@@ -21,53 +21,58 @@ export const useAudio = create<AudioState>((set, get) => ({
   backgroundMusic: null,
   hitSound: null,
   successSound: null,
-  isMuted: true, // Start muted by default
+  isMuted: false,
   
-  setBackgroundMusic: (music) => set({ backgroundMusic: music }),
-  setHitSound: (sound) => set({ hitSound: sound }),
-  setSuccessSound: (sound) => set({ successSound: sound }),
+  setBackgroundMusic: (music: HTMLAudioElement) => {
+    set({ backgroundMusic: music });
+  },
+  
+  setHitSound: (sound: HTMLAudioElement) => {
+    set({ hitSound: sound });
+  },
+  
+  setSuccessSound: (sound: HTMLAudioElement) => {
+    set({ successSound: sound });
+  },
   
   toggleMute: () => {
-    const { isMuted } = get();
-    const newMutedState = !isMuted;
+    const { isMuted, backgroundMusic, hitSound, successSound } = get();
     
-    // Just update the muted state
-    set({ isMuted: newMutedState });
+    // Toggle mute state
+    set({ isMuted: !isMuted });
     
-    // Log the change
-    console.log(`Sound ${newMutedState ? 'muted' : 'unmuted'}`);
+    // Update audio elements
+    if (backgroundMusic) {
+      backgroundMusic.muted = !isMuted;
+    }
+    
+    if (hitSound) {
+      hitSound.muted = !isMuted;
+    }
+    
+    if (successSound) {
+      successSound.muted = !isMuted;
+    }
   },
   
   playHit: () => {
     const { hitSound, isMuted } = get();
-    if (hitSound) {
-      // If sound is muted, don't play anything
-      if (isMuted) {
-        console.log("Hit sound skipped (muted)");
-        return;
-      }
-      
-      // Clone the sound to allow overlapping playback
-      const soundClone = hitSound.cloneNode() as HTMLAudioElement;
-      soundClone.volume = 0.3;
-      soundClone.play().catch(error => {
-        console.log("Hit sound play prevented:", error);
+    if (hitSound && !isMuted) {
+      // Reset playback position and play the sound
+      hitSound.currentTime = 0;
+      hitSound.play().catch(err => {
+        console.error('Failed to play hit sound:', err);
       });
     }
   },
   
   playSuccess: () => {
     const { successSound, isMuted } = get();
-    if (successSound) {
-      // If sound is muted, don't play anything
-      if (isMuted) {
-        console.log("Success sound skipped (muted)");
-        return;
-      }
-      
+    if (successSound && !isMuted) {
+      // Reset playback position and play the sound
       successSound.currentTime = 0;
-      successSound.play().catch(error => {
-        console.log("Success sound play prevented:", error);
+      successSound.play().catch(err => {
+        console.error('Failed to play success sound:', err);
       });
     }
   }
