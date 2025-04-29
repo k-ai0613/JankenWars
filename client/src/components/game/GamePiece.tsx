@@ -92,23 +92,13 @@ export const GamePiece: React.FC<GamePieceProps> = ({
   };
 
   return (
-    <AnimatePresence mode="wait">
-      <motion.div 
-        className={`flex items-center justify-center ${selectedClass}`}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        whileHover="hover"
-        layoutId={`piece-${type}-${owner}`}
-        variants={pieceVariants}
-      >
-        <div className={pieceClass}>
-          {renderPieceIcon()}
-          <div className={`absolute top-0 right-0 ${labelSize} bg-white text-black font-bold rounded-full flex items-center justify-center shadow-sm border border-gray-300`}>
-            {pieceLabel}
-          </div>
+    <div className={`flex items-center justify-center ${selectedClass}`}>
+      <div className={pieceClass}>
+        {renderPieceIcon()}
+        <div className={`absolute top-0 right-0 ${labelSize} bg-white text-black font-bold rounded-full flex items-center justify-center shadow-sm border border-gray-300`}>
+          {pieceLabel}
         </div>
-      </motion.div>
-    </AnimatePresence>
+      </div>
+    </div>
   );
 };

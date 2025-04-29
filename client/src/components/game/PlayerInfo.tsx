@@ -39,10 +39,9 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({
     )}>
       <h3 className={cn(
         "text-lg font-bold mb-3", 
-        playerColor,
-        isCurrentPlayer && "animate-pulse"
+        playerColor
       )}>
-        {playerName} {isCurrentPlayer && '(Current Turn)'}
+        {playerName} {isCurrentPlayer && <span className="text-base"> (Current Turn)</span>}
       </h3>
       
       <div className="grid grid-cols-2 gap-3">

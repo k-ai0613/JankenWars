@@ -1,0 +1,56 @@
+lockdown-install.js:1 Removing unpermitted intrinsics
+client:495 [vite] connecting...
+chunk-GKJBSOWT.js?v=6191bf7e:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+react-router-dom.js?v=6191bf7e:4394 ⚠️ React Router Future Flag Warning: React Router will begin wrapping state updates in `React.startTransition` in v7. You can use the `v7_startTransition` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_starttransition.
+warnOnce @ react-router-dom.js?v=6191bf7e:4394
+react-router-dom.js?v=6191bf7e:4394 ⚠️ React Router Future Flag Warning: Relative route resolution within Splat routes is changing in v7. You can use the `v7_relativeSplatPath` future flag to opt-in early. For more information, see https://reactrouter.com/v6/upgrading/future#v7_relativesplatpath.
+warnOnce @ react-router-dom.js?v=6191bf7e:4394
+client:618 [vite] connected.
+chunk-GKJBSOWT.js?v=6191bf7e:16670 Uncaught NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
+    at removeChild (chunk-GKJBSOWT.js?v=6191bf7e:8456:26)
+    at commitDeletionEffectsOnFiber (chunk-GKJBSOWT.js?v=6191bf7e:17510:21)
+    at commitDeletionEffects (chunk-GKJBSOWT.js?v=6191bf7e:17477:13)
+    at recursivelyTraverseMutationEffects (chunk-GKJBSOWT.js?v=6191bf7e:17674:17)
+    at commitMutationEffectsOnFiber (chunk-GKJBSOWT.js?v=6191bf7e:17737:15)
+    at recursivelyTraverseMutationEffects (chunk-GKJBSOWT.js?v=6191bf7e:17685:15)
+    at commitMutationEffectsOnFiber (chunk-GKJBSOWT.js?v=6191bf7e:17737:15)
+    at recursivelyTraverseMutationEffects (chunk-GKJBSOWT.js?v=6191bf7e:17685:15)
+    at commitMutationEffectsOnFiber (chunk-GKJBSOWT.js?v=6191bf7e:17699:15)
+    at recursivelyTraverseMutationEffects (chunk-GKJBSOWT.js?v=6191bf7e:17685:15)
+chunk-GKJBSOWT.js?v=6191bf7e:14032 The above error occurred in the <Text> component:
+
+    at h3
+    at div
+    at PlayerInfo (https://05bd2826-4a4a-4b60-88de-833e25528688-00-lqocg4obt5na.riker.replit.dev/src/components/game/PlayerInfo.tsx:21:3)
+    at div
+    at div
+    at div
+    at div
+    at div
+    at GamePage (https://05bd2826-4a4a-4b60-88de-833e25528688-00-lqocg4obt5na.riker.replit.dev/src/pages/GamePage.tsx:34:21)
+    at RenderedRoute (https://05bd2826-4a4a-4b60-88de-833e25528688-00-lqocg4obt5na.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=6191bf7e:4089:5)
+    at Routes (https://05bd2826-4a4a-4b60-88de-833e25528688-00-lqocg4obt5na.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=6191bf7e:4559:5)
+    at Router (https://05bd2826-4a4a-4b60-88de-833e25528688-00-lqocg4obt5na.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=6191bf7e:4502:15)
+    at BrowserRouter (https://05bd2826-4a4a-4b60-88de-833e25528688-00-lqocg4obt5na.riker.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-router-dom.js?v=6191bf7e:5248:5)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-GKJBSOWT.js?v=6191bf7e:14032
+chunk-GKJBSOWT.js?v=6191bf7e:9129 Uncaught NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
+    at removeChild (chunk-GKJBSOWT.js?v=6191bf7e:8456:26)
+    at commitDeletionEffectsOnFiber (chunk-GKJBSOWT.js?v=6191bf7e:17510:21)
+    at commitDeletionEffects (chunk-GKJBSOWT.js?v=6191bf7e:17477:13)
+    at recursivelyTraverseMutationEffects (chunk-GKJBSOWT.js?v=6191bf7e:17674:17)
+    at commitMutationEffectsOnFiber (chunk-GKJBSOWT.js?v=6191bf7e:17737:15)
+    at recursivelyTraverseMutationEffects (chunk-GKJBSOWT.js?v=6191bf7e:17685:15)
+    at commitMutationEffectsOnFiber (chunk-GKJBSOWT.js?v=6191bf7e:17737:15)
+    at recursivelyTraverseMutationEffects (chunk-GKJBSOWT.js?v=6191bf7e:17685:15)
+    at commitMutationEffectsOnFiber (chunk-GKJBSOWT.js?v=6191bf7e:17699:15)
+    at recursivelyTraverseMutationEffects (chunk-GKJBSOWT.js?v=6191bf7e:17685:15)
+
+                
+          
+          
+          
+         Chrome is moving towards a new experience that allows users to choose to browse without third-party cookies.
