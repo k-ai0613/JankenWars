@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { useGame, GamePhase as StoreGamePhase } from '../lib/stores/useGame';
+import { useGame } from '../lib/stores/useGame';
 import { useJankenGame } from '../lib/stores/useJankenGame';
 import { PieceType, Player, Position } from '../lib/types';
 import { useAudio } from '../lib/stores/useAudio';
@@ -151,22 +151,17 @@ export function GamePage() {
   
   const audioStore = useAudio();
 
-  // Initialize audio when component mounts
+  // Initialize audio when component mounts - currently disabled to avoid empty file errors
   useEffect(() => {
-    // Create audio elements
+    // Set mock audio for now to avoid errors
     if (!audioStore.backgroundMusic) {
-      const bgMusic = new Audio('/audio/background.mp3');
-      bgMusic.loop = true;
-      bgMusic.volume = 0.3;
-      audioStore.setBackgroundMusic(bgMusic);
+      // We'll use empty functions to prevent errors
+      audioStore.setBackgroundMusic(new Audio());
+      audioStore.setHitSound(new Audio());
+      audioStore.setSuccessSound(new Audio());
       
-      const hitSound = new Audio('/audio/hit.mp3');
-      hitSound.volume = 0.5;
-      audioStore.setHitSound(hitSound);
-      
-      const successSound = new Audio('/audio/success.mp3');
-      successSound.volume = 0.5;
-      audioStore.setSuccessSound(successSound);
+      // Mute by default until we have actual audio files
+      audioStore.toggleMute();
     }
   }, [audioStore]);
 
@@ -207,13 +202,13 @@ export function GamePage() {
 
         {/* Game controls */}
         <div className="flex gap-2 mb-6 flex-wrap justify-center">
-          {gameStore.phase === StoreGamePhase.READY && (
+          {gameStore.phase === 'ready' && (
             <Button onClick={handleStartGame} size="lg">
               Start Game
             </Button>
           )}
           
-          {gameStore.phase === StoreGamePhase.PLAYING && (
+          {gameStore.phase === 'playing' && (
             <>
               <Button onClick={selectSpecialPiece} 
                 disabled={currentPlayer === Player.PLAYER1 
@@ -229,7 +224,7 @@ export function GamePage() {
             </>
           )}
           
-          {gameStore.phase === StoreGamePhase.ENDED && (
+          {gameStore.phase === 'ended' && (
             <Button onClick={handleResetGame} size="lg">
               Play Again
             </Button>
