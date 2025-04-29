@@ -33,38 +33,48 @@ export const GamePiece: React.FC<GamePieceProps> = ({
     lg: 'w-14 h-14'
   }[size];
   
-  // Determine owner color styles - stronger text colors for maximum visibility
-  // Ensure the correct owner colors are being used
-  let ownerColor = 'text-gray-800 font-bold text-3xl'; // Default fallback
+  // 明示的にスタイルを定義 - 明確な条件分岐で信頼性を高める
+  let ownerColor = '';
+  let borderColorClass = '';
+  let bgColorClass = '';
   
-  // normalizePlayer関数を使用して最高レベルの信頼性を確保
-  const normalizedOwner = normalizePlayer(owner);
-  const isPlayer1 = normalizedOwner === Player.PLAYER1;
-  const isPlayer2 = normalizedOwner === Player.PLAYER2;
+  // 所有者の文字列表現を取得して完全なデバッグデータを書き出す
+  const ownerAsString = String(owner).toUpperCase();
   
-  console.log('GamePiece normalized owner [DETAILS]:', { 
+  console.log('GamePiece [DEBUG]:', { 
     owner, 
-    normalizedOwner,
-    ownerStr: String(owner),
-    normalizedStr: String(normalizedOwner),
+    type,
+    ownerAsString,
+    rawOwner: owner,
     ownerType: typeof owner,
-    normalizedType: typeof normalizedOwner,
-    ownerEquality: owner === normalizedOwner,
-    isPlayer1,
-    isPlayer2,
-    // プレイヤー列挙体の値を確認
-    Player1Value: Player.PLAYER1,
-    Player2Value: Player.PLAYER2,
-    checkEquality1: normalizedOwner === Player.PLAYER2,
-    checkEquality2: String(normalizedOwner) === String(Player.PLAYER2)
+    isP1direct: owner === Player.PLAYER1, 
+    isP2direct: owner === Player.PLAYER2,
+    isP1string: ownerAsString === 'PLAYER1',
+    isP2string: ownerAsString === 'PLAYER2',
+    isP1includes: ownerAsString.includes('PLAYER1'),
+    isP2includes: ownerAsString.includes('PLAYER2'),
   });
-  
-  if (isPlayer1) {
+
+  // 完全にハードコードされた条件分岐で判断 - 文字列で決定
+  if (ownerAsString === 'PLAYER1' || ownerAsString.includes('PLAYER1')) {
+    // Player 1のスタイル - 青色
     ownerColor = 'text-blue-800 font-bold text-3xl';
-    console.log('PLAYER1 COLOR APPLIED using normalized owner'); 
-  } else if (isPlayer2) {
+    borderColorClass = 'border-blue-500';
+    bgColorClass = 'bg-blue-50';
+    console.log('✅ PLAYER1 STYLE APPLIED using direct string check', { owner, ownerAsString });
+  } 
+  else if (ownerAsString === 'PLAYER2' || ownerAsString.includes('PLAYER2')) {
+    // Player 2のスタイル - 赤色 
     ownerColor = 'text-red-800 font-bold text-3xl';
-    console.log('PLAYER2 COLOR APPLIED using normalized owner to:', { normalizedOwner, type });
+    borderColorClass = 'border-red-500';
+    bgColorClass = 'bg-red-50';
+    console.log('✅ PLAYER2 STYLE APPLIED using direct string check:', { owner, ownerAsString, type });
+  }
+  else {
+    // デフォルトスタイル
+    ownerColor = 'text-gray-800 font-bold text-3xl';
+    borderColorClass = 'border-gray-400';
+    bgColorClass = 'bg-white';
   }
   
   // Determine label for piece type (Unicode characters for better visibility)
@@ -82,18 +92,8 @@ export const GamePiece: React.FC<GamePieceProps> = ({
     lg: 'w-7 h-7 text-sm -mt-2 -mr-2'
   }[size];
   
-  // Combine all classes - using common white background for all pieces with improved styling and safer owner check
-  let borderColorClass = 'border-gray-500'; // Default fallback
-  
-  // プレイヤー識別結果をボーダーカラーにも反映
-  if (isPlayer1) {
-    borderColorClass = 'border-blue-500';
-  } else if (isPlayer2) {
-    borderColorClass = 'border-red-500';
-    console.log('PLAYER2 BORDER COLOR APPLIED');
-  }
-  
-  const pieceClass = `${ownerColor} ${containerSize} rounded-full bg-white border-2 ${borderColorClass} shadow-md flex items-center justify-center relative`;
+  // すべてのクラスを結合
+  const pieceClass = `${ownerColor} ${containerSize} rounded-full ${bgColorClass} border-2 ${borderColorClass} shadow-md flex items-center justify-center relative`;
 
   // Selected piece has a highlight
   const selectedClass = selected ? 'ring-2 ring-yellow-400' : '';

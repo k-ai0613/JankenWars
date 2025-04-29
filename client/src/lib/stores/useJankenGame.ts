@@ -389,29 +389,35 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     set({ drawAnimation: false });
   },
   
-  // AIの駒配置用のヘルパー関数 - strict modeでブロック内にfunction宣言できないため、外に出す
-  selectCellForPlayer: (position: Position, player: Player, piece: PieceType) => {
+  // AIの駒配置用のヘルパー関数 - 完全に文字列ベースのアプローチに変更
+  selectCellForPlayer: (position: Position, player: Player | string, piece: PieceType) => {
     const { 
       board, 
       player1Inventory, 
       player2Inventory 
     } = get();
     
-    // 重要な修正: normalizePlayer関数を使用して安全なPlayer列挙型値に変換
-    const safePlayer = normalizePlayer(player);
-    console.log('selectCellForPlayer called:', { 
+    // プレイヤー値を文字列として直接扱う
+    const playerString = String(player).toUpperCase();
+    console.log('DIRECT STRING selectCellForPlayer:', { 
       position, 
       originalPlayer: player, 
-      safePlayer, 
+      playerString, 
       piece,
-      isEnum: player === Player.PLAYER2,
-      isSafeEnum: safePlayer === Player.PLAYER2,
       playerType: typeof player,
-      safeType: typeof safePlayer
+      stringType: typeof playerString,
+      isPlayer2ByString: playerString === 'PLAYER2' || playerString.includes('PLAYER2')
     });
     
-    // Check if move is valid - 正規化されたプレイヤー値を使用
-    if (!isValidMove(board, position, piece, safePlayer)) {
+    // プレイヤー認識を文字列ベースで行う
+    const isPlayer1 = playerString === 'PLAYER1' || playerString.includes('PLAYER1');
+    const isPlayer2 = playerString === 'PLAYER2' || playerString.includes('PLAYER2');
+    
+    // Player型としてキャストするのはインターフェース上の邪魔なためのみ
+    const playerForMove = isPlayer2 ? Player.PLAYER2 : (isPlayer1 ? Player.PLAYER1 : Player.NONE);
+    
+    // Check if move is valid - 文字列認識結果に基づく値を使用
+    if (!isValidMove(board, position, piece, playerForMove)) {
       console.warn('Invalid AI move');
       set({ message: 'message.invalidMove', isAIThinking: false });
       return;
@@ -420,9 +426,7 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     // Clone the board
     const newBoard = [...board.map(row => [...row])];
     
-    // 正規化されたプレイヤー値に基づいてインベントリを取得
-    const isPlayer1 = safePlayer === Player.PLAYER1;
-    const isPlayer2 = safePlayer === Player.PLAYER2;
+    // インベントリの取得 - 文字列ベースの判定結果を使用
     
     // Create a new inventory - 正規化されたプレイヤー値に基づく
     const currentInventory = isPlayer1 
@@ -688,20 +692,19 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
           // Add a short delay before placing the piece
           // ここがAIのプレイヤー2の動作の核心部分です
           setTimeout(() => {
-            console.log('AI placing piece at:', bestPosition, 'EXPLICIT PLAYER2 WITH ENUM ACCESS');
+            console.log('AI placing piece at:', bestPosition, 'USING DIRECT STRING VALUE');
             
-            // AIの場合、プレイヤー2を明示的に強制します
-            // 列挙型を直接指定して型安全性を確保
-            const PLAYER2_ENUM = Player.PLAYER2; // 確実に列挙型を取得
+            // AIの場合、プレイヤー2を明示的な文字列として指定
+            // 列挙型としての参照ではなく、直接文字列「PLAYER2」を使用
+            const PLAYER2_STRING = 'PLAYER2';
             
-            console.log('AI using player enum:', {
-              enumValue: PLAYER2_ENUM,
-              enumType: typeof PLAYER2_ENUM,
-              stringValue: String(PLAYER2_ENUM),
-              isActualEnum: PLAYER2_ENUM === Player.PLAYER2,
+            console.log('AI using explicit string as player value:', {
+              value: PLAYER2_STRING,
+              type: typeof PLAYER2_STRING,
             });
             
-            get().selectCellForPlayer(bestPosition, PLAYER2_ENUM, selectedPiece);
+            // 直接文字列を渡して、現在の比較ロジックで確実に一致させる
+            get().selectCellForPlayer(bestPosition, PLAYER2_STRING, selectedPiece);
           }, 400);
           
           // 外部に定義したselectCellForPlayer関数を利用しています

@@ -63,28 +63,26 @@ const GameSquare: React.FC<GameSquareProps> = ({
     }
   };
 
-  // normalizePlayer関数を使用して最高レベルの信頼性を確保
-  const normalizedOwner = normalizePlayer(cell.owner);
+  // 所有者の文字列表現を直接取得して使用
+  const ownerAsString = String(cell.owner).toUpperCase();
   
-  // 正規化された値を使用してプレイヤーを判定
-  const isPlayer1 = normalizedOwner === Player.PLAYER1;
-  const isPlayer2 = normalizedOwner === Player.PLAYER2;
+  // 明示的な文字列比較で所有者を判定
+  const isPlayer1 = ownerAsString === 'PLAYER1' || ownerAsString.includes('PLAYER1');
+  const isPlayer2 = ownerAsString === 'PLAYER2' || ownerAsString.includes('PLAYER2');
   
-  console.log(`Cell at ${position.row},${position.col} NORMALIZED:`, { 
+  console.log(`Cell at ${position.row},${position.col} DIRECT CHECK:`, { 
     piece: cell.piece, 
     owner: cell.owner, 
-    normalizedOwner,
-    ownerStr: String(cell.owner),
-    normalizedStr: String(normalizedOwner),
+    ownerAsString,
     isPlayer1,
     isPlayer2,
     hasBeenUsed: cell.hasBeenUsed 
   });
   
-  // Force a more robust background color selection - completely rewritten
+  // 完全に再実装された背景色選択ロジック
   let bgColorClass = "";
   
-  // 極めてシンプルな条件分岐で背景色を決定
+  // 極めて明確な条件分岐で背景色を決定
   if (isValidMove) {
     // Valid move highlighting
     bgColorClass = "bg-green-300 cursor-pointer ring-2 ring-green-500 hover:bg-green-400";
@@ -94,17 +92,17 @@ const GameSquare: React.FC<GameSquareProps> = ({
     bgColorClass = "bg-amber-300";
   }
   else if (cell.piece !== PieceType.EMPTY) {
-    // normalizePlayerで正規化された安全な値を使用した背景色選択
+    // 文字列ベースの単純な比較で背景色を選択
     if (isPlayer1) {
       bgColorClass = "bg-blue-300"; // Player 1 - BLUE
       console.log(`Cell ${position.row},${position.col} - BLUE for P1 ${cell.piece}`);
     } 
     else if (isPlayer2) {
       bgColorClass = "bg-red-300";  // Player 2 - RED
-      console.log(`Cell ${position.row},${position.col} - RED for P2 ${cell.piece}`);
+      console.log(`Cell ${position.row},${position.col} - RED for P2 ${cell.piece} using string check`);
     }
     else {
-      console.warn("Unknown owner:", { original: cell.owner, normalized: normalizedOwner });
+      console.warn("Unknown owner string:", { ownerOriginal: cell.owner, ownerAsString });
       bgColorClass = "bg-purple-300"; // Error indicator
     }
   } 
