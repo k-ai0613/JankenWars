@@ -399,7 +399,7 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     
     // プレイヤー値を文字列として直接扱う
     const playerString = String(player).toUpperCase();
-    console.log('DIRECT STRING selectCellForPlayer:', { 
+    console.log('🔎 DIRECT STRING selectCellForPlayer:', { 
       position, 
       originalPlayer: player, 
       playerString, 
@@ -426,9 +426,7 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     // Clone the board
     const newBoard = [...board.map(row => [...row])];
     
-    // インベントリの取得 - 文字列ベースの判定結果を使用
-    
-    // Create a new inventory - 正規化されたプレイヤー値に基づく
+    // Create a new inventory - 文字列判定に基づく
     const currentInventory = isPlayer1 
       ? { ...player1Inventory }
       : { ...player2Inventory };
@@ -448,41 +446,41 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     // Play sound effect
     const audioStore = useAudio.getState();
     
-    // 列挙型の安全な値を使用
-    console.log(`Using normalized player: ${safePlayer} for owner (original: ${player}) with type ${typeof safePlayer}`);
+    // 文字列による所有者判定結果を使用
+    console.log(`Using direct string player id: ${playerString} (original: ${player})`);
     
     // If the cell is empty
     if (targetCell.piece === PieceType.EMPTY) {
-      // 列挙型を指定することで型安全性を確保
-      let actualOwner: Player;
+      // 文字列判定結果を基にプレイヤーを特定
+      let ownerString: string;
       
-      // 特に重要なのはPlayer.PLAYER2のケース
-      if (safePlayer === Player.PLAYER2) {
-        actualOwner = Player.PLAYER2; // 完全に確実な値
-        console.log('Explicit PLAYER2 assignment in cell update!');
-      } else if (safePlayer === Player.PLAYER1) {
-        actualOwner = Player.PLAYER1; // 完全に確実な値
+      // 特に重要なのはPLAYER2のケース - 文字列で判断
+      if (isPlayer2) {
+        ownerString = 'PLAYER2'; // 完全に確実な文字列
+        console.log('Direct PLAYER2 string assignment in cell update!');
+      } else if (isPlayer1) {
+        ownerString = 'PLAYER1'; // 完全に確実な文字列
       } else {
-        actualOwner = Player.NONE; // デフォルト値
+        ownerString = 'NONE'; // デフォルト値
       }
       
-      // 新しいセルを作成
+      // 新しいセルを作成 - 明示的に文字列を使用
       const newCell: Cell = {
         piece: piece,
-        owner: actualOwner,
+        owner: ownerString as Player, // キャストして型を合わせる
         hasBeenUsed: false // Not locked yet, can be captured with janken rules
       };
       
       // 適切な色が適用されるよう詳細なデバッグ情報を出力
-      console.log('EXPLICIT_CELL_CREATION', {
+      console.log('📦 NEW CELL CREATION:', {
         position,
         originalPlayer: player,
-        safePlayer,
-        actualOwner,
+        playerString,
+        ownerString,
         cell: newCell,
         ownerType: typeof newCell.owner,
         ownerValue: String(newCell.owner),
-        isPlayer2: newCell.owner === Player.PLAYER2,
+        isPlayer2: ownerString === 'PLAYER2',
         // Debug ID for tracking the update
         updateId: Math.random().toString(36).substring(2, 9)
       });
@@ -496,34 +494,35 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       // Janken battle - replace opponent's piece and lock this cell
       const defendingPiece = targetCell.piece;
       
-      // ジャンケンバトルの場合も列挙型を明示的に使用
-      let battleOwner: Player;
+      // ジャンケンバトルの場合も文字列を明示的に使用
+      let battleOwnerString: string;
       
-      // 特に重要なのはPlayer.PLAYER2のケース
-      if (safePlayer === Player.PLAYER2) {
-        battleOwner = Player.PLAYER2; // 完全に確実な値
-        console.log('Explicit PLAYER2 assignment in Janken battle!');
-      } else if (safePlayer === Player.PLAYER1) {
-        battleOwner = Player.PLAYER1; // 完全に確実な値
+      // 文字列判定結果に基づいてオーナーを決定
+      if (isPlayer2) {
+        battleOwnerString = 'PLAYER2'; // 完全に確実な文字列
+        console.log('Direct PLAYER2 string in Janken battle!');
+      } else if (isPlayer1) {
+        battleOwnerString = 'PLAYER1'; // 完全に確実な文字列
       } else {
-        battleOwner = Player.NONE; // デフォルト値
+        battleOwnerString = 'NONE'; // デフォルト値
       }
       
-      // 新しいセルを作成
+      // 新しいセルを作成 - 明示的に文字列を使用
       const battleCell: Cell = {
         piece: piece,
-        owner: battleOwner,
+        owner: battleOwnerString as Player, // キャストして型を合わせる
         hasBeenUsed: true // Lock this cell after janken battle
       };
       
-      console.log('JANKEN_BATTLE_UPDATE', {
+      console.log('⚔️ JANKEN_BATTLE_UPDATE:', {
         position,
         originalPlayer: player,
-        safePlayer,
-        battleOwner,
+        playerString,
+        battleOwnerString,
         cell: battleCell,
         ownerType: typeof battleCell.owner,
-        isPlayer2: battleCell.owner === Player.PLAYER2,
+        ownerValue: String(battleCell.owner),
+        isPlayer2: battleOwnerString === 'PLAYER2',
         battleId: Math.random().toString(36).substring(2, 9)
       });
       
@@ -704,7 +703,8 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
             });
             
             // 直接文字列を渡して、現在の比較ロジックで確実に一致させる
-            get().selectCellForPlayer(bestPosition, PLAYER2_STRING, selectedPiece);
+            // キャストを追加して型安全性を確保
+            get().selectCellForPlayer(bestPosition, PLAYER2_STRING as Player, selectedPiece);
           }, 400);
           
           // 外部に定義したselectCellForPlayer関数を利用しています
