@@ -123,27 +123,27 @@ const defaultTranslations: Record<string, Record<Language, string>> = {
   },
   'game.aiBeginner': {
     en: 'Beginner',
-    ja: '入門'
+    ja: '初心者'
   },
   'game.aiEasy': {
     en: 'Easy',
-    ja: '簡単'
+    ja: '普通'
   },
   'game.aiNormal': {
     en: 'Normal',
-    ja: '通常'
+    ja: '難しい'
   },
   'game.aiMedium': {
     en: 'Medium',
-    ja: '中級'
+    ja: '上級'
   },
   'game.aiHard': {
     en: 'Hard',
-    ja: '高級'
+    ja: '最強'
   },
   'game.aiExpert': {
     en: 'Expert',
-    ja: '上級者'
+    ja: '神'
   },
   'message.aiSelectedPiece': {
     en: 'AI has selected a piece',
