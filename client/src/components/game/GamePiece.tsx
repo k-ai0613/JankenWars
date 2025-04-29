@@ -63,13 +63,13 @@ export const GamePiece: React.FC<GamePieceProps> = ({
   const renderPieceIcon = () => {
     switch (type) {
       case PieceType.ROCK:
-        return '✊';
+        return '✊'; // グー
       case PieceType.PAPER:
-        return '✋';
+        return '✋'; // パー
       case PieceType.SCISSORS:
-        return '✌️';
+        return '✌️'; // チョキ
       case PieceType.SPECIAL:
-        return '⭐';
+        return '⭐'; // 特殊駒
       default:
         return null;
     }
