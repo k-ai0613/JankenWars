@@ -10,6 +10,7 @@ import {
 } from '../gameUtils';
 import { AIDifficulty, findBestMove } from '../aiUtils';
 import { useAudio } from './useAudio';
+import { useLanguage } from './useLanguage';
 
 interface JankenGameState {
   // Board state
@@ -159,6 +160,8 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       audioStore.playSuccess();
     } else {
       // Janken battle - replace opponent's piece and lock this cell
+      const defendingPiece = targetCell.piece;
+      
       newBoard[position.row][position.col] = {
         piece: selectedPiece,
         owner: currentPlayer,
@@ -170,6 +173,21 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       
       // Trigger capture animation
       set({ captureAnimation: position });
+      
+      // Display a message about the janken battle result
+      let jankenResultMessage = '';
+
+      // Create a specific message based on what pieces were involved
+      if (selectedPiece === PieceType.ROCK && defendingPiece === PieceType.SCISSORS) {
+        jankenResultMessage = 'Rock crushes Scissors! You captured the square.';
+      } else if (selectedPiece === PieceType.SCISSORS && defendingPiece === PieceType.PAPER) {
+        jankenResultMessage = 'Scissors cut Paper! You captured the square.';
+      } else if (selectedPiece === PieceType.PAPER && defendingPiece === PieceType.ROCK) {
+        jankenResultMessage = 'Paper covers Rock! You captured the square.';
+      }
+      
+      // Set the custom message directly (will not go through translation)
+      set({ message: jankenResultMessage });
     }
     
     // Update inventories

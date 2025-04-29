@@ -201,6 +201,10 @@ const defaultTranslations: Record<string, Record<Language, string>> = {
     en: 'Invalid move. Try another position.',
     ja: '無効な移動です。別の位置を試してください。'
   },
+  'message.jankenWin': {
+    en: 'Your {piece} beats opponent\'s {opponentPiece}! You captured the square.',
+    ja: 'あなたの{piece}は相手の{opponentPiece}に勝ちました！マスを獲得しました。'
+  },
   'message.specialPieceUsed': {
     en: "You've already used your special piece.",
     ja: '特殊駒はすでに使用済みです。'
