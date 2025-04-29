@@ -38,8 +38,23 @@ export const GamePiece: React.FC<GamePieceProps> = ({
     ? 'text-blue-600 bg-blue-200 border-blue-400' 
     : 'text-red-600 bg-red-200 border-red-400';
   
+  // Determine label for piece type (Unicode characters for better visibility)
+  const pieceLabel = {
+    [PieceType.ROCK]: 'R',
+    [PieceType.PAPER]: 'P',
+    [PieceType.SCISSORS]: 'S',
+    [PieceType.SPECIAL]: '★',
+  }[type];
+  
+  // Label size based on container size
+  const labelSize = {
+    sm: 'w-3 h-3 text-[8px] -mt-1 -mr-1',
+    md: 'w-5 h-5 text-xs -mt-2 -mr-2',
+    lg: 'w-6 h-6 text-sm -mt-2 -mr-2'
+  }[size];
+  
   // Combine all classes
-  const pieceClass = `${ownerColor} ${containerSize} ${fontSize} rounded-full border-2 shadow-md flex items-center justify-center`;
+  const pieceClass = `${ownerColor} ${containerSize} ${fontSize} rounded-full border-2 shadow-md flex items-center justify-center relative`;
 
   // Selected piece has a highlight
   const selectedClass = selected ? 'ring-2 ring-yellow-400' : '';
@@ -89,6 +104,9 @@ export const GamePiece: React.FC<GamePieceProps> = ({
       >
         <div className={pieceClass}>
           {renderPieceIcon()}
+          <div className={`absolute top-0 right-0 ${labelSize} bg-white text-black font-bold rounded-full flex items-center justify-center shadow-sm border border-gray-300`}>
+            {pieceLabel}
+          </div>
         </div>
       </motion.div>
     </AnimatePresence>

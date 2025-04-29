@@ -51,9 +51,12 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({
             <GamePiece type={PieceType.ROCK} owner={player} size="sm" 
               selected={selectedPiece === PieceType.ROCK} />
           </div>
-          <span className={`text-base font-medium ${selectedPiece === PieceType.ROCK ? 'font-bold' : ''}`}>
-            × {inventory[PieceType.ROCK]}
-          </span>
+          <div className="flex flex-col">
+            <span className="text-xs text-gray-500 -mb-1">Rock (R)</span>
+            <span className={`text-base font-medium ${selectedPiece === PieceType.ROCK ? 'font-bold' : ''}`}>
+              × {inventory[PieceType.ROCK]}
+            </span>
+          </div>
         </div>
         
         <div className="flex items-center gap-2 p-2 rounded-lg bg-white/70 backdrop-blur-sm border border-slate-200 shadow-sm hover:bg-white/90 transition-colors">
@@ -61,9 +64,12 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({
             <GamePiece type={PieceType.PAPER} owner={player} size="sm" 
               selected={selectedPiece === PieceType.PAPER} />
           </div>
-          <span className={`text-base font-medium ${selectedPiece === PieceType.PAPER ? 'font-bold' : ''}`}>
-            × {inventory[PieceType.PAPER]}
-          </span>
+          <div className="flex flex-col">
+            <span className="text-xs text-gray-500 -mb-1">Paper (P)</span>
+            <span className={`text-base font-medium ${selectedPiece === PieceType.PAPER ? 'font-bold' : ''}`}>
+              × {inventory[PieceType.PAPER]}
+            </span>
+          </div>
         </div>
         
         <div className="flex items-center gap-2 p-2 rounded-lg bg-white/70 backdrop-blur-sm border border-slate-200 shadow-sm hover:bg-white/90 transition-colors">
@@ -71,9 +77,12 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({
             <GamePiece type={PieceType.SCISSORS} owner={player} size="sm" 
               selected={selectedPiece === PieceType.SCISSORS} />
           </div>
-          <span className={`text-base font-medium ${selectedPiece === PieceType.SCISSORS ? 'font-bold' : ''}`}>
-            × {inventory[PieceType.SCISSORS]}
-          </span>
+          <div className="flex flex-col">
+            <span className="text-xs text-gray-500 -mb-1">Scissors (S)</span>
+            <span className={`text-base font-medium ${selectedPiece === PieceType.SCISSORS ? 'font-bold' : ''}`}>
+              × {inventory[PieceType.SCISSORS]}
+            </span>
+          </div>
         </div>
         
         <div className="flex items-center gap-2 p-2 rounded-lg bg-white/70 backdrop-blur-sm border border-slate-200 shadow-sm hover:bg-white/90 transition-colors">
