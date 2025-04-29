@@ -211,6 +211,10 @@ export const isValidMove = (
   }
   
   // Otherwise, it's valid if the current player's piece can win against the target piece
+  // In Japanese Janken Rules:
+  // - Rock (グー) beats Scissors (チョキ)
+  // - Scissors (チョキ) beats Paper (パー)
+  // - Paper (パー) beats Rock (グー)
   // In determineWinner(), Player.PLAYER1 always represents the attacker, regardless of actual player
   const attackingResult = determineWinner(selectedPiece, targetCell.piece);
   return attackingResult === Player.PLAYER1; // PLAYER1 means attacker wins, not necessarily that Player 1 wins

@@ -178,6 +178,10 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       let jankenResultMessage = '';
 
       // Create a specific message based on what pieces were involved
+      // In Japanese Janken Rules:
+      // - Rock (グー) beats Scissors (チョキ)
+      // - Scissors (チョキ) beats Paper (パー)
+      // - Paper (パー) beats Rock (グー)
       if (selectedPiece === PieceType.ROCK && defendingPiece === PieceType.SCISSORS) {
         jankenResultMessage = 'message.rockVsScissors';
       } else if (selectedPiece === PieceType.SCISSORS && defendingPiece === PieceType.PAPER) {

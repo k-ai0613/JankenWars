@@ -60,15 +60,19 @@ export const GamePiece: React.FC<GamePieceProps> = ({
   const selectedClass = selected ? 'ring-2 ring-yellow-400' : '';
 
   // Render the appropriate icon based on piece type
+  // In Japanese Janken Rules:
+  // - Rock (グー) beats Scissors (チョキ)
+  // - Scissors (チョキ) beats Paper (パー)
+  // - Paper (パー) beats Rock (グー)
   const renderPieceIcon = () => {
     switch (type) {
-      case PieceType.ROCK: // グー（拳を握った形）
+      case PieceType.ROCK: // グー (Rock, 拳を握った形) - Beats Scissors
         return '✊';
-      case PieceType.PAPER: // パー（手のひらを広げた形）
+      case PieceType.PAPER: // パー (Paper, 手のひらを広げた形) - Beats Rock
         return '✋';
-      case PieceType.SCISSORS: // チョキ（人差し指と中指を出した形）
+      case PieceType.SCISSORS: // チョキ (Scissors, 人差し指と中指を出した形) - Beats Paper
         return '✌️';
-      case PieceType.SPECIAL: // 特殊駒（星マーク）
+      case PieceType.SPECIAL: // 特殊駒 (Special, 星マーク) - Can't attack or be attacked
         return '⭐';
       default:
         return null;
