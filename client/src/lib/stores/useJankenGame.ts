@@ -157,6 +157,7 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
         ? GameResult.PLAYER1_WIN 
         : GameResult.PLAYER2_WIN;
         
+      // The current player won!
       set({
         ...newState,
         result,
@@ -243,7 +244,8 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
           set({ 
             currentPlayer: nextPlayer,
             selectedPiece: null,
-            message: `${currentPlayer === Player.PLAYER1 ? 'Player 1' : 'Player 2'} has no pieces left. ${nextPlayer === Player.PLAYER1 ? 'Player 1' : 'Player 2'}'s turn.`
+            message: `${currentPlayer === Player.PLAYER1 ? 'Player 1' : 'Player 2'} has no pieces left. ${nextPlayer === Player.PLAYER1 ? 'Player 1' : 'Player 2'}'s turn.`,
+            loseAnimation: true // The current player has no more pieces - they're losing!
           });
           
           // Select random piece for next player

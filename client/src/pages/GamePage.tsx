@@ -290,7 +290,7 @@ export function GamePage() {
 
   return (
     <div className="container mx-auto p-4 min-h-screen bg-slate-50 relative overflow-hidden">
-      {/* Victory confetti */}
+      {/* Animation effects */}
       {winAnimation && (
         <Confetti
           width={windowSize.width}
@@ -300,6 +300,29 @@ export function GamePage() {
           gravity={0.2}
           colors={getConfettiColors()}
         />
+      )}
+      {drawAnimation && (
+        <Confetti
+          width={windowSize.width}
+          height={windowSize.height}
+          recycle={false}
+          numberOfPieces={100}
+          gravity={0.3}
+          colors={getConfettiColors()}
+          tweenDuration={5000}
+        />
+      )}
+      {loseAnimation && (
+        <motion.div 
+          className="absolute inset-0 pointer-events-none"
+          initial={{ opacity: 0 }}
+          animate={{
+            opacity: [0, 0.2, 0],
+            transition: { duration: 1.5, repeat: 2, repeatType: "reverse" as const }
+          }}
+        >
+          <div className="w-full h-full bg-red-500 opacity-20"></div>
+        </motion.div>
       )}
       
       <div className="flex flex-col items-center">
@@ -367,13 +390,28 @@ export function GamePage() {
           <motion.div 
             key={message} // Forces re-animation when message changes
             initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
+            animate={{ 
+              opacity: 1, 
+              y: 0,
+              scale: winAnimation ? [1, 1.05, 1] : 1,
+              transition: { 
+                duration: winAnimation ? 1 : 0.3,
+                repeat: winAnimation ? 5 : 0,
+                repeatType: "reverse" as const
+              }
+            }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.3 }}
-            className={`bg-white p-4 rounded-lg shadow-md mb-6 w-full max-w-md text-center
-              ${winAnimation ? 'ring-4 ring-yellow-400 bg-gradient-to-r from-yellow-50 to-yellow-100' : ''}`}
+            className={`p-4 rounded-lg shadow-md mb-6 w-full max-w-md text-center
+              ${winAnimation ? 'ring-4 ring-yellow-400 bg-gradient-to-r from-yellow-50 to-yellow-100' : 'bg-white'}
+              ${drawAnimation ? 'ring-4 ring-green-400 bg-gradient-to-r from-green-50 to-green-100' : ''}
+              ${loseAnimation ? 'ring-2 ring-red-300 bg-gradient-to-r from-red-50 to-red-100' : ''}
+            `}
           >
-            <p className={winAnimation ? 'font-bold text-lg' : ''}>
+            <p className={`
+              ${winAnimation ? 'font-bold text-lg animate-pulse' : ''}
+              ${drawAnimation ? 'font-semibold text-md' : ''}
+            `}>
               {message.startsWith('message.') ? t(message) : message}
             </p>
           </motion.div>
