@@ -108,12 +108,20 @@ interface PlayerInfoProps {
 const PlayerInfo: React.FC<PlayerInfoProps> = ({ player, inventory, isCurrentPlayer, selectedPiece }) => {
   const { t } = useLanguage();
   const playerKey = player === Player.PLAYER1 ? 'game.player1' : 'game.player2';
-  const colorClass = player === Player.PLAYER1 ? 'border-blue-500' : 'border-red-500';
-  const isActiveClass = isCurrentPlayer ? 'bg-slate-100 shadow-md' : 'bg-slate-50';
+  const isActiveClass = isCurrentPlayer 
+    ? `bg-gradient-to-r ${player === Player.PLAYER1 ? 'from-blue-50 to-blue-100 border-blue-500' : 'from-red-50 to-red-100 border-red-500'} shadow-md border-2 ring-2 ring-yellow-300` 
+    : `bg-slate-50 border-2 ${player === Player.PLAYER1 ? 'border-blue-500' : 'border-red-500'}`;
   
   return (
-    <div className={`p-4 rounded-lg border-2 ${colorClass} ${isActiveClass}`}>
-      <h3 className="font-bold text-lg mb-2">{t(playerKey)}{isCurrentPlayer ? t('game.currentTurn') : ''}</h3>
+    <div className={`p-4 rounded-lg ${isActiveClass}`}>
+      <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
+        {t(playerKey)}
+        {isCurrentPlayer && (
+          <span className="text-sm bg-yellow-200 text-yellow-800 px-2 py-0.5 rounded-full font-semibold animate-pulse">
+            {t('game.currentTurn')}
+          </span>
+        )}
+      </h3>
       
       <div className="flex flex-wrap gap-2 mb-2">
         <div className="flex items-center gap-1">
