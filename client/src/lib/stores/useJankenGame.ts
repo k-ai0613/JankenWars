@@ -424,29 +424,29 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     setTimeout(() => {
       const { board, selectedPiece, aiDifficulty } = get();
       
-      // Find best position for the already selected piece (at this point, selectedPiece should never be null)
+      // Add a message that AI is deciding where to place the piece
+      set({ message: 'message.aiDecidingPlacement' });
+      
+      // Find best position for the already selected piece
       if (selectedPiece === null) {
         set({ isAIThinking: false });
         return;
       }
       
-      // AI thinking time varies by difficulty - harder AIs "think" longer
-      const thinkingTime = (() => {
-        switch (aiDifficulty) {
-          case AIDifficulty.BEGINNER: return 800;  // Beginner is quick and impulsive
-          case AIDifficulty.EASY: return 1000;     // Easy takes a bit of time
-          case AIDifficulty.NORMAL: return 1200;   // Normal thinks a bit more
-          case AIDifficulty.MEDIUM: return 1500;   // Medium is more careful
-          case AIDifficulty.HARD: return 1800;     // Hard is very thoughtful
-          case AIDifficulty.EXPERT: return 2200;   // Expert takes its time to find the perfect move
-          default: return 1200;                    // Default
-        }
-      })();
+      // Different AI difficulty levels have different thinking times
+      let thinkingTime = 1200; // Default
       
-      // Add a bit of randomness to make it feel more natural
-      const randomizedThinkingTime = thinkingTime + Math.floor(Math.random() * 400);
+      if (aiDifficulty === AIDifficulty.BEGINNER) thinkingTime = 800;
+      else if (aiDifficulty === AIDifficulty.EASY) thinkingTime = 1000;
+      else if (aiDifficulty === AIDifficulty.NORMAL) thinkingTime = 1200;
+      else if (aiDifficulty === AIDifficulty.MEDIUM) thinkingTime = 1500;
+      else if (aiDifficulty === AIDifficulty.HARD) thinkingTime = 1800;
+      else if (aiDifficulty === AIDifficulty.EXPERT) thinkingTime = 2200;
       
-      // Find the best position after the "thinking" time
+      // Add randomness to thinking time
+      thinkingTime += Math.floor(Math.random() * 400);
+      
+      // Find the best position after thinking
       setTimeout(() => {
         const bestPosition = findBestPosition(board, selectedPiece, aiDifficulty);
         
@@ -461,7 +461,7 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
           // No valid moves, end AI thinking
           set({ isAIThinking: false });
         }
-      }, randomizedThinkingTime);
-    }, 1000); // Initial delay before AI starts "thinking" about placement
+      }, thinkingTime);
+    }, 1000);
   }
 }));
