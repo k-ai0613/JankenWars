@@ -49,7 +49,7 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
   selectedPiece: null,
   player1Inventory: createInitialInventory(),
   player2Inventory: createInitialInventory(),
-  message: 'Welcome to Janken Wars! Press Start to begin.',
+  message: 'message.welcome', // 翻訳用のキーに変更
   
   startGame: () => {
     set({ 
@@ -250,7 +250,7 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       selectedPiece: null,
       player1Inventory: createInitialInventory(),
       player2Inventory: createInitialInventory(),
-      message: 'Welcome to Janken Wars! Press Start to begin.'
+      message: 'message.welcome'
     });
   }
 }));

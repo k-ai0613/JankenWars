@@ -259,7 +259,7 @@ export function GamePage() {
 
         {/* Game message */}
         <div className="bg-white p-4 rounded-lg shadow-sm mb-6 w-full max-w-md text-center">
-          <p>{message}</p>
+          <p>{message.startsWith('message.') ? t(message) : message}</p>
         </div>
 
         {/* Players info */}
