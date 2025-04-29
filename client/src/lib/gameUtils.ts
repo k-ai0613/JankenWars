@@ -1,0 +1,209 @@
+import { Board, Cell, GameResult, PieceType, Player, PlayerInventory, Position } from './types';
+
+// Create an empty 6x6 board
+export const createEmptyBoard = (): Board => {
+  const board: Board = [];
+  for (let i = 0; i < 6; i++) {
+    const row: Cell[] = [];
+    for (let j = 0; j < 6; j++) {
+      row.push({ piece: PieceType.EMPTY, owner: Player.NONE });
+    }
+    board.push(row);
+  }
+  return board;
+};
+
+// Create initial inventory for a player (7 of each normal piece, 1 special)
+export const createInitialInventory = (): PlayerInventory => {
+  return {
+    [PieceType.ROCK]: 7,
+    [PieceType.PAPER]: 7,
+    [PieceType.SCISSORS]: 7,
+    [PieceType.SPECIAL]: 1,
+  };
+};
+
+// Get random piece from inventory (excluding SPECIAL)
+export const getRandomPiece = (inventory: PlayerInventory): PieceType | null => {
+  // Calculate total available normal pieces
+  let availablePieces: PieceType[] = [];
+  
+  // Add each piece type to the available pieces array based on inventory count
+  if (inventory[PieceType.ROCK] > 0) {
+    availablePieces.push(PieceType.ROCK);
+  }
+  if (inventory[PieceType.PAPER] > 0) {
+    availablePieces.push(PieceType.PAPER);
+  }
+  if (inventory[PieceType.SCISSORS] > 0) {
+    availablePieces.push(PieceType.SCISSORS);
+  }
+  
+  // If no pieces available, return null
+  if (availablePieces.length === 0) {
+    return null;
+  }
+  
+  // Return a random piece from available pieces
+  const randomIndex = Math.floor(Math.random() * availablePieces.length);
+  return availablePieces[randomIndex];
+};
+
+// Check if the game is a draw (all pieces placed or no valid moves left)
+export const checkDraw = (
+  board: Board, 
+  player1Inventory: PlayerInventory, 
+  player2Inventory: PlayerInventory
+): boolean => {
+  // Check if any empty cells on the board
+  const hasEmptyCell = board.some(row => 
+    row.some(cell => cell.piece === PieceType.EMPTY)
+  );
+  
+  // If no empty cells, check if any pieces left in inventory
+  if (!hasEmptyCell) {
+    return true;
+  }
+  
+  // Check if both players have no pieces left
+  const player1HasPieces = Object.values(player1Inventory).some(count => count > 0);
+  const player2HasPieces = Object.values(player2Inventory).some(count => count > 0);
+  
+  return !player1HasPieces && !player2HasPieces;
+};
+
+// Checks if there are 5 in a row for the given player
+export const checkWin = (board: Board, player: Player): boolean => {
+  // Check horizontal
+  for (let row = 0; row < 6; row++) {
+    for (let col = 0; col <= 1; col++) {
+      let consecutive = 0;
+      for (let i = 0; i < 5; i++) {
+        if (board[row][col + i].owner === player) {
+          consecutive++;
+        } else {
+          consecutive = 0;
+          break;
+        }
+      }
+      if (consecutive === 5) return true;
+    }
+  }
+
+  // Check vertical
+  for (let col = 0; col < 6; col++) {
+    for (let row = 0; row <= 1; row++) {
+      let consecutive = 0;
+      for (let i = 0; i < 5; i++) {
+        if (board[row + i][col].owner === player) {
+          consecutive++;
+        } else {
+          consecutive = 0;
+          break;
+        }
+      }
+      if (consecutive === 5) return true;
+    }
+  }
+
+  // Check diagonal (top-left to bottom-right)
+  for (let row = 0; row <= 1; row++) {
+    for (let col = 0; col <= 1; col++) {
+      let consecutive = 0;
+      for (let i = 0; i < 5; i++) {
+        if (board[row + i][col + i].owner === player) {
+          consecutive++;
+        } else {
+          consecutive = 0;
+          break;
+        }
+      }
+      if (consecutive === 5) return true;
+    }
+  }
+
+  // Check diagonal (top-right to bottom-left)
+  for (let row = 0; row <= 1; row++) {
+    for (let col = 4; col < 6; col++) {
+      let consecutive = 0;
+      for (let i = 0; i < 5; i++) {
+        if (board[row + i][col - i].owner === player) {
+          consecutive++;
+        } else {
+          consecutive = 0;
+          break;
+        }
+      }
+      if (consecutive === 5) return true;
+    }
+  }
+
+  return false;
+};
+
+// Determine the winner based on Rock-Paper-Scissors rules
+export const determineWinner = (attackingPiece: PieceType, defendingPiece: PieceType): Player => {
+  // Special piece can't attack or be attacked
+  if (attackingPiece === PieceType.SPECIAL || defendingPiece === PieceType.SPECIAL) {
+    return Player.NONE;
+  }
+  
+  // Rock beats Scissors
+  if (attackingPiece === PieceType.ROCK && defendingPiece === PieceType.SCISSORS) {
+    return Player.PLAYER1;
+  }
+  
+  // Scissors beats Paper
+  if (attackingPiece === PieceType.SCISSORS && defendingPiece === PieceType.PAPER) {
+    return Player.PLAYER1;
+  }
+  
+  // Paper beats Rock
+  if (attackingPiece === PieceType.PAPER && defendingPiece === PieceType.ROCK) {
+    return Player.PLAYER1;
+  }
+  
+  // If defending piece wins or it's a tie (same piece types)
+  return Player.PLAYER2;
+};
+
+// Check if the position is valid for placing a piece
+export const isValidMove = (
+  board: Board, 
+  position: Position, 
+  selectedPiece: PieceType, 
+  currentPlayer: Player
+): boolean => {
+  const { row, col } = position;
+  
+  // If the position is out of bounds, it's invalid
+  if (row < 0 || row >= 6 || col < 0 || col >= 6) {
+    return false;
+  }
+  
+  const targetCell = board[row][col];
+  
+  // If the target cell is empty, it's a valid move
+  if (targetCell.piece === PieceType.EMPTY) {
+    return true;
+  }
+  
+  // Special piece can only be placed on empty cells
+  if (selectedPiece === PieceType.SPECIAL) {
+    return false;
+  }
+  
+  // If the target cell is owned by the current player, it's invalid
+  if (targetCell.owner === currentPlayer) {
+    return false;
+  }
+  
+  // If the target cell has a special piece, it's invalid
+  if (targetCell.piece === PieceType.SPECIAL) {
+    return false;
+  }
+  
+  // Otherwise, it's valid if the current player's piece can win against the target piece
+  const winner = determineWinner(selectedPiece, targetCell.piece);
+  return winner === Player.PLAYER1; // Player 1 represents the attacker in determineWinner
+};
