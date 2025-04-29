@@ -71,14 +71,16 @@ const GameSquare: React.FC<GameSquareProps> = ({
         "rounded-md overflow-hidden shadow-inner",
         isValidMove 
           ? "bg-gradient-to-br from-green-100 to-green-200 cursor-pointer ring-2 ring-green-300 hover:from-green-200 hover:to-green-300" 
-          : cell.hasBeenUsed
-            ? "bg-gradient-to-br from-amber-50 to-amber-100" // Janken battle happened, neutral background
-            : cell.piece !== PieceType.EMPTY
-              ? cell.owner === Player.PLAYER1
-                ? "bg-gradient-to-br from-blue-100 to-blue-200" // Player 1 background
+          : cell.piece !== PieceType.EMPTY
+            ? cell.owner === Player.PLAYER1
+              ? cell.hasBeenUsed
+                ? "bg-gradient-to-br from-amber-50 to-amber-100" // Janken battle happened, neutral background
+                : "bg-gradient-to-br from-blue-100 to-blue-200" // Player 1 background
+              : cell.hasBeenUsed
+                ? "bg-gradient-to-br from-amber-50 to-amber-100" // Janken battle happened, neutral background
                 : "bg-gradient-to-br from-red-100 to-red-200" // Player 2 background
-              : "bg-gradient-to-br from-amber-50 to-amber-100", // Empty cell
-        cell.piece !== PieceType.EMPTY && "bg-opacity-90"
+            : "bg-gradient-to-br from-amber-50 to-amber-100", // Empty cell
+        (cell.piece !== PieceType.EMPTY) && "bg-opacity-90"
       )}
       onClick={handleClick}
       data-testid={`cell-${position.row}-${position.col}`}

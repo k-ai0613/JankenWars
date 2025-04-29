@@ -33,10 +33,10 @@ export const GamePiece: React.FC<GamePieceProps> = ({
     lg: 'w-14 h-14'
   }[size];
   
-  // Determine owner color styles - text color only for clearer visuals
+  // Determine owner color styles - stronger text color for better visibility
   const ownerColor = owner === Player.PLAYER1 
-    ? 'text-blue-700' 
-    : 'text-red-700';
+    ? 'text-blue-800 font-bold' 
+    : 'text-red-800 font-bold';
   
   // Determine label for piece type (Unicode characters for better visibility)
   const pieceLabel = {
