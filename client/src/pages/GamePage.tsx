@@ -274,9 +274,9 @@ export function GamePage() {
           </Link>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-6 w-full max-w-6xl mx-auto mb-8">
+        <div className="flex flex-col lg:flex-row gap-6 w-full max-w-7xl mx-auto mb-8">
           {/* Left column - Player info and messages */}
-          <div className="md:w-1/3 flex flex-col gap-4">
+          <div className="lg:w-1/3 flex flex-col gap-4">
             {/* Game message */}
             <AnimatePresence mode="wait">
               <motion.div 
@@ -330,7 +330,7 @@ export function GamePage() {
           </div>
 
           {/* Right column - Game board */}
-          <div className="md:w-2/3">
+          <div className="lg:w-2/3">
             <GameBoard />
           </div>
         </div>

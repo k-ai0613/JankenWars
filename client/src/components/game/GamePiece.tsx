@@ -22,15 +22,15 @@ export const GamePiece: React.FC<GamePieceProps> = ({
 
   // Determine font size based on the size prop
   const fontSize = {
-    sm: 'text-sm',
-    md: 'text-xl',
-    lg: 'text-2xl',
+    sm: 'text-lg',
+    md: 'text-2xl',
+    lg: 'text-3xl',
   }[size];
 
   const containerSize = {
-    sm: 'w-6 h-6',
-    md: 'w-10 h-10',
-    lg: 'w-12 h-12'
+    sm: 'w-7 h-7',
+    md: 'w-12 h-12',
+    lg: 'w-14 h-14'
   }[size];
   
   // Determine owner color styles
@@ -48,9 +48,9 @@ export const GamePiece: React.FC<GamePieceProps> = ({
   
   // Label size based on container size
   const labelSize = {
-    sm: 'w-3 h-3 text-[8px] -mt-1 -mr-1',
-    md: 'w-5 h-5 text-xs -mt-2 -mr-2',
-    lg: 'w-6 h-6 text-sm -mt-2 -mr-2'
+    sm: 'w-4 h-4 text-[9px] -mt-1 -mr-1',
+    md: 'w-6 h-6 text-xs -mt-2 -mr-2',
+    lg: 'w-7 h-7 text-sm -mt-2 -mr-2'
   }[size];
   
   // Combine all classes

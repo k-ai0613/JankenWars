@@ -66,7 +66,7 @@ const GameSquare: React.FC<GameSquareProps> = ({
   return (
     <motion.div 
       className={cn(
-        "w-full h-full flex items-center justify-center relative",
+        "w-full h-full min-w-[60px] min-h-[60px] flex items-center justify-center relative",
         "transition-colors duration-200 ease-in-out",
         "rounded-md overflow-hidden shadow-inner",
         isValidMove 
