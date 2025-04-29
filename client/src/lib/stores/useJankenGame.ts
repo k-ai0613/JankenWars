@@ -98,7 +98,13 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       : { ...player2Inventory };
     
     // Reduce the count of the selected piece
-    currentInventory[selectedPiece]--;
+    if (selectedPiece && selectedPiece !== PieceType.EMPTY && 
+        (selectedPiece === PieceType.ROCK || 
+         selectedPiece === PieceType.PAPER || 
+         selectedPiece === PieceType.SCISSORS || 
+         selectedPiece === PieceType.SPECIAL)) {
+      currentInventory[selectedPiece]--;
+    }
     
     // Update the cell
     const targetCell = newBoard[position.row][position.col];

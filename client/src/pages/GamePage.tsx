@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Switch } from '../components/ui/switch';
@@ -159,6 +159,9 @@ export function GamePage() {
     startGame,
     resetGame,
     selectSpecialPiece,
+    result,
+    winAnimation,
+    clearWinAnimation,
     // getRandomPieceForCurrentPlayer - removed
   } = useJankenGame();
   
@@ -217,9 +220,64 @@ export function GamePage() {
   const handleToggleLanguage = () => {
     setLanguage(language === 'en' ? 'ja' : 'en');
   };
+  
+  // Clear win animation after a set time
+  useEffect(() => {
+    if (winAnimation) {
+      const timer = setTimeout(() => {
+        clearWinAnimation();
+      }, 8000); // 8 seconds of celebration is enough
+      
+      return () => clearTimeout(timer);
+    }
+  }, [winAnimation, clearWinAnimation]);
+  
+  // Get window size for confetti
+  const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
+  
+  useEffect(() => {
+    const updateWindowSize = () => {
+      setWindowSize({ 
+        width: window.innerWidth, 
+        height: window.innerHeight 
+      });
+    };
+    
+    // Set initial size
+    updateWindowSize();
+    
+    // Add resize listener
+    window.addEventListener('resize', updateWindowSize);
+    
+    // Cleanup
+    return () => window.removeEventListener('resize', updateWindowSize);
+  }, []);
+
+  // Determine confetti colors based on winner
+  const getConfettiColors = () => {
+    if (result === GameResult.PLAYER1_WIN) {
+      return ['#3B82F6', '#93C5FD', '#DBEAFE', '#FFFFFF']; // Blue theme
+    } else if (result === GameResult.PLAYER2_WIN) {
+      return ['#EF4444', '#FCA5A5', '#FEE2E2', '#FFFFFF']; // Red theme
+    } else {
+      return ['#10B981', '#A7F3D0', '#D1FAE5', '#FFFFFF']; // Green theme for draw
+    }
+  };
 
   return (
-    <div className="container mx-auto p-4 min-h-screen bg-slate-50">
+    <div className="container mx-auto p-4 min-h-screen bg-slate-50 relative overflow-hidden">
+      {/* Victory confetti */}
+      {winAnimation && (
+        <Confetti
+          width={windowSize.width}
+          height={windowSize.height}
+          recycle={true}
+          numberOfPieces={200}
+          gravity={0.2}
+          colors={getConfettiColors()}
+        />
+      )}
+      
       <div className="flex flex-col items-center">
         {/* Language toggle */}
         <div className="self-end flex items-center space-x-3 mb-4 bg-slate-100 p-3 rounded-lg shadow-md border border-slate-200">
@@ -281,9 +339,21 @@ export function GamePage() {
         </div>
 
         {/* Game message */}
-        <div className="bg-white p-4 rounded-lg shadow-sm mb-6 w-full max-w-md text-center">
-          <p>{message.startsWith('message.') ? t(message) : message}</p>
-        </div>
+        <AnimatePresence mode="wait">
+          <motion.div 
+            key={message} // Forces re-animation when message changes
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.3 }}
+            className={`bg-white p-4 rounded-lg shadow-md mb-6 w-full max-w-md text-center
+              ${winAnimation ? 'ring-4 ring-yellow-400 bg-gradient-to-r from-yellow-50 to-yellow-100' : ''}`}
+          >
+            <p className={winAnimation ? 'font-bold text-lg' : ''}>
+              {message.startsWith('message.') ? t(message) : message}
+            </p>
+          </motion.div>
+        </AnimatePresence>
 
         {/* Players info */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-4xl mb-8">
