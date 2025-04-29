@@ -71,11 +71,7 @@ const GameSquare: React.FC<GameSquareProps> = ({
         "rounded-md overflow-hidden shadow-inner",
         isValidMove 
           ? "bg-gradient-to-br from-green-100 to-green-200 cursor-pointer ring-2 ring-green-300 hover:from-green-200 hover:to-green-300" 
-          : cell.piece !== PieceType.EMPTY 
-            ? cell.owner === Player.PLAYER1 
-              ? "bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200" 
-              : "bg-gradient-to-br from-red-50 to-red-100 border border-red-200"
-            : "bg-gradient-to-br from-amber-50 to-amber-100",
+          : "bg-gradient-to-br from-amber-50 to-amber-100",
         cell.piece !== PieceType.EMPTY && "bg-opacity-90"
       )}
       onClick={handleClick}
@@ -85,11 +81,28 @@ const GameSquare: React.FC<GameSquareProps> = ({
       whileHover={isValidMove ? { scale: 1.03 } : {}}
       whileTap={isValidMove ? { scale: 0.98 } : {}}
     >
-      {/* Cell border effects */}
-      <div className="absolute inset-0 border-2 border-amber-200 opacity-40 rounded-sm pointer-events-none"></div>
+      {/* Cell border effects - different styles for locked cells */}
+      <div className={cn(
+        "absolute inset-0 border-2 rounded-sm pointer-events-none",
+        cell.hasBeenUsed 
+          ? "border-amber-400 opacity-60" // Locked cell - more visible border
+          : "border-amber-200 opacity-40" // Normal cell
+      )}></div>
       
       {/* Light reflection effect */}
       <div className="absolute inset-0 bg-gradient-to-br from-white to-transparent opacity-10 pointer-events-none"></div>
+      
+      {/* Pattern for used cells */}
+      {cell.hasBeenUsed && (
+        <div className="absolute inset-0 bg-amber-400/10 pointer-events-none">
+          <div className="w-full h-full opacity-20" 
+               style={{ 
+                 backgroundImage: 'repeating-linear-gradient(45deg, #fbbf24 0, #fbbf24 1px, transparent 1px, transparent 8px)', 
+                 backgroundSize: '10px 10px' 
+               }}>
+          </div>
+        </div>
+      )}
       
       {/* Game piece */}
       <div className="relative z-10 flex items-center justify-center h-full w-full p-2">
