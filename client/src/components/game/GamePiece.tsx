@@ -57,18 +57,18 @@ export const GamePiece: React.FC<GamePieceProps> = ({
 
   // 完全にハードコードされた条件分岐で判断 - 文字列で決定
   if (ownerAsString === 'PLAYER1' || ownerAsString.includes('PLAYER1')) {
-    // Player 1のスタイル - 青色 - より濃い色に変更
-    ownerColor = 'text-blue-800 font-bold text-3xl';
-    borderColorClass = 'border-blue-600 border-2';
-    bgColorClass = 'bg-blue-200';
-    console.log('✅ PLAYER1 STYLE APPLIED (STRONGER BLUE)', { owner, ownerAsString });
+    // Player 1のスタイル - 青色 - さらに強化
+    ownerColor = 'text-white font-bold text-3xl';
+    borderColorClass = 'border-blue-700 border-[3px]';
+    bgColorClass = 'bg-blue-500';
+    console.log('✅ PLAYER1 STYLE APPLIED (EXTREME BLUE)', { owner, ownerAsString });
   } 
   else if (ownerAsString === 'PLAYER2' || ownerAsString.includes('PLAYER2')) {
-    // Player 2のスタイル - 赤色 - より鮮やかな赤に変更
-    ownerColor = 'text-red-800 font-bold text-3xl';
-    borderColorClass = 'border-red-600 border-2';
-    bgColorClass = 'bg-red-200';
-    console.log('✅ PLAYER2 STYLE APPLIED (STRONGER RED):', { owner, ownerAsString, type });
+    // Player 2のスタイル - 赤色 - さらに強化
+    ownerColor = 'text-white font-bold text-3xl';
+    borderColorClass = 'border-red-700 border-[3px]';
+    bgColorClass = 'bg-red-500';
+    console.log('✅ PLAYER2 STYLE APPLIED (EXTREME RED):', { owner, ownerAsString, type });
   }
   else {
     // デフォルトスタイル
@@ -93,7 +93,7 @@ export const GamePiece: React.FC<GamePieceProps> = ({
   }[size];
   
   // すべてのクラスを結合
-  const pieceClass = `${ownerColor} ${containerSize} rounded-full ${bgColorClass} border-2 ${borderColorClass} shadow-md flex items-center justify-center relative`;
+  const pieceClass = `${ownerColor} ${containerSize} rounded-full ${bgColorClass} ${borderColorClass} shadow-md flex items-center justify-center relative`;
 
   // Selected piece has a highlight
   const selectedClass = selected ? 'ring-2 ring-yellow-400' : '';
