@@ -179,14 +179,14 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
 
       // Create a specific message based on what pieces were involved
       if (selectedPiece === PieceType.ROCK && defendingPiece === PieceType.SCISSORS) {
-        jankenResultMessage = 'Rock crushes Scissors! You captured the square.';
+        jankenResultMessage = 'message.rockVsScissors';
       } else if (selectedPiece === PieceType.SCISSORS && defendingPiece === PieceType.PAPER) {
-        jankenResultMessage = 'Scissors cut Paper! You captured the square.';
+        jankenResultMessage = 'message.scissorsVsPaper';
       } else if (selectedPiece === PieceType.PAPER && defendingPiece === PieceType.ROCK) {
-        jankenResultMessage = 'Paper covers Rock! You captured the square.';
+        jankenResultMessage = 'message.paperVsRock';
       }
       
-      // Set the custom message directly (will not go through translation)
+      // Set the message key for translation
       set({ message: jankenResultMessage });
     }
     
