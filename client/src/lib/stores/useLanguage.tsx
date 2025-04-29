@@ -131,15 +131,15 @@ const defaultTranslations: Record<string, Record<Language, string>> = {
   },
   'game.aiNormal': {
     en: 'Normal',
-    ja: '標準'
+    ja: '通常'
   },
   'game.aiMedium': {
     en: 'Medium',
-    ja: '普通'
+    ja: '中級'
   },
   'game.aiHard': {
     en: 'Hard',
-    ja: '難しい'
+    ja: '高級'
   },
   'game.aiExpert': {
     en: 'Expert',
