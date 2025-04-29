@@ -55,7 +55,7 @@ export function Home() {
           </Button>
         </div>
         
-        <div className="mt-12 p-6 bg-gray-50 rounded-lg border shadow-sm">
+        <div className="mt-12 p-6 bg-gray-50 rounded-lg border shadow-sm max-h-[500px] overflow-y-auto">
           <h2 className="text-2xl font-semibold mb-4">{t('home.rules')}</h2>
           
           <div className="text-left">
@@ -74,7 +74,7 @@ export function Home() {
               ) : (
                 <>
                   <li>プレイヤーは交代でボードに駒を配置します。</li>
-                  <li>あなたの番になると、ランダムに一つ（じゃんけん、服、または特殊）を受け取ります。</li>
+                  <li>あなたの番になると、ランダムに一つ（グー、パー、またはチョキ）を受け取ります。</li>
                   <li>空いているマスに自分の駒を置くか、じゃんけんルールを使って相手の駒を取り替えます。</li>
                   <li>一度配置した駒を動かすことはできません。</li>
                 </>
