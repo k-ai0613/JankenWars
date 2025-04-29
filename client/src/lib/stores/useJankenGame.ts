@@ -151,7 +151,8 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       // Place the piece
       newBoard[position.row][position.col] = {
         piece: selectedPiece,
-        owner: currentPlayer
+        owner: currentPlayer,
+        hasBeenUsed: true // Mark as used
       };
       
       // Play success sound
@@ -160,7 +161,8 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       // Janken battle - replace opponent's piece
       newBoard[position.row][position.col] = {
         piece: selectedPiece,
-        owner: currentPlayer
+        owner: currentPlayer,
+        hasBeenUsed: true // Mark as used
       };
       
       // Play hit sound
