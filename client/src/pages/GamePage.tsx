@@ -155,7 +155,19 @@ export function GamePage() {
   const audioStore = useAudio();
   const { language, setLanguage, t } = useLanguage();
 
-  // Initialize audio when component mounts - currently disabled to avoid empty file errors
+  const handleStartGame = React.useCallback(() => {
+    startGame();
+    gameStore.start();
+    
+    // Start background music
+    if (audioStore.backgroundMusic) {
+      audioStore.backgroundMusic.play().catch(err => {
+        console.error('Failed to play background music:', err);
+      });
+    }
+  }, [startGame, gameStore, audioStore]);
+
+  // Initialize audio and auto-start game when component mounts
   useEffect(() => {
     // Set mock audio for now to avoid errors
     if (!audioStore.backgroundMusic) {
@@ -167,7 +179,12 @@ export function GamePage() {
       // Mute by default until we have actual audio files
       audioStore.toggleMute();
     }
-  }, [audioStore]);
+    
+    // Auto-start the game when the component mounts
+    if (gameStore.phase === 'ready') {
+      handleStartGame();
+    }
+  }, [audioStore, gameStore.phase, handleStartGame]);
 
   // Clean up audio when component unmounts
   useEffect(() => {
@@ -177,18 +194,6 @@ export function GamePage() {
       }
     };
   }, [audioStore]);
-
-  const handleStartGame = () => {
-    startGame();
-    gameStore.start();
-    
-    // Start background music
-    if (audioStore.backgroundMusic) {
-      audioStore.backgroundMusic.play().catch(err => {
-        console.error('Failed to play background music:', err);
-      });
-    }
-  };
 
   const handleResetGame = () => {
     resetGame();

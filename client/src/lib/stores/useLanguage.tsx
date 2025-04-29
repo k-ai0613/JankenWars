@@ -152,8 +152,8 @@ const defaultTranslations: Record<string, Record<Language, string>> = {
     ja: '引き分けです！'
   },
   'message.selectPieceFirst': {
-    en: 'Please select a piece first.',
-    ja: 'まず駒を選んでください。'
+    en: 'Please tap on any square.',
+    ja: '任意のマスの箇所をタップしてください'
   },
   'message.invalidMove': {
     en: 'Invalid move. Try another position.',
