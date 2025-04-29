@@ -213,8 +213,13 @@ export function GamePage() {
             <Switch 
               checked={language === 'ja'}
               onCheckedChange={handleToggleLanguage}
-              className="data-[state=checked]:bg-red-500 data-[state=unchecked]:bg-blue-500 h-6 w-11"
+              className="data-[state=checked]:bg-red-500 data-[state=unchecked]:bg-blue-500 h-6 w-11 [&>span]:data-[state=checked]:bg-white [&>span]:data-[state=unchecked]:bg-white [&>span]:border-2 [&>span]:data-[state=checked]:border-red-600 [&>span]:data-[state=unchecked]:border-blue-600 [&>span]:flex [&>span]:items-center [&>span]:justify-center [&>span]:shadow-md"
             />
+            <span className="absolute top-0 left-0 w-full h-full pointer-events-none flex items-center">
+              <span className={`absolute text-[8px] font-bold transition-all duration-300 ${language === 'ja' ? 'translate-x-[18px] text-red-600' : 'translate-x-[6px] text-blue-600'}`}>
+                {language === 'ja' ? 'JA' : 'EN'}
+              </span>
+            </span>
           </div>
           <span className={`text-sm font-bold transition-colors duration-200 ${language === 'ja' ? 'text-red-600' : 'text-gray-400'}`}>日本語</span>
         </div>
