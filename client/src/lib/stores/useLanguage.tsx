@@ -121,9 +121,17 @@ const defaultTranslations: Record<string, Record<Language, string>> = {
     en: 'AI Difficulty',
     ja: 'AI難易度'
   },
+  'game.aiBeginner': {
+    en: 'Beginner',
+    ja: '入門'
+  },
   'game.aiEasy': {
     en: 'Easy',
     ja: '簡単'
+  },
+  'game.aiNormal': {
+    en: 'Normal',
+    ja: '標準'
   },
   'game.aiMedium': {
     en: 'Medium',
@@ -132,6 +140,10 @@ const defaultTranslations: Record<string, Record<Language, string>> = {
   'game.aiHard': {
     en: 'Hard',
     ja: '難しい'
+  },
+  'game.aiExpert': {
+    en: 'Expert',
+    ja: '上級者'
   },
   'message.aiSelectedPiece': {
     en: 'AI has selected a piece',

@@ -79,7 +79,7 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
   
   // AI settings
   isAIEnabled: false,
-  aiDifficulty: AIDifficulty.MEDIUM,
+  aiDifficulty: AIDifficulty.NORMAL, // Default difficulty level is NORMAL
   isAIThinking: false,
   
   startGame: () => {
