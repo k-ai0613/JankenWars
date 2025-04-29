@@ -183,7 +183,7 @@ export const isValidMove = (
   
   const targetCell = board[row][col];
   
-  // If the cell has been used before, it's invalid
+  // If the cell has been locked (used in janken battle), it's invalid
   if (targetCell.hasBeenUsed) {
     return false;
   }

@@ -148,21 +148,21 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     
     // If the cell is empty
     if (targetCell.piece === PieceType.EMPTY) {
-      // Place the piece
+      // Place the piece on empty cell (not locked)
       newBoard[position.row][position.col] = {
         piece: selectedPiece,
         owner: currentPlayer,
-        hasBeenUsed: true // Mark as used
+        hasBeenUsed: false // Not locked yet, can be captured with janken rules
       };
       
       // Play success sound
       audioStore.playSuccess();
     } else {
-      // Janken battle - replace opponent's piece
+      // Janken battle - replace opponent's piece and lock this cell
       newBoard[position.row][position.col] = {
         piece: selectedPiece,
         owner: currentPlayer,
-        hasBeenUsed: true // Mark as used
+        hasBeenUsed: true // Lock this cell after janken battle
       };
       
       // Play hit sound

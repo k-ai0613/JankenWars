@@ -20,7 +20,7 @@ export enum Player {
 export interface Cell {
   piece: PieceType;
   owner: Player;
-  hasBeenUsed: boolean; // Tracks if this cell has ever been used (to prevent reusing cells)
+  hasBeenUsed: boolean; // If true, this cell cannot be used for any further moves (locked after janken battle)
 }
 
 // Board is a 6x6 grid of cells
