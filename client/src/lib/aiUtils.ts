@@ -234,11 +234,17 @@ const evaluatePositionImportance = (board: Board, position: Position, player: Pl
 
 // Find the best move for the AI based on the current board state
 // Find the best position for a specific piece
+// Debug helper to log the AI operation
+const debugLogAI = (message: string, data: any) => {
+  console.log(`[AI Debug] ${message}`, data);
+};
+
 export const findBestPosition = (
   board: Board,
   piece: PieceType,
   difficulty: AIDifficulty
 ): Position | null => {
+  debugLogAI('Finding best position for piece', { piece, difficulty });
   const emptyPositions: Position[] = [];
   const opponentPiecePositions: Position[] = [];
   

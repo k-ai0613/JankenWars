@@ -113,6 +113,9 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       player2Inventory 
     } = get();
     
+    // Debug logging for selection
+    console.log('selectCell called:', { position, currentPlayer, selectedPiece });
+    
     if (selectedPiece === null) {
       set({ message: 'message.selectPieceFirst' });
       return;
@@ -147,12 +150,18 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     // Play sound effect
     const audioStore = useAudio.getState();
     
+    // Ensure currentPlayer value is valid
+    const safeCurrentPlayer = currentPlayer || Player.PLAYER1; // Fallback if undefined
+    console.log('Current player before cell update:', safeCurrentPlayer);
+    
     // If the cell is empty
     if (targetCell.piece === PieceType.EMPTY) {
       // Place the piece on empty cell (not locked)
+      console.log('Placing piece on empty cell for player:', safeCurrentPlayer);
+      
       newBoard[position.row][position.col] = {
         piece: selectedPiece,
-        owner: currentPlayer,
+        owner: safeCurrentPlayer, // Use validated player
         hasBeenUsed: false // Not locked yet, can be captured with janken rules
       };
       
@@ -161,10 +170,11 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     } else {
       // Janken battle - replace opponent's piece and lock this cell
       const defendingPiece = targetCell.piece;
+      console.log('Janken battle:', { attackingPiece: selectedPiece, defendingPiece, attacker: safeCurrentPlayer });
       
       newBoard[position.row][position.col] = {
         piece: selectedPiece,
-        owner: currentPlayer,
+        owner: safeCurrentPlayer, // Use validated player
         hasBeenUsed: true // Lock this cell after janken battle
       };
       
