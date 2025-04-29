@@ -2,6 +2,7 @@ import React from 'react';
 import { GamePiece } from './GamePiece';
 import { PieceType, Player, PlayerInventory } from '../../lib/types';
 import { cn } from '../../lib/utils';
+import { useLanguage } from '../../lib/stores/useLanguage';
 
 interface PlayerInfoProps {
   player: Player;
@@ -38,10 +39,18 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({
       isCurrentPlayer && `ring-2 ${player === Player.PLAYER1 ? 'ring-blue-400' : 'ring-red-400'} shadow-lg ${glowColor}`
     )}>
       <h3 className={cn(
-        "text-lg font-bold mb-3", 
+        "text-lg font-bold mb-3 flex items-center gap-2", 
         playerColor
       )}>
-        {playerName} {isCurrentPlayer && <span className="text-base"> (Current Turn)</span>}
+        {playerName}
+        {isCurrentPlayer && (
+          <span className={cn(
+            "text-xs font-semibold px-2 py-1 rounded-full",
+            player === Player.PLAYER1 ? "bg-blue-500 text-white" : "bg-red-500 text-white"
+          )}>
+            {player === Player.PLAYER1 ? "プレイヤー1のターン" : "プレイヤー2のターン"}
+          </span>
+        )}
       </h3>
       
       <div className="grid grid-cols-2 gap-2">

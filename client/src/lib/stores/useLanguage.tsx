@@ -165,6 +165,14 @@ const defaultTranslations: Record<string, Record<Language, string>> = {
     en: '(Current Turn)',
     ja: '（現在のターン）'
   },
+  'game.player1Turn': {
+    en: 'Player 1 Turn',
+    ja: 'プレイヤー1のターン'
+  },
+  'game.player2Turn': {
+    en: 'Player 2 Turn',
+    ja: 'プレイヤー2のターン'
+  },
   
   // プレイヤーインベントリ
   'pieces.rock': {
