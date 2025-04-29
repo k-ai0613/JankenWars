@@ -33,12 +33,18 @@ interface JankenGameState {
   // Game message
   message: string;
   
+  // Animation states
+  captureAnimation: Position | null; // Position where a capture happened
+  winAnimation: boolean; // Whether to show the win animation
+  
   // Actions
   startGame: () => void;
   selectCell: (position: Position) => void;
   selectSpecialPiece: () => void;
   getRandomPieceForCurrentPlayer: () => void;
   resetGame: () => void;
+  clearCaptureAnimation: () => void;
+  clearWinAnimation: () => void;
 }
 
 export const useJankenGame = create<JankenGameState>((set, get) => ({
@@ -50,6 +56,8 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
   player1Inventory: createInitialInventory(),
   player2Inventory: createInitialInventory(),
   message: 'message.welcome', // 翻訳用のキーに変更
+  captureAnimation: null,
+  winAnimation: false,
   
   startGame: () => {
     set({ 
@@ -117,6 +125,9 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       
       // Play hit sound
       audioStore.playHit();
+      
+      // Trigger capture animation
+      set({ captureAnimation: position });
     }
     
     // Update inventories
@@ -138,7 +149,8 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
         ...newState,
         result,
         phase: GamePhase.GAME_OVER,
-        message: currentPlayer === Player.PLAYER1 ? 'message.player1Win' : 'message.player2Win'
+        message: currentPlayer === Player.PLAYER1 ? 'message.player1Win' : 'message.player2Win',
+        winAnimation: true
       });
       
       return;
@@ -252,7 +264,17 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       selectedPiece: null,
       player1Inventory: createInitialInventory(),
       player2Inventory: createInitialInventory(),
-      message: 'message.welcome'
+      message: 'message.welcome',
+      captureAnimation: null,
+      winAnimation: false
     });
+  },
+  
+  clearCaptureAnimation: () => {
+    set({ captureAnimation: null });
+  },
+  
+  clearWinAnimation: () => {
+    set({ winAnimation: false });
   }
 }));
