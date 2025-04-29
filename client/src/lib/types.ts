@@ -17,18 +17,42 @@ export enum Player {
 }
 
 // Helper function to safely convert any player value to actual Player enum
-export function normalizePlayer(player: Player | string): Player {
-  // If it's already a proper enum instance
+export function normalizePlayer(player: Player | string | any): Player {
+  // If player is undefined or null
+  if (player === undefined || player === null) {
+    console.warn('normalizePlayer received undefined/null player:', player);
+    return Player.NONE;
+  }
+  
+  // If it's already a proper enum instance with exact equality
   if (player === Player.PLAYER1) return Player.PLAYER1;
   if (player === Player.PLAYER2) return Player.PLAYER2;
   if (player === Player.NONE) return Player.NONE;
   
-  // If it's a string, convert it
+  // Safer string comparison with exact matching
   const playerStr = String(player).toUpperCase();
+  
+  // Logging for debugging
+  console.log('normalizePlayer string check:', {
+    input: player,
+    asString: playerStr,
+    isP1ByIncludes: playerStr.includes('PLAYER1'),
+    isP2ByIncludes: playerStr.includes('PLAYER2'),
+    isP1ByExact: playerStr === 'PLAYER1',
+    isP2ByExact: playerStr === 'PLAYER2'
+  });
+  
+  // Try exact matching first
+  if (playerStr === 'PLAYER1') return Player.PLAYER1;
+  if (playerStr === 'PLAYER2') return Player.PLAYER2;
+  if (playerStr === 'NONE') return Player.NONE;
+  
+  // Fall back to includes for backward compatibility
   if (playerStr.includes('PLAYER1')) return Player.PLAYER1;
   if (playerStr.includes('PLAYER2')) return Player.PLAYER2;
   
-  // Default fallback
+  // Default fallback with warning
+  console.warn('normalizePlayer failed to match player, returning NONE:', player);
   return Player.NONE;
 }
 

@@ -444,31 +444,46 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     // Play sound effect
     const audioStore = useAudio.getState();
     
-    // 正規化されたプレイヤー値を使用
-    console.log(`Using normalized player: ${safePlayer} for owner (original: ${player})`);
+    // 列挙型の安全な値を使用
+    console.log(`Using normalized player: ${safePlayer} for owner (original: ${player}) with type ${typeof safePlayer}`);
     
     // If the cell is empty
     if (targetCell.piece === PieceType.EMPTY) {
-      // Place the piece on empty cell (not locked) - 正規化された値を使用
-      const newCell = {
+      // 列挙型を指定することで型安全性を確保
+      let actualOwner: Player;
+      
+      // 特に重要なのはPlayer.PLAYER2のケース
+      if (safePlayer === Player.PLAYER2) {
+        actualOwner = Player.PLAYER2; // 完全に確実な値
+        console.log('Explicit PLAYER2 assignment in cell update!');
+      } else if (safePlayer === Player.PLAYER1) {
+        actualOwner = Player.PLAYER1; // 完全に確実な値
+      } else {
+        actualOwner = Player.NONE; // デフォルト値
+      }
+      
+      // 新しいセルを作成
+      const newCell: Cell = {
         piece: piece,
-        owner: safePlayer, // 正規化されたプレイヤー値を使用
+        owner: actualOwner,
         hasBeenUsed: false // Not locked yet, can be captured with janken rules
       };
       
-      // デバッグ情報
-      console.log('NORMALIZED_PLACING_PIECE', {
+      // 適切な色が適用されるよう詳細なデバッグ情報を出力
+      console.log('EXPLICIT_CELL_CREATION', {
         position,
         originalPlayer: player,
         safePlayer,
+        actualOwner,
         cell: newCell,
         ownerType: typeof newCell.owner,
         ownerValue: String(newCell.owner),
-        isP2Enum: newCell.owner === Player.PLAYER2,
-        isP2String: String(newCell.owner) === 'PLAYER2',
-        isP2ByIncludes: String(newCell.owner).includes('PLAYER2')
+        isPlayer2: newCell.owner === Player.PLAYER2,
+        // Debug ID for tracking the update
+        updateId: Math.random().toString(36).substring(2, 9)
       });
       
+      // 新しいセルをボードに配置
       newBoard[position.row][position.col] = newCell;
       
       // Play success sound
@@ -477,11 +492,38 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       // Janken battle - replace opponent's piece and lock this cell
       const defendingPiece = targetCell.piece;
       
-      newBoard[position.row][position.col] = {
+      // ジャンケンバトルの場合も列挙型を明示的に使用
+      let battleOwner: Player;
+      
+      // 特に重要なのはPlayer.PLAYER2のケース
+      if (safePlayer === Player.PLAYER2) {
+        battleOwner = Player.PLAYER2; // 完全に確実な値
+        console.log('Explicit PLAYER2 assignment in Janken battle!');
+      } else if (safePlayer === Player.PLAYER1) {
+        battleOwner = Player.PLAYER1; // 完全に確実な値
+      } else {
+        battleOwner = Player.NONE; // デフォルト値
+      }
+      
+      // 新しいセルを作成
+      const battleCell: Cell = {
         piece: piece,
-        owner: safePlayer, // 正規化されたプレイヤー値を使用
+        owner: battleOwner,
         hasBeenUsed: true // Lock this cell after janken battle
       };
+      
+      console.log('JANKEN_BATTLE_UPDATE', {
+        position,
+        originalPlayer: player,
+        safePlayer,
+        battleOwner,
+        cell: battleCell,
+        ownerType: typeof battleCell.owner,
+        isPlayer2: battleCell.owner === Player.PLAYER2,
+        battleId: Math.random().toString(36).substring(2, 9)
+      });
+      
+      newBoard[position.row][position.col] = battleCell;
       
       // Play hit sound
       audioStore.playHit();
@@ -646,9 +688,20 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
           // Add a short delay before placing the piece
           // ここがAIのプレイヤー2の動作の核心部分です
           setTimeout(() => {
-            console.log('AI placing piece at:', bestPosition, 'EXPLICIT PLAYER2');
+            console.log('AI placing piece at:', bestPosition, 'EXPLICIT PLAYER2 WITH ENUM ACCESS');
+            
             // AIの場合、プレイヤー2を明示的に強制します
-            get().selectCellForPlayer(bestPosition, Player.PLAYER2, selectedPiece);
+            // 列挙型を直接指定して型安全性を確保
+            const PLAYER2_ENUM = Player.PLAYER2; // 確実に列挙型を取得
+            
+            console.log('AI using player enum:', {
+              enumValue: PLAYER2_ENUM,
+              enumType: typeof PLAYER2_ENUM,
+              stringValue: String(PLAYER2_ENUM),
+              isActualEnum: PLAYER2_ENUM === Player.PLAYER2,
+            });
+            
+            get().selectCellForPlayer(bestPosition, PLAYER2_ENUM, selectedPiece);
           }, 400);
           
           // 外部に定義したselectCellForPlayer関数を利用しています

@@ -42,16 +42,21 @@ export const GamePiece: React.FC<GamePieceProps> = ({
   const isPlayer1 = normalizedOwner === Player.PLAYER1;
   const isPlayer2 = normalizedOwner === Player.PLAYER2;
   
-  console.log('GamePiece normalized owner:', { 
+  console.log('GamePiece normalized owner [DETAILS]:', { 
     owner, 
     normalizedOwner,
     ownerStr: String(owner),
     normalizedStr: String(normalizedOwner),
+    ownerType: typeof owner,
+    normalizedType: typeof normalizedOwner,
+    ownerEquality: owner === normalizedOwner,
     isPlayer1,
     isPlayer2,
     // プレイヤー列挙体の値を確認
     Player1Value: Player.PLAYER1,
-    Player2Value: Player.PLAYER2
+    Player2Value: Player.PLAYER2,
+    checkEquality1: normalizedOwner === Player.PLAYER2,
+    checkEquality2: String(normalizedOwner) === String(Player.PLAYER2)
   });
   
   if (isPlayer1) {
