@@ -1,10 +1,12 @@
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
+import { Switch } from '../components/ui/switch';
 import { useGame } from '../lib/stores/useGame';
 import { useJankenGame } from '../lib/stores/useJankenGame';
 import { PieceType, Player, Position } from '../lib/types';
 import { useAudio } from '../lib/stores/useAudio';
+import { useLanguage } from '../lib/stores/useLanguage';
 
 // Components for the game UI
 const GameBoard: React.FC = () => {
@@ -104,13 +106,14 @@ interface PlayerInfoProps {
 }
 
 const PlayerInfo: React.FC<PlayerInfoProps> = ({ player, inventory, isCurrentPlayer, selectedPiece }) => {
-  const playerName = player === Player.PLAYER1 ? 'Player 1' : 'Player 2';
+  const { t } = useLanguage();
+  const playerKey = player === Player.PLAYER1 ? 'game.player1' : 'game.player2';
   const colorClass = player === Player.PLAYER1 ? 'border-blue-500' : 'border-red-500';
   const isActiveClass = isCurrentPlayer ? 'bg-slate-100 shadow-md' : 'bg-slate-50';
   
   return (
     <div className={`p-4 rounded-lg border-2 ${colorClass} ${isActiveClass}`}>
-      <h3 className="font-bold text-lg mb-2">{playerName}{isCurrentPlayer ? ' (Current Turn)' : ''}</h3>
+      <h3 className="font-bold text-lg mb-2">{t(playerKey)}{isCurrentPlayer ? t('game.currentTurn') : ''}</h3>
       
       <div className="flex flex-wrap gap-2 mb-2">
         <div className="flex items-center gap-1">
@@ -150,6 +153,7 @@ export function GamePage() {
   } = useJankenGame();
   
   const audioStore = useAudio();
+  const { language, setLanguage, t } = useLanguage();
 
   // Initialize audio when component mounts - currently disabled to avoid empty file errors
   useEffect(() => {
@@ -195,16 +199,30 @@ export function GamePage() {
     audioStore.toggleMute();
   };
 
+  const handleToggleLanguage = () => {
+    setLanguage(language === 'en' ? 'ja' : 'en');
+  };
+
   return (
     <div className="container mx-auto p-4 min-h-screen bg-slate-50">
       <div className="flex flex-col items-center">
-        <h1 className="text-3xl font-bold mb-4 text-center">Janken Wars</h1>
+        {/* Language toggle */}
+        <div className="self-end flex items-center space-x-2 mb-4">
+          <span className="text-sm">EN</span>
+          <Switch 
+            checked={language === 'ja'}
+            onCheckedChange={handleToggleLanguage}
+          />
+          <span className="text-sm">日本語</span>
+        </div>
+
+        <h1 className="text-3xl font-bold mb-4 text-center">{t('game.title')}</h1>
 
         {/* Game controls */}
         <div className="flex gap-2 mb-6 flex-wrap justify-center">
           {gameStore.phase === 'ready' && (
             <Button onClick={handleStartGame} size="lg">
-              Start Game
+              {t('game.startGame')}
             </Button>
           )}
           
@@ -215,27 +233,27 @@ export function GamePage() {
                   ? player1Inventory[PieceType.SPECIAL] <= 0 
                   : player2Inventory[PieceType.SPECIAL] <= 0}
                 variant="outline">
-                Use Special Piece
+                {t('game.useSpecialPiece')}
               </Button>
               
               <Button onClick={getRandomPieceForCurrentPlayer} variant="outline">
-                Get Random Piece
+                {t('game.getRandomPiece')}
               </Button>
             </>
           )}
           
           {gameStore.phase === 'ended' && (
             <Button onClick={handleResetGame} size="lg">
-              Play Again
+              {t('game.playAgain')}
             </Button>
           )}
           
           <Button onClick={handleToggleMute} variant="ghost">
-            {audioStore.isMuted ? 'Unmute 🔇' : 'Mute 🔊'}
+            {audioStore.isMuted ? t('game.unmute') : t('game.mute')}
           </Button>
           
           <Link to="/">
-            <Button variant="ghost">Back to Home</Button>
+            <Button variant="ghost">{t('game.backToHome')}</Button>
           </Link>
         </div>
 

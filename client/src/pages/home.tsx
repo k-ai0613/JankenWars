@@ -1,16 +1,33 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
+import { Switch } from '../components/ui/switch';
+import { useLanguage } from '../lib/stores/useLanguage';
 
 export function Home() {
+  const { language, setLanguage, t } = useLanguage();
+  
+  const handleToggleLanguage = () => {
+    setLanguage(language === 'en' ? 'ja' : 'en');
+  };
+
   return (
     <div className="container mx-auto p-4 min-h-screen flex flex-col items-center justify-center">
+      {/* Language toggle */}
+      <div className="self-end flex items-center space-x-2 mb-4">
+        <span className="text-sm">EN</span>
+        <Switch 
+          checked={language === 'ja'}
+          onCheckedChange={handleToggleLanguage}
+        />
+        <span className="text-sm">日本語</span>
+      </div>
+
       <div className="max-w-2xl text-center">
-        <h1 className="text-5xl font-bold mb-6 text-center">Janken Wars</h1>
+        <h1 className="text-5xl font-bold mb-6 text-center">{t('home.title')}</h1>
         
         <p className="text-xl mb-8">
-          A strategic Rock-Paper-Scissors board game where players battle on a 6x6 grid.
-          Place your pieces to create a line of 5 and claim victory!
+          {t('home.description')}
         </p>
         
         <div className="flex flex-col gap-4 items-center">
