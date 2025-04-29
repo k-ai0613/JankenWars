@@ -142,6 +142,8 @@ export const checkWin = (board: Board, player: Player): boolean => {
 };
 
 // Determine the winner based on Rock-Paper-Scissors rules
+// IMPORTANT: This function always returns Player.PLAYER1 when the attacker wins
+// and Player.PLAYER2 when the defender wins, regardless of which actual player is attacking/defending
 export const determineWinner = (attackingPiece: PieceType, defendingPiece: PieceType): Player => {
   // Special piece can't attack or be attacked
   if (attackingPiece === PieceType.SPECIAL || defendingPiece === PieceType.SPECIAL) {
@@ -209,6 +211,7 @@ export const isValidMove = (
   }
   
   // Otherwise, it's valid if the current player's piece can win against the target piece
-  const winner = determineWinner(selectedPiece, targetCell.piece);
-  return winner === Player.PLAYER1; // Player 1 represents the attacker in determineWinner
+  // In determineWinner(), Player.PLAYER1 always represents the attacker, regardless of actual player
+  const attackingResult = determineWinner(selectedPiece, targetCell.piece);
+  return attackingResult === Player.PLAYER1; // PLAYER1 means attacker wins, not necessarily that Player 1 wins
 };
