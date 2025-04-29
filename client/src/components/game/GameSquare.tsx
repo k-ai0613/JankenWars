@@ -1,6 +1,6 @@
 import React from 'react';
 import { GamePiece } from './GamePiece';
-import { Cell, Position, PieceType } from '../../lib/types';
+import { Cell, Position, PieceType, Player } from '../../lib/types';
 import { cn } from '../../lib/utils';
 import { motion } from 'framer-motion';
 import { useJankenGame } from '../../lib/stores/useJankenGame';
@@ -71,8 +71,12 @@ const GameSquare: React.FC<GameSquareProps> = ({
         "rounded-md overflow-hidden shadow-inner",
         isValidMove 
           ? "bg-gradient-to-br from-green-100 to-green-200 cursor-pointer ring-2 ring-green-300 hover:from-green-200 hover:to-green-300" 
-          : "bg-gradient-to-br from-amber-50 to-amber-100",
-        cell.piece !== "EMPTY" && "bg-opacity-90"
+          : cell.piece !== PieceType.EMPTY 
+            ? cell.owner === Player.PLAYER1 
+              ? "bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200" 
+              : "bg-gradient-to-br from-red-50 to-red-100 border border-red-200"
+            : "bg-gradient-to-br from-amber-50 to-amber-100",
+        cell.piece !== PieceType.EMPTY && "bg-opacity-90"
       )}
       onClick={handleClick}
       data-testid={`cell-${position.row}-${position.col}`}

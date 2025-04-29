@@ -20,17 +20,26 @@ export const GamePiece: React.FC<GamePieceProps> = ({
     return null;
   }
 
-  // Determine size class
-  const sizeClass = {
-    sm: 'text-base',
-    md: 'text-xl',
-    lg: 'text-3xl',
+  // Determine icon and container sizes based on the size prop
+  const iconSize = {
+    sm: 'text-sm',
+    md: 'text-lg',
+    lg: 'text-2xl',
   }[size];
 
-  // Determine owner color and gradient
-  const ownerClass = owner === Player.PLAYER1 
-    ? 'text-blue-500 drop-shadow-[0_0_2px_rgba(59,130,246,0.5)]' 
-    : 'text-red-500 drop-shadow-[0_0_2px_rgba(239,68,68,0.5)]';
+  const containerSize = {
+    sm: 'w-6 h-6',
+    md: 'w-10 h-10',
+    lg: 'w-12 h-12'
+  }[size];
+  
+  // Determine owner color styles
+  const ownerColor = owner === Player.PLAYER1 
+    ? 'text-blue-600 bg-blue-200 border-blue-400' 
+    : 'text-red-600 bg-red-200 border-red-400';
+  
+  // Combine all classes
+  const pieceClass = `${ownerColor} ${containerSize} ${iconSize} p-2 rounded-full border-2 shadow-md flex items-center justify-center`;
 
   // Selected piece has a highlight
   const selectedClass = selected ? 'ring-2 ring-yellow-400' : '';
@@ -39,13 +48,13 @@ export const GamePiece: React.FC<GamePieceProps> = ({
   const renderPieceIcon = () => {
     switch (type) {
       case PieceType.ROCK:
-        return <FaHandRock className={`${sizeClass} ${ownerClass}`} />;
+        return <FaHandRock />;
       case PieceType.PAPER:
-        return <FaHandPaper className={`${sizeClass} ${ownerClass}`} />;
+        return <FaHandPaper />;
       case PieceType.SCISSORS:
-        return <FaHandScissors className={`${sizeClass} ${ownerClass}`} />;
+        return <FaHandScissors />;
       case PieceType.SPECIAL:
-        return <FaStar className={`${sizeClass} ${ownerClass}`} />;
+        return <FaStar />;
       default:
         return null;
     }
@@ -78,7 +87,9 @@ export const GamePiece: React.FC<GamePieceProps> = ({
         layoutId={`piece-${type}-${owner}`}
         variants={pieceVariants}
       >
-        {renderPieceIcon()}
+        <div className={pieceClass}>
+          {renderPieceIcon()}
+        </div>
       </motion.div>
     </AnimatePresence>
   );

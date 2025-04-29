@@ -47,7 +47,7 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({
       
       <div className="grid grid-cols-2 gap-3">
         <div className="flex items-center gap-2 p-2 rounded-lg bg-white/50 backdrop-blur-sm border border-slate-100 shadow-sm">
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
             <GamePiece type={PieceType.ROCK} owner={player} size="sm" 
               selected={selectedPiece === PieceType.ROCK} />
           </div>
@@ -57,7 +57,7 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({
         </div>
         
         <div className="flex items-center gap-2 p-2 rounded-lg bg-white/50 backdrop-blur-sm border border-slate-100 shadow-sm">
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
             <GamePiece type={PieceType.PAPER} owner={player} size="sm" 
               selected={selectedPiece === PieceType.PAPER} />
           </div>
@@ -67,7 +67,7 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({
         </div>
         
         <div className="flex items-center gap-2 p-2 rounded-lg bg-white/50 backdrop-blur-sm border border-slate-100 shadow-sm">
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
             <GamePiece type={PieceType.SCISSORS} owner={player} size="sm" 
               selected={selectedPiece === PieceType.SCISSORS} />
           </div>
@@ -77,7 +77,7 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({
         </div>
         
         <div className="flex items-center gap-2 p-2 rounded-lg bg-white/50 backdrop-blur-sm border border-slate-100 shadow-sm">
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
             <GamePiece type={PieceType.SPECIAL} owner={player} size="sm" 
               selected={selectedPiece === PieceType.SPECIAL} />
           </div>
