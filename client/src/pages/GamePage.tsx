@@ -203,7 +203,7 @@ export function GamePage() {
   };
 
   return (
-    <div className="container mx-auto p-4 min-h-screen relative overflow-hidden bg-gradient-to-b from-blue-50 via-indigo-50 to-purple-50">
+    <div className="container mx-auto px-4 pt-2 pb-0 min-h-screen relative overflow-hidden bg-gradient-to-b from-blue-50 via-indigo-50 to-purple-50">
       {/* Animation effects */}
       {winAnimation && (
         <Confetti
@@ -258,10 +258,10 @@ export function GamePage() {
           <span className={`text-sm font-bold transition-colors duration-200 ${language === 'ja' ? 'text-red-600' : 'text-gray-400'}`}>日本語</span>
         </div>
 
-        <h1 className="text-4xl md:text-5xl font-bold mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 drop-shadow-sm">{t('game.title')}</h1>
+        <h1 className="text-3xl md:text-4xl font-bold mb-4 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 drop-shadow-sm">{t('game.title')}</h1>
 
         {/* Game controls */}
-        <div className="flex gap-3 mb-8 flex-wrap justify-center">
+        <div className="flex gap-3 mb-4 flex-wrap justify-center">
           {gameStore.phase === 'ready' && (
             <Button onClick={handleStartGame} 
               className="py-6 px-8 text-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/20 hover:shadow-blue-600/30 transition-all duration-300" 
@@ -315,7 +315,7 @@ export function GamePage() {
           </Link>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6 w-full max-w-7xl mx-auto mb-8">
+        <div className="flex flex-col lg:flex-row gap-4 w-full max-w-7xl mx-auto mb-4">
           {/* Left column - Player info and messages */}
           <div className="lg:w-1/3 flex flex-col gap-4">
             {/* Game message */}
@@ -335,7 +335,7 @@ export function GamePage() {
                 }}
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ duration: 0.3 }}
-                className={`p-4 rounded-lg shadow-md w-full text-center min-h-[80px] flex items-center justify-center
+                className={`p-3 rounded-lg shadow-md w-full text-center min-h-[70px] flex items-center justify-center
                   ${winAnimation ? 'ring-4 ring-yellow-400 bg-gradient-to-r from-yellow-50 to-yellow-100' : 'bg-white'}
                   ${drawAnimation ? 'ring-4 ring-green-400 bg-gradient-to-r from-green-50 to-green-100' : ''}
                   ${loseAnimation ? 'ring-2 ring-red-300 bg-gradient-to-r from-red-50 to-red-100' : ''}
@@ -354,7 +354,7 @@ export function GamePage() {
             </AnimatePresence>
 
             {/* AI Controls */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-md border border-slate-200 p-4 mb-4">
+            <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-md border border-slate-200 p-3 mb-3">
               <h3 className="text-lg font-bold mb-3 flex items-center">
                 <FaRobot className="mr-2 text-slate-600" />
                 {t('game.aiControls')}

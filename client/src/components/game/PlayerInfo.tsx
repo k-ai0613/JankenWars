@@ -33,7 +33,7 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({
     
   return (
     <div className={cn(
-      `p-4 rounded-xl ${bgGradient} shadow-md border ${borderColor}`,
+      `p-3 rounded-xl ${bgGradient} shadow-md border ${borderColor}`,
       "transition-all duration-300 backdrop-blur-sm",
       isCurrentPlayer && `ring-2 ${player === Player.PLAYER1 ? 'ring-blue-400' : 'ring-red-400'} shadow-lg ${glowColor}`
     )}>
@@ -44,7 +44,7 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({
         {playerName} {isCurrentPlayer && <span className="text-base"> (Current Turn)</span>}
       </h3>
       
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2">
         <div className="flex items-center gap-2 p-2 rounded-lg bg-white/70 backdrop-blur-sm border border-slate-200 shadow-sm hover:bg-white/90 transition-colors">
           <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
             <GamePiece type={PieceType.ROCK} owner={player} size="sm" 
