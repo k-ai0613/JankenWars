@@ -17,7 +17,8 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({
   isCurrentPlayer,
   selectedPiece
 }) => {
-  const playerName = player === Player.PLAYER1 ? 'Player 1' : 'Player 2';
+  const { t } = useLanguage();
+  const playerName = player === Player.PLAYER1 ? t('game.player1') : t('game.player2');
   const playerColor = player === Player.PLAYER1 ? 'text-blue-700' : 'text-red-700';
   
   const bgGradient = player === Player.PLAYER1 
@@ -45,10 +46,10 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({
         {playerName}
         {isCurrentPlayer && (
           <span className={cn(
-            "text-xs font-semibold px-2 py-1 rounded-full",
+            "text-xs font-semibold px-2 py-1 rounded-full animate-pulse",
             player === Player.PLAYER1 ? "bg-blue-500 text-white" : "bg-red-500 text-white"
           )}>
-            {player === Player.PLAYER1 ? "プレイヤー1のターン" : "プレイヤー2のターン"}
+            {player === Player.PLAYER1 ? t('game.player1Turn') : t('game.player2Turn')}
           </span>
         )}
       </h3>
@@ -60,7 +61,7 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({
               selected={selectedPiece === PieceType.ROCK} />
           </div>
           <div className="flex flex-col">
-            <span className="text-xs text-gray-500 -mb-1">Rock / グー (R)</span>
+            <span className="text-xs text-gray-500 -mb-1">{t('pieces.rock')} ({t('pieces.rock') === 'Rock' ? 'R' : 'グ'})</span>
             <span className={`text-base font-medium ${selectedPiece === PieceType.ROCK ? 'font-bold' : ''}`}>
               × {inventory[PieceType.ROCK]}
             </span>
@@ -73,7 +74,7 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({
               selected={selectedPiece === PieceType.PAPER} />
           </div>
           <div className="flex flex-col">
-            <span className="text-xs text-gray-500 -mb-1">Paper / パー (P)</span>
+            <span className="text-xs text-gray-500 -mb-1">{t('pieces.paper')} ({t('pieces.paper') === 'Paper' ? 'P' : 'パ'})</span>
             <span className={`text-base font-medium ${selectedPiece === PieceType.PAPER ? 'font-bold' : ''}`}>
               × {inventory[PieceType.PAPER]}
             </span>
@@ -86,7 +87,7 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({
               selected={selectedPiece === PieceType.SCISSORS} />
           </div>
           <div className="flex flex-col">
-            <span className="text-xs text-gray-500 -mb-1">Scissors / チョキ (S)</span>
+            <span className="text-xs text-gray-500 -mb-1">{t('pieces.scissors')} ({t('pieces.scissors') === 'Scissors' ? 'S' : 'チ'})</span>
             <span className={`text-base font-medium ${selectedPiece === PieceType.SCISSORS ? 'font-bold' : ''}`}>
               × {inventory[PieceType.SCISSORS]}
             </span>
@@ -99,7 +100,7 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({
               selected={selectedPiece === PieceType.SPECIAL} />
           </div>
           <div className="flex flex-col">
-            <span className="text-xs text-gray-500 -mb-1">Special / 特殊 (S*)</span>
+            <span className="text-xs text-gray-500 -mb-1">{t('pieces.special')} ({t('pieces.special') === 'Special' ? 'S*' : '特'})</span>
             <span className={`text-base font-medium ${selectedPiece === PieceType.SPECIAL ? 'font-bold' : ''}`}>
               × {inventory[PieceType.SPECIAL]}
             </span>
