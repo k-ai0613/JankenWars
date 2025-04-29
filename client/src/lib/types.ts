@@ -20,6 +20,7 @@ export enum Player {
 export interface Cell {
   piece: PieceType;
   owner: Player;
+  hasBeenUsed: boolean; // Tracks if this cell has ever been used (to prevent reusing cells)
 }
 
 // Board is a 6x6 grid of cells

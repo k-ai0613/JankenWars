@@ -6,7 +6,7 @@ export const createEmptyBoard = (): Board => {
   for (let i = 0; i < 6; i++) {
     const row: Cell[] = [];
     for (let j = 0; j < 6; j++) {
-      row.push({ piece: PieceType.EMPTY, owner: Player.NONE });
+      row.push({ piece: PieceType.EMPTY, owner: Player.NONE, hasBeenUsed: false });
     }
     board.push(row);
   }
@@ -182,6 +182,11 @@ export const isValidMove = (
   }
   
   const targetCell = board[row][col];
+  
+  // If the cell has been used before, it's invalid
+  if (targetCell.hasBeenUsed) {
+    return false;
+  }
   
   // If the target cell is empty, it's a valid move
   if (targetCell.piece === PieceType.EMPTY) {
