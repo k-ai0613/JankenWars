@@ -63,25 +63,26 @@ const GameSquare: React.FC<GameSquareProps> = ({
     }
   };
 
-  // Determine background color based on conditions
+  // Determine background color based on conditions - using stronger colors
   let bgColorClass = "";
   
+  // Hard-code explicit styles for maximum visibility
   if (isValidMove) {
-    // Valid move highlight
-    bgColorClass = "bg-gradient-to-br from-green-100 to-green-200 cursor-pointer ring-2 ring-green-300 hover:from-green-200 hover:to-green-300";
+    // Valid move highlight - stronger green
+    bgColorClass = "bg-green-200 cursor-pointer ring-2 ring-green-500 hover:bg-green-300";
   } else if (cell.hasBeenUsed && cell.piece !== PieceType.EMPTY) {
-    // Janken battle happened - neutral background
-    bgColorClass = "bg-gradient-to-br from-amber-50 to-amber-100";
+    // Janken battle happened - use golden/amber color
+    bgColorClass = "bg-amber-200";
   } else if (cell.piece !== PieceType.EMPTY) {
-    // Regular piece placement - player color
+    // Regular piece placement - stronger player colors
     if (cell.owner === Player.PLAYER1) {
-      bgColorClass = "bg-gradient-to-br from-blue-100 to-blue-200";
-    } else {
-      bgColorClass = "bg-gradient-to-br from-red-100 to-red-200";
+      bgColorClass = "bg-blue-200";
+    } else if (cell.owner === Player.PLAYER2) {
+      bgColorClass = "bg-red-200";
     }
   } else {
-    // Empty cell
-    bgColorClass = "bg-gradient-to-br from-amber-50 to-amber-100";
+    // Empty cell - light mint green
+    bgColorClass = "bg-green-50";
   }
   
   return (
