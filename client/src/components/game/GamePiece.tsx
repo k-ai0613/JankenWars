@@ -37,14 +37,39 @@ export const GamePiece: React.FC<GamePieceProps> = ({
   // Ensure the correct owner colors are being used
   let ownerColor = 'text-gray-800 font-bold text-3xl'; // Default fallback
   
-  // More flexible owner comparison using string check
+  // 超強力なプレイヤー識別ロジックを実装
+  // 文字列比較、列挙体比較、内部値比較など複数の識別方法を使用
   const ownerStr = String(owner);
-  console.log('GamePiece owner check:', { owner, ownerStr, ownerType: typeof owner });
+  const ownerType = typeof owner;
+  const isP1ByString = ownerStr.includes('PLAYER1');
+  const isP2ByString = ownerStr.includes('PLAYER2');
+  const isP1ByEnum = owner === Player.PLAYER1;
+  const isP2ByEnum = owner === Player.PLAYER2;
   
-  if (ownerStr.includes('PLAYER1')) {
+  console.log('GamePiece owner DETAILED check:', { 
+    owner, 
+    ownerStr, 
+    ownerType,
+    isP1ByString,
+    isP2ByString,
+    isP1ByEnum,
+    isP2ByEnum,
+    // プレイヤー列挙体の値を確認
+    Player1Value: Player.PLAYER1,
+    Player2Value: Player.PLAYER2,
+    Player1Str: String(Player.PLAYER1),
+    Player2Str: String(Player.PLAYER2)
+  });
+  
+  // 複数の条件を考慮してプレイヤーを識別
+  const isPlayer1 = isP1ByEnum || isP1ByString;
+  const isPlayer2 = isP2ByEnum || isP2ByString || ownerStr === 'PLAYER2';
+  
+  if (isPlayer1) {
     ownerColor = 'text-blue-800 font-bold text-3xl';
-  } else if (ownerStr.includes('PLAYER2')) {
+  } else if (isPlayer2) {
     ownerColor = 'text-red-800 font-bold text-3xl';
+    console.log('PLAYER2 COLOR APPLIED TO:', { position: owner, type });
   }
   
   // Determine label for piece type (Unicode characters for better visibility)
@@ -65,11 +90,12 @@ export const GamePiece: React.FC<GamePieceProps> = ({
   // Combine all classes - using common white background for all pieces with improved styling and safer owner check
   let borderColorClass = 'border-gray-500'; // Default fallback
   
-  // Safer owner checking for border colors - use the same string check for consistency
-  if (ownerStr.includes('PLAYER1')) {
+  // プレイヤー識別結果をボーダーカラーにも反映
+  if (isPlayer1) {
     borderColorClass = 'border-blue-500';
-  } else if (ownerStr.includes('PLAYER2')) {
+  } else if (isPlayer2) {
     borderColorClass = 'border-red-500';
+    console.log('PLAYER2 BORDER COLOR APPLIED');
   }
   
   const pieceClass = `${ownerColor} ${containerSize} rounded-full bg-white border-2 ${borderColorClass} shadow-md flex items-center justify-center relative`;

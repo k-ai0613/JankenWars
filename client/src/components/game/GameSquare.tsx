@@ -63,17 +63,27 @@ const GameSquare: React.FC<GameSquareProps> = ({
     }
   };
 
-  // デバッグログを追加
+  // プレイヤー識別ロジックの強化 - GamePieceと同様の複数メソッドを使用
   const ownerType = typeof cell.owner;
   const ownerValue = String(cell.owner);
-  const ownerIsP1 = cell.owner === Player.PLAYER1 || ownerValue === 'PLAYER1';
-  const ownerIsP2 = cell.owner === Player.PLAYER2 || ownerValue === 'PLAYER2';
+  const ownerIsP1ByString = ownerValue.includes('PLAYER1');
+  const ownerIsP2ByString = ownerValue.includes('PLAYER2');
+  const ownerIsP1ByEnum = cell.owner === Player.PLAYER1;
+  const ownerIsP2ByEnum = cell.owner === Player.PLAYER2;
+  
+  // 複数の条件を組み合わせて判定
+  const ownerIsP1 = ownerIsP1ByEnum || ownerIsP1ByString;
+  const ownerIsP2 = ownerIsP2ByEnum || ownerIsP2ByString || ownerValue === 'PLAYER2';
   
   console.log(`Cell at ${position.row},${position.col}:`, { 
     piece: cell.piece, 
     owner: cell.owner, 
     ownerType,
     ownerValue,
+    ownerIsP1ByString,
+    ownerIsP2ByString,
+    ownerIsP1ByEnum,
+    ownerIsP2ByEnum,
     ownerIsP1,
     ownerIsP2,
     hasBeenUsed: cell.hasBeenUsed 
@@ -92,12 +102,14 @@ const GameSquare: React.FC<GameSquareProps> = ({
     bgColorClass = "bg-amber-300";
   }
   else if (cell.piece !== PieceType.EMPTY) {
-    // Player-specific colors
-    if (ownerValue.includes('PLAYER1')) {
+    // より強力なプレイヤー識別方法を使用した背景色選択
+    if (ownerIsP1) {
       bgColorClass = "bg-blue-300"; // Player 1 - BLUE
+      console.log(`Cell ${position.row},${position.col} - BLUE for P1`);
     } 
-    else if (ownerValue.includes('PLAYER2')) {
+    else if (ownerIsP2) {
       bgColorClass = "bg-red-300";  // Player 2 - RED
+      console.log(`Cell ${position.row},${position.col} - RED for P2 ${cell.piece}`);
     }
     else {
       console.warn("Unknown owner:", cell.owner);

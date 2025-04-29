@@ -433,11 +433,24 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     // If the cell is empty
     if (targetCell.piece === PieceType.EMPTY) {
       // Place the piece on empty cell (not locked)
-      newBoard[position.row][position.col] = {
+      const newCell = {
         piece: piece,
         owner: Player.PLAYER2, // 明示的にPlayer.PLAYER2
         hasBeenUsed: false // Not locked yet, can be captured with janken rules
       };
+      
+      // キーポイント！プレイヤー2のセル内容を詳細に表示
+      console.log('AI_PLACING_PIECE', {
+        position,
+        cell: newCell,
+        ownerType: typeof newCell.owner,
+        ownerValue: String(newCell.owner),
+        isPlayerEnum: newCell.owner === Player.PLAYER2,
+        isPlayer2String: String(newCell.owner) === 'PLAYER2',
+        isPlayer2IncludesCheck: String(newCell.owner).includes('PLAYER2')
+      });
+      
+      newBoard[position.row][position.col] = newCell;
       
       // Play success sound
       audioStore.playSuccess();
