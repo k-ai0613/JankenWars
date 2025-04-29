@@ -34,9 +34,15 @@ export const GamePiece: React.FC<GamePieceProps> = ({
   }[size];
   
   // Determine owner color styles - stronger text colors for maximum visibility
-  const ownerColor = owner === Player.PLAYER1 
-    ? 'text-blue-800 font-bold text-3xl' 
-    : 'text-red-800 font-bold text-3xl';
+  // Ensure the correct owner colors are being used
+  let ownerColor = 'text-gray-800 font-bold text-3xl'; // Default fallback
+  
+  // Explicitly check against enum values for safer comparison
+  if (owner === Player.PLAYER1 || String(owner) === 'PLAYER1') {
+    ownerColor = 'text-blue-800 font-bold text-3xl';
+  } else if (owner === Player.PLAYER2 || String(owner) === 'PLAYER2') {
+    ownerColor = 'text-red-800 font-bold text-3xl';
+  }
   
   // Determine label for piece type (Unicode characters for better visibility)
   const pieceLabel = {
@@ -53,8 +59,17 @@ export const GamePiece: React.FC<GamePieceProps> = ({
     lg: 'w-7 h-7 text-sm -mt-2 -mr-2'
   }[size];
   
-  // Combine all classes - using common white background for all pieces with improved styling
-  const pieceClass = `${ownerColor} ${containerSize} rounded-full bg-white border-2 ${owner === Player.PLAYER1 ? 'border-blue-500' : 'border-red-500'} shadow-md flex items-center justify-center relative`;
+  // Combine all classes - using common white background for all pieces with improved styling and safer owner check
+  let borderColorClass = 'border-gray-500'; // Default fallback
+  
+  // Safer owner checking for border colors
+  if (owner === Player.PLAYER1 || String(owner) === 'PLAYER1') {
+    borderColorClass = 'border-blue-500';
+  } else if (owner === Player.PLAYER2 || String(owner) === 'PLAYER2') {
+    borderColorClass = 'border-red-500';
+  }
+  
+  const pieceClass = `${ownerColor} ${containerSize} rounded-full bg-white border-2 ${borderColorClass} shadow-md flex items-center justify-center relative`;
 
   // Selected piece has a highlight
   const selectedClass = selected ? 'ring-2 ring-yellow-400' : '';

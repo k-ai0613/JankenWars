@@ -63,6 +63,10 @@ const GameSquare: React.FC<GameSquareProps> = ({
     }
   };
 
+  // デバッグログを追加
+  console.log(`Cell at ${position.row},${position.col}:`, 
+    { piece: cell.piece, owner: cell.owner, hasBeenUsed: cell.hasBeenUsed });
+  
   // Determine background color based on conditions - using stronger colors
   let bgColorClass = "";
   
@@ -75,10 +79,16 @@ const GameSquare: React.FC<GameSquareProps> = ({
     bgColorClass = "bg-amber-200";
   } else if (cell.piece !== PieceType.EMPTY) {
     // Regular piece placement - stronger player colors
-    if (cell.owner === Player.PLAYER1) {
+    // 明示的に文字列比較を行う（enumの比較に問題がある場合の対策）
+    const ownerStr = String(cell.owner);
+    if (ownerStr === "PLAYER1") {
       bgColorClass = "bg-blue-200";
-    } else if (cell.owner === Player.PLAYER2) {
+    } else if (ownerStr === "PLAYER2") {
       bgColorClass = "bg-red-200";
+    } else {
+      // 予期しない所有者の場合のフォールバック
+      console.warn("Unexpected owner value:", cell.owner);
+      bgColorClass = "bg-purple-200"; // 問題を視覚的に識別するための明確な色
     }
   } else {
     // Empty cell - light mint green
