@@ -371,7 +371,7 @@ export function GamePage() {
                     size="sm"
                     className={aiDifficulty === AIDifficulty.EASY ? 'bg-green-500 hover:bg-green-600' : 'hover:bg-green-100'}
                   >
-                    {language === 'ja' ? '簡単' : 'Easy'}
+                    {t('game.aiEasy')}
                   </Button>
                   <Button 
                     onClick={() => handleSetAIDifficulty(AIDifficulty.MEDIUM)}
@@ -379,7 +379,7 @@ export function GamePage() {
                     size="sm"
                     className={aiDifficulty === AIDifficulty.MEDIUM ? 'bg-yellow-500 hover:bg-yellow-600' : 'hover:bg-yellow-100'}
                   >
-                    {language === 'ja' ? '普通' : 'Medium'}
+                    {t('game.aiMedium')}
                   </Button>
                   <Button 
                     onClick={() => handleSetAIDifficulty(AIDifficulty.HARD)}
@@ -387,7 +387,7 @@ export function GamePage() {
                     size="sm"
                     className={aiDifficulty === AIDifficulty.HARD ? 'bg-red-500 hover:bg-red-600' : 'hover:bg-red-100'}
                   >
-                    {language === 'ja' ? '難しい' : 'Hard'}
+                    {t('game.aiHard')}
                   </Button>
                 </div>
               </div>

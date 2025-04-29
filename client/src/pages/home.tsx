@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { Switch } from '../components/ui/switch';
 import { useLanguage } from '../lib/stores/useLanguage';
+import { useJankenGame } from '../lib/stores/useJankenGame';
+import { AIDifficulty } from '../lib/aiUtils';
 import { motion } from 'framer-motion';
 import { FaHandRock, FaHandPaper, FaHandScissors, FaStar } from 'react-icons/fa';
 
@@ -110,10 +112,18 @@ export function Home() {
               </Button>
             </Link>
             
-            {/* These buttons will be implemented in future versions */}
-            <Button className="w-full max-w-xs py-5 bg-white/80 backdrop-blur-sm text-slate-700 hover:bg-white/90" variant="outline" disabled>
-              {t('home.playAI')}
-            </Button>
+            {/* AI Mode */}
+            <Link to="/game" className="w-full max-w-xs">
+              <Button 
+                className="w-full py-5 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 shadow-lg shadow-green-500/20 hover:shadow-green-600/30 transition-all duration-300 text-white"
+                onClick={() => {
+                  // Enable AI mode by default when clicking this button
+                  useJankenGame.setState({ isAIEnabled: true, aiDifficulty: AIDifficulty.MEDIUM });
+                }}
+              >
+                {t('home.playAI')}
+              </Button>
+            </Link>
             
             <Button className="w-full max-w-xs py-5 bg-white/80 backdrop-blur-sm text-slate-700 hover:bg-white/90" variant="outline" disabled>
               {t('home.playOnline')}

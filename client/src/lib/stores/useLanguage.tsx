@@ -25,8 +25,8 @@ const defaultTranslations: Record<string, Record<Language, string>> = {
     ja: 'ローカルゲームをプレイ'
   },
   'home.playAI': {
-    en: 'Play vs AI (Coming Soon)',
-    ja: 'AIと対戦（近日公開）'
+    en: 'Play vs AI',
+    ja: 'AIと対戦'
   },
   'home.playOnline': {
     en: 'Online Multiplayer (Coming Soon)',
