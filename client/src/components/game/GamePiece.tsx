@@ -37,10 +37,13 @@ export const GamePiece: React.FC<GamePieceProps> = ({
   // Ensure the correct owner colors are being used
   let ownerColor = 'text-gray-800 font-bold text-3xl'; // Default fallback
   
-  // Explicitly check against enum values for safer comparison
-  if (owner === Player.PLAYER1 || String(owner) === 'PLAYER1') {
+  // More flexible owner comparison using string check
+  const ownerStr = String(owner);
+  console.log('GamePiece owner check:', { owner, ownerStr, ownerType: typeof owner });
+  
+  if (ownerStr.includes('PLAYER1')) {
     ownerColor = 'text-blue-800 font-bold text-3xl';
-  } else if (owner === Player.PLAYER2 || String(owner) === 'PLAYER2') {
+  } else if (ownerStr.includes('PLAYER2')) {
     ownerColor = 'text-red-800 font-bold text-3xl';
   }
   
@@ -62,10 +65,10 @@ export const GamePiece: React.FC<GamePieceProps> = ({
   // Combine all classes - using common white background for all pieces with improved styling and safer owner check
   let borderColorClass = 'border-gray-500'; // Default fallback
   
-  // Safer owner checking for border colors
-  if (owner === Player.PLAYER1 || String(owner) === 'PLAYER1') {
+  // Safer owner checking for border colors - use the same string check for consistency
+  if (ownerStr.includes('PLAYER1')) {
     borderColorClass = 'border-blue-500';
-  } else if (owner === Player.PLAYER2 || String(owner) === 'PLAYER2') {
+  } else if (ownerStr.includes('PLAYER2')) {
     borderColorClass = 'border-red-500';
   }
   

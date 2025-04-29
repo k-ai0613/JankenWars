@@ -64,34 +64,48 @@ const GameSquare: React.FC<GameSquareProps> = ({
   };
 
   // デバッグログを追加
-  console.log(`Cell at ${position.row},${position.col}:`, 
-    { piece: cell.piece, owner: cell.owner, hasBeenUsed: cell.hasBeenUsed });
+  const ownerType = typeof cell.owner;
+  const ownerValue = String(cell.owner);
+  const ownerIsP1 = cell.owner === Player.PLAYER1 || ownerValue === 'PLAYER1';
+  const ownerIsP2 = cell.owner === Player.PLAYER2 || ownerValue === 'PLAYER2';
   
-  // Determine background color based on conditions - using stronger colors
+  console.log(`Cell at ${position.row},${position.col}:`, { 
+    piece: cell.piece, 
+    owner: cell.owner, 
+    ownerType,
+    ownerValue,
+    ownerIsP1,
+    ownerIsP2,
+    hasBeenUsed: cell.hasBeenUsed 
+  });
+  
+  // Force a more robust background color selection - completely rewritten
   let bgColorClass = "";
   
-  // Hard-code explicit styles for maximum visibility
+  // 極めてシンプルな条件分岐で背景色を決定
   if (isValidMove) {
-    // Valid move highlight - stronger green
-    bgColorClass = "bg-green-200 cursor-pointer ring-2 ring-green-500 hover:bg-green-300";
-  } else if (cell.hasBeenUsed && cell.piece !== PieceType.EMPTY) {
-    // Janken battle happened - use golden/amber color
-    bgColorClass = "bg-amber-200";
-  } else if (cell.piece !== PieceType.EMPTY) {
-    // Regular piece placement - stronger player colors
-    // 明示的に文字列比較を行う（enumの比較に問題がある場合の対策）
-    const ownerStr = String(cell.owner);
-    if (ownerStr === "PLAYER1") {
-      bgColorClass = "bg-blue-200";
-    } else if (ownerStr === "PLAYER2") {
-      bgColorClass = "bg-red-200";
-    } else {
-      // 予期しない所有者の場合のフォールバック
-      console.warn("Unexpected owner value:", cell.owner);
-      bgColorClass = "bg-purple-200"; // 問題を視覚的に識別するための明確な色
+    // Valid move highlighting
+    bgColorClass = "bg-green-300 cursor-pointer ring-2 ring-green-500 hover:bg-green-400";
+  } 
+  else if (cell.hasBeenUsed && cell.piece !== PieceType.EMPTY) {
+    // Janken battle cell - amber
+    bgColorClass = "bg-amber-300";
+  }
+  else if (cell.piece !== PieceType.EMPTY) {
+    // Player-specific colors
+    if (ownerValue.includes('PLAYER1')) {
+      bgColorClass = "bg-blue-300"; // Player 1 - BLUE
+    } 
+    else if (ownerValue.includes('PLAYER2')) {
+      bgColorClass = "bg-red-300";  // Player 2 - RED
     }
-  } else {
-    // Empty cell - light mint green
+    else {
+      console.warn("Unknown owner:", cell.owner);
+      bgColorClass = "bg-purple-300"; // Error indicator
+    }
+  } 
+  else {
+    // Empty cell
     bgColorClass = "bg-green-50";
   }
   
