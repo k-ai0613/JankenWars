@@ -344,12 +344,14 @@ export function GamePage() {
           <span className={`text-sm font-bold transition-colors duration-200 ${language === 'ja' ? 'text-red-600' : 'text-gray-400'}`}>日本語</span>
         </div>
 
-        <h1 className="text-3xl font-bold mb-4 text-center">{t('game.title')}</h1>
+        <h1 className="text-4xl md:text-5xl font-bold mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 drop-shadow-sm">{t('game.title')}</h1>
 
         {/* Game controls */}
-        <div className="flex gap-2 mb-6 flex-wrap justify-center">
+        <div className="flex gap-3 mb-8 flex-wrap justify-center">
           {gameStore.phase === 'ready' && (
-            <Button onClick={handleStartGame} size="lg">
+            <Button onClick={handleStartGame} 
+              className="py-6 px-8 text-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/20 hover:shadow-blue-600/30 transition-all duration-300" 
+              size="lg">
               {t('game.startGame')}
             </Button>
           )}
@@ -360,28 +362,42 @@ export function GamePage() {
                 disabled={currentPlayer === Player.PLAYER1 
                   ? player1Inventory[PieceType.SPECIAL] <= 0 
                   : player2Inventory[PieceType.SPECIAL] <= 0}
+                className="bg-amber-100 text-amber-800 border-amber-300 hover:bg-amber-200 shadow-md"
                 variant="outline">
-                {t('game.useSpecialPiece')}
+                <span className="flex items-center">
+                  <FaStar className="mr-2 text-yellow-500" />
+                  {t('game.useSpecialPiece')}
+                </span>
               </Button>
               
-              <Button onClick={handleResetGame} variant="secondary">
+              <Button onClick={handleResetGame} 
+                className="bg-white/80 backdrop-blur-sm text-slate-700 hover:bg-white/90 shadow-md"
+                variant="secondary">
                 {t('game.reset')}
               </Button>
             </>
           )}
           
           {gameStore.phase === 'ended' && (
-            <Button onClick={handleResetGame} size="lg">
+            <Button onClick={handleResetGame} 
+              className="py-5 px-6 text-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg shadow-purple-500/20 hover:shadow-purple-600/30 transition-all duration-300" 
+              size="lg">
               {t('game.playAgain')}
             </Button>
           )}
           
-          <Button onClick={handleToggleMute} variant="ghost">
+          <Button onClick={handleToggleMute} 
+            className="bg-white/60 hover:bg-white/80 backdrop-blur-sm text-slate-600 hover:text-slate-900 border border-slate-200 shadow-sm"
+            variant="ghost">
             {audioStore.isMuted ? t('game.unmute') : t('game.mute')}
           </Button>
           
           <Link to="/">
-            <Button variant="ghost">{t('game.backToHome')}</Button>
+            <Button 
+              className="bg-white/60 hover:bg-white/80 backdrop-blur-sm text-slate-600 hover:text-slate-900 border border-slate-200 shadow-sm"
+              variant="ghost">
+              {t('game.backToHome')}
+            </Button>
           </Link>
         </div>
 
