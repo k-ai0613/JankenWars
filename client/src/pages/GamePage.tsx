@@ -402,15 +402,18 @@ export function GamePage() {
             }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.3 }}
-            className={`p-4 rounded-lg shadow-md mb-6 w-full max-w-md text-center
+            className={`p-6 rounded-lg shadow-md mb-6 w-full max-w-xl text-center min-h-[80px] flex items-center justify-center
               ${winAnimation ? 'ring-4 ring-yellow-400 bg-gradient-to-r from-yellow-50 to-yellow-100' : 'bg-white'}
               ${drawAnimation ? 'ring-4 ring-green-400 bg-gradient-to-r from-green-50 to-green-100' : ''}
               ${loseAnimation ? 'ring-2 ring-red-300 bg-gradient-to-r from-red-50 to-red-100' : ''}
             `}
           >
             <p className={`
-              ${winAnimation ? 'font-bold text-lg animate-pulse' : ''}
-              ${drawAnimation ? 'font-semibold text-md' : ''}
+              text-base md:text-lg
+              ${winAnimation ? 'font-bold animate-pulse' : ''}
+              ${drawAnimation ? 'font-semibold' : ''}
+              ${loseAnimation ? 'font-medium text-red-600' : ''}
+              ${!winAnimation && !drawAnimation && !loseAnimation ? 'font-medium' : ''}
             `}>
               {message.startsWith('message.') ? t(message) : message}
             </p>
