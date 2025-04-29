@@ -4,9 +4,11 @@ import { Button } from '../components/ui/button';
 import { Switch } from '../components/ui/switch';
 import { useGame } from '../lib/stores/useGame';
 import { useJankenGame } from '../lib/stores/useJankenGame';
-import { PieceType, Player, Position } from '../lib/types';
+import { PieceType, Player, Position, GameResult } from '../lib/types';
 import { useAudio } from '../lib/stores/useAudio';
 import { useLanguage } from '../lib/stores/useLanguage';
+import Confetti from 'react-confetti';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Components for the game UI
 const GameBoard: React.FC = () => {

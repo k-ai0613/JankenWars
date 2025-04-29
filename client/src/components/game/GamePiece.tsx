@@ -1,6 +1,7 @@
 import React from 'react';
 import { PieceType, Player } from '../../lib/types';
 import { FaHandRock, FaHandPaper, FaHandScissors, FaStar } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface GamePieceProps {
   type: PieceType;
@@ -50,9 +51,28 @@ export const GamePiece: React.FC<GamePieceProps> = ({
     }
   };
 
+  // Animation variants
+  const pieceVariants = {
+    initial: { scale: 0, opacity: 0, rotate: -180 },
+    animate: { scale: 1, opacity: 1, rotate: 0, transition: { duration: 0.5, type: 'spring', stiffness: 200 } },
+    exit: { scale: 0, opacity: 0, rotate: 180, transition: { duration: 0.3 } },
+    hover: { scale: 1.1, transition: { duration: 0.2 } },
+    captured: { scale: [1, 1.5, 0], opacity: [1, 1, 0], rotate: [0, 180, 360], transition: { duration: 0.7 } }
+  };
+
   return (
-    <div className={`flex items-center justify-center ${selectedClass}`}>
-      {renderPieceIcon()}
-    </div>
+    <AnimatePresence mode="wait">
+      <motion.div 
+        className={`flex items-center justify-center ${selectedClass}`}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        whileHover="hover"
+        layoutId={`piece-${type}-${owner}`}
+        variants={pieceVariants}
+      >
+        {renderPieceIcon()}
+      </motion.div>
+    </AnimatePresence>
   );
 };
