@@ -10,7 +10,7 @@ import { useAudio } from '../lib/stores/useAudio';
 import { useLanguage } from '../lib/stores/useLanguage';
 import Confetti from 'react-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaStar } from 'react-icons/fa';
+import { FaStar, FaRobot, FaChessKnight, FaUserFriends } from 'react-icons/fa';
 
 // Import GameBoard component
 import GameBoard from '../components/game/GameBoard';
@@ -40,6 +40,12 @@ export function GamePage() {
     clearWinAnimation,
     clearDrawAnimation,
     clearLoseAnimation,
+    // AI related
+    isAIEnabled,
+    aiDifficulty,
+    isAIThinking,
+    toggleAI,
+    setAIDifficulty,
     // getRandomPieceForCurrentPlayer - removed
   } = useJankenGame();
   
@@ -97,6 +103,15 @@ export function GamePage() {
 
   const handleToggleLanguage = () => {
     setLanguage(language === 'en' ? 'ja' : 'en');
+  };
+  
+  // AI related handlers
+  const handleToggleAI = () => {
+    toggleAI();
+  };
+  
+  const handleSetAIDifficulty = (difficulty: AIDifficulty) => {
+    setAIDifficulty(difficulty);
   };
   
   // Clear animations after a set time
@@ -312,6 +327,73 @@ export function GamePage() {
                 </p>
               </motion.div>
             </AnimatePresence>
+
+            {/* AI Controls */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-md border border-slate-200 p-4 mb-4">
+              <h3 className="text-lg font-bold mb-3 flex items-center">
+                <FaRobot className="mr-2 text-slate-600" />
+                {language === 'ja' ? 'AI設定' : 'AI Controls'}
+              </h3>
+              
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center">
+                  <span className="text-sm font-medium mr-2">
+                    {isAIEnabled 
+                      ? (language === 'ja' ? 'AI有効' : 'AI Enabled') 
+                      : (language === 'ja' ? 'AI無効' : 'AI Disabled')}
+                  </span>
+                  {isAIThinking && (
+                    <div className="ml-2 animate-pulse flex items-center">
+                      <span className="text-xs text-blue-600 font-semibold">
+                        {language === 'ja' ? '考え中...' : 'Thinking...'}
+                      </span>
+                      <span className="ml-1 flex space-x-1">
+                        <span className="h-1.5 w-1.5 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                        <span className="h-1.5 w-1.5 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                        <span className="h-1.5 w-1.5 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <Switch 
+                  checked={isAIEnabled}
+                  onCheckedChange={handleToggleAI}
+                  className="data-[state=checked]:bg-green-500 data-[state=unchecked]:bg-slate-300 h-6 w-11"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <p className="text-sm font-medium mb-2">
+                  {language === 'ja' ? 'AI難易度:' : 'AI Difficulty:'}
+                </p>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={() => handleSetAIDifficulty(AIDifficulty.EASY)}
+                    variant={aiDifficulty === AIDifficulty.EASY ? 'default' : 'outline'}
+                    size="sm"
+                    className={aiDifficulty === AIDifficulty.EASY ? 'bg-green-500 hover:bg-green-600' : 'hover:bg-green-100'}
+                  >
+                    {language === 'ja' ? '簡単' : 'Easy'}
+                  </Button>
+                  <Button 
+                    onClick={() => handleSetAIDifficulty(AIDifficulty.MEDIUM)}
+                    variant={aiDifficulty === AIDifficulty.MEDIUM ? 'default' : 'outline'}
+                    size="sm"
+                    className={aiDifficulty === AIDifficulty.MEDIUM ? 'bg-yellow-500 hover:bg-yellow-600' : 'hover:bg-yellow-100'}
+                  >
+                    {language === 'ja' ? '普通' : 'Medium'}
+                  </Button>
+                  <Button 
+                    onClick={() => handleSetAIDifficulty(AIDifficulty.HARD)}
+                    variant={aiDifficulty === AIDifficulty.HARD ? 'default' : 'outline'}
+                    size="sm"
+                    className={aiDifficulty === AIDifficulty.HARD ? 'bg-red-500 hover:bg-red-600' : 'hover:bg-red-100'}
+                  >
+                    {language === 'ja' ? '難しい' : 'Hard'}
+                  </Button>
+                </div>
+              </div>
+            </div>
 
             {/* Players info */}
             <div className="flex flex-col gap-4">
