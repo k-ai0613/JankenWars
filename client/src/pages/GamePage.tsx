@@ -4,6 +4,7 @@ import { Button } from '../components/ui/button';
 import { Switch } from '../components/ui/switch';
 import { useGame } from '../lib/stores/useGame';
 import { useJankenGame } from '../lib/stores/useJankenGame';
+import { AIDifficulty } from '../lib/aiUtils';
 import { PieceType, Player, Position, GameResult } from '../lib/types';
 import { useAudio } from '../lib/stores/useAudio';
 import { useLanguage } from '../lib/stores/useLanguage';

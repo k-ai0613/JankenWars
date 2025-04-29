@@ -8,6 +8,7 @@ import {
   getRandomPiece, 
   isValidMove 
 } from '../gameUtils';
+import { AIDifficulty, findBestMove } from '../aiUtils';
 import { useAudio } from './useAudio';
 
 interface JankenGameState {
@@ -39,6 +40,11 @@ interface JankenGameState {
   loseAnimation: boolean; // Whether to show the lose animation
   drawAnimation: boolean; // Whether to show the draw animation
   
+  // AI settings
+  isAIEnabled: boolean;
+  aiDifficulty: AIDifficulty;
+  isAIThinking: boolean; // For showing AI "thinking" animation
+  
   // Actions
   startGame: () => void;
   selectCell: (position: Position) => void;
@@ -49,6 +55,11 @@ interface JankenGameState {
   clearWinAnimation: () => void;
   clearLoseAnimation: () => void;
   clearDrawAnimation: () => void;
+  
+  // AI actions
+  toggleAI: () => void;
+  setAIDifficulty: (difficulty: AIDifficulty) => void;
+  makeAIMove: () => void;
 }
 
 export const useJankenGame = create<JankenGameState>((set, get) => ({
@@ -65,6 +76,11 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
   loseAnimation: false,
   drawAnimation: false,
   
+  // AI settings
+  isAIEnabled: false,
+  aiDifficulty: AIDifficulty.MEDIUM,
+  isAIThinking: false,
+  
   startGame: () => {
     set({ 
       phase: GamePhase.SELECTING_CELL,
@@ -73,6 +89,17 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     
     // Select random piece for first player
     get().getRandomPieceForCurrentPlayer();
+    
+    // If AI mode is enabled and AI is Player 1, make AI move immediately
+    const { isAIEnabled } = get();
+    if (isAIEnabled) {
+      // Store the current setting to restore it later
+      const currentAIEnabled = isAIEnabled;
+      // Temporarily disable AI to prevent immediate AI move (Player 1 should go first)
+      set({ isAIEnabled: false });
+      // Re-enable AI after a short delay
+      setTimeout(() => set({ isAIEnabled: currentAIEnabled }), 1000);
+    }
   },
   
   selectCell: (position: Position) => {
@@ -186,6 +213,7 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     
     // Switch player
     const nextPlayer = currentPlayer === Player.PLAYER1 ? Player.PLAYER2 : Player.PLAYER1;
+    const { isAIEnabled } = get();
     
     set({
       ...newState,
@@ -194,7 +222,15 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     });
     
     // Select random piece for next player
-    setTimeout(() => get().getRandomPieceForCurrentPlayer(), 100);
+    setTimeout(() => {
+      get().getRandomPieceForCurrentPlayer();
+      
+      // If next player is Player 2 (AI) and AI is enabled, make AI move
+      if (nextPlayer === Player.PLAYER2 && isAIEnabled) {
+        // Give a little time for the random piece to be selected
+        setTimeout(() => get().makeAIMove(), 500);
+      }
+    }, 100);
   },
   
   selectSpecialPiece: () => {
@@ -302,5 +338,57 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
   
   clearDrawAnimation: () => {
     set({ drawAnimation: false });
+  },
+  
+  // AI actions
+  toggleAI: () => {
+    const { isAIEnabled } = get();
+    set({ isAIEnabled: !isAIEnabled });
+  },
+  
+  setAIDifficulty: (difficulty: AIDifficulty) => {
+    set({ aiDifficulty: difficulty });
+  },
+  
+  makeAIMove: () => {
+    const { 
+      board, 
+      currentPlayer, 
+      player2Inventory,
+      phase,
+      aiDifficulty,
+      isAIEnabled
+    } = get();
+    
+    // Only run if AI is enabled, it's Player 2's turn, and game is in the correct phase
+    if (!isAIEnabled || currentPlayer !== Player.PLAYER2 || phase !== GamePhase.SELECTING_CELL) {
+      return;
+    }
+    
+    // Set AI to "thinking" mode
+    set({ isAIThinking: true });
+    
+    // Add a slight delay to make it feel like the AI is "thinking"
+    setTimeout(() => {
+      // Find the best move for the AI
+      const bestMove = findBestMove(board, player2Inventory, aiDifficulty);
+      
+      if (bestMove) {
+        // Set the selected piece
+        set({ 
+          selectedPiece: bestMove.piece,
+          isAIThinking: false,
+          message: 'message.aiSelectedPiece'
+        });
+        
+        // Add a short delay before placing the piece
+        setTimeout(() => {
+          get().selectCell(bestMove.position);
+        }, 500);
+      } else {
+        // No valid moves, end AI thinking
+        set({ isAIThinking: false });
+      }
+    }, 1000); // 1 second thinking delay
   }
 }));
