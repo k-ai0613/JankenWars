@@ -57,18 +57,18 @@ export const GamePiece: React.FC<GamePieceProps> = ({
 
   // 完全にハードコードされた条件分岐で判断 - 文字列で決定
   if (ownerAsString === 'PLAYER1' || ownerAsString.includes('PLAYER1')) {
-    // Player 1のスタイル - 青色
+    // Player 1のスタイル - 青色 - より濃い色に変更
     ownerColor = 'text-blue-800 font-bold text-3xl';
-    borderColorClass = 'border-blue-500';
-    bgColorClass = 'bg-blue-50';
-    console.log('✅ PLAYER1 STYLE APPLIED using direct string check', { owner, ownerAsString });
+    borderColorClass = 'border-blue-600 border-2';
+    bgColorClass = 'bg-blue-200';
+    console.log('✅ PLAYER1 STYLE APPLIED (STRONGER BLUE)', { owner, ownerAsString });
   } 
   else if (ownerAsString === 'PLAYER2' || ownerAsString.includes('PLAYER2')) {
-    // Player 2のスタイル - 赤色 
+    // Player 2のスタイル - 赤色 - より鮮やかな赤に変更
     ownerColor = 'text-red-800 font-bold text-3xl';
-    borderColorClass = 'border-red-500';
-    bgColorClass = 'bg-red-50';
-    console.log('✅ PLAYER2 STYLE APPLIED using direct string check:', { owner, ownerAsString, type });
+    borderColorClass = 'border-red-600 border-2';
+    bgColorClass = 'bg-red-200';
+    console.log('✅ PLAYER2 STYLE APPLIED (STRONGER RED):', { owner, ownerAsString, type });
   }
   else {
     // デフォルトスタイル

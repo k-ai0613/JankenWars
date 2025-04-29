@@ -88,18 +88,18 @@ const GameSquare: React.FC<GameSquareProps> = ({
     bgColorClass = "bg-green-300 cursor-pointer ring-2 ring-green-500 hover:bg-green-400";
   } 
   else if (cell.hasBeenUsed && cell.piece !== PieceType.EMPTY) {
-    // Janken battle cell - amber
-    bgColorClass = "bg-amber-300";
+    // Janken battle cell - amber - より鮮やかな色に
+    bgColorClass = "bg-amber-300 ring-1 ring-amber-500";
   }
   else if (cell.piece !== PieceType.EMPTY) {
-    // 文字列ベースの単純な比較で背景色を選択
+    // 文字列ベースの単純な比較で背景色を選択 - より大きなコントラストに
     if (isPlayer1) {
-      bgColorClass = "bg-blue-300"; // Player 1 - BLUE
-      console.log(`Cell ${position.row},${position.col} - BLUE for P1 ${cell.piece}`);
+      bgColorClass = "bg-blue-300 ring-1 ring-blue-600"; // Player 1 - BLUE - より濃い色に
+      console.log(`Cell ${position.row},${position.col} - STRONGER BLUE for P1 ${cell.piece}`);
     } 
     else if (isPlayer2) {
-      bgColorClass = "bg-red-300";  // Player 2 - RED
-      console.log(`Cell ${position.row},${position.col} - RED for P2 ${cell.piece} using string check`);
+      bgColorClass = "bg-red-300 ring-1 ring-red-600";  // Player 2 - RED - より鮮やかな赤に
+      console.log(`Cell ${position.row},${position.col} - STRONGER RED for P2 ${cell.piece}`);
     }
     else {
       console.warn("Unknown owner string:", { ownerOriginal: cell.owner, ownerAsString });
