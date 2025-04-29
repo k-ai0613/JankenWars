@@ -93,8 +93,20 @@ export function GamePage() {
   }, [audioStore]);
 
   const handleResetGame = () => {
+    // Remember AI status to keep it enabled after reset
+    const wasAIEnabled = isAIEnabled;
+    const currentDifficulty = aiDifficulty;
+    
     resetGame();
     gameStore.restart();
+    
+    // Re-enable AI if it was enabled before reset
+    if (wasAIEnabled) {
+      setTimeout(() => {
+        toggleAI();
+        setAIDifficulty(currentDifficulty);
+      }, 100);
+    }
   };
 
   const handleToggleMute = () => {
@@ -115,6 +127,19 @@ export function GamePage() {
   };
   
   // Clear animations after a set time
+  // Check if we're coming from AI mode button
+  useEffect(() => {
+    const aiMode = localStorage.getItem('ai_mode');
+    if (aiMode === 'true') {
+      // Enable AI mode
+      toggleAI();
+      // Set medium difficulty by default
+      setAIDifficulty(AIDifficulty.MEDIUM);
+      // Clear the flag
+      localStorage.removeItem('ai_mode');
+    }
+  }, [toggleAI, setAIDifficulty]);
+  
   useEffect(() => {
     if (winAnimation) {
       const timer = setTimeout(() => {

@@ -107,7 +107,14 @@ export function Home() {
             transition={{ duration: 0.5, delay: 0.3 }}
           >
             <Link to="/game" className="w-full max-w-xs">
-              <Button className="w-full py-6 text-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/20 hover:shadow-blue-600/30 transition-all duration-300" size="lg">
+              <Button 
+                className="w-full py-6 text-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/20 hover:shadow-blue-600/30 transition-all duration-300" 
+                size="lg"
+                onClick={() => {
+                  // Make sure AI mode is disabled for local play
+                  localStorage.removeItem('ai_mode');
+                }}
+              >
                 {t('home.playLocal')}
               </Button>
             </Link>
@@ -117,8 +124,8 @@ export function Home() {
               <Button 
                 className="w-full py-5 bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 shadow-lg shadow-green-500/20 hover:shadow-green-600/30 transition-all duration-300 text-white"
                 onClick={() => {
-                  // Enable AI mode by default when clicking this button
-                  useJankenGame.setState({ isAIEnabled: true, aiDifficulty: AIDifficulty.MEDIUM });
+                  // Reset game state for AI play
+                  localStorage.setItem('ai_mode', 'true');
                 }}
               >
                 {t('home.playAI')}
