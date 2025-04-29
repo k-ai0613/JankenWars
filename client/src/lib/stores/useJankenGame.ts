@@ -54,7 +54,7 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
   startGame: () => {
     set({ 
       phase: GamePhase.SELECTING_CELL,
-      message: "Player 1's turn. Choose a piece or use your special piece."
+      message: "message.player1Turn"
     });
     
     // Select random piece for first player
@@ -71,13 +71,13 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     } = get();
     
     if (selectedPiece === null) {
-      set({ message: `Please select a piece first.` });
+      set({ message: 'message.selectPieceFirst' });
       return;
     }
     
     // Check if move is valid
     if (!isValidMove(board, position, selectedPiece, currentPlayer)) {
-      set({ message: `Invalid move. Try another position.` });
+      set({ message: 'message.invalidMove' });
       return;
     }
     
@@ -138,7 +138,7 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
         ...newState,
         result,
         phase: GamePhase.GAME_OVER,
-        message: `${currentPlayer === Player.PLAYER1 ? 'Player 1' : 'Player 2'} wins!`
+        message: currentPlayer === Player.PLAYER1 ? 'message.player1Win' : 'message.player2Win'
       });
       
       return;
@@ -152,7 +152,7 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
         ...newState,
         result: GameResult.DRAW,
         phase: GamePhase.GAME_OVER,
-        message: "It's a draw!"
+        message: 'message.draw'
       });
       
       return;
@@ -164,7 +164,7 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     set({
       ...newState,
       currentPlayer: nextPlayer,
-      message: `${nextPlayer === Player.PLAYER1 ? 'Player 1' : 'Player 2'}'s turn. Choose a piece or use your special piece.`
+      message: nextPlayer === Player.PLAYER1 ? 'message.player1Turn' : 'message.player2Turn'
     });
     
     // Select random piece for next player
@@ -180,14 +180,14 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     
     // Check if the player has a special piece
     if (currentInventory[PieceType.SPECIAL] <= 0) {
-      set({ message: "You've already used your special piece." });
+      set({ message: 'message.specialPieceUsed' });
       return;
     }
     
     // Set the selected piece to special
     set({ 
       selectedPiece: PieceType.SPECIAL,
-      message: `${currentPlayer === Player.PLAYER1 ? 'Player 1' : 'Player 2'} selected Special piece. Place it on an empty square.`
+      message: currentPlayer === Player.PLAYER1 ? 'message.player1SelectedSpecial' : 'message.player2SelectedSpecial'
     });
   },
   
@@ -237,7 +237,9 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     
     set({ 
       selectedPiece: randomPiece,
-      message: `${currentPlayer === Player.PLAYER1 ? 'Player 1' : 'Player 2'} received ${randomPiece.toLowerCase()}. Select a position to place it.`
+      message: currentPlayer === Player.PLAYER1 
+        ? `message.player1ReceivedPiece.${randomPiece.toLowerCase()}` 
+        : `message.player2ReceivedPiece.${randomPiece.toLowerCase()}`
     });
   },
   

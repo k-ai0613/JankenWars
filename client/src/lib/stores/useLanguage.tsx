@@ -149,6 +149,50 @@ const defaultTranslations: Record<string, Record<Language, string>> = {
   'message.draw': {
     en: "It's a draw!",
     ja: '引き分けです！'
+  },
+  'message.selectPieceFirst': {
+    en: 'Please select a piece first.',
+    ja: 'まず駒を選んでください。'
+  },
+  'message.invalidMove': {
+    en: 'Invalid move. Try another position.',
+    ja: '無効な移動です。別の位置を試してください。'
+  },
+  'message.specialPieceUsed': {
+    en: "You've already used your special piece.",
+    ja: '特殊駒はすでに使用済みです。'
+  },
+  'message.player1SelectedSpecial': {
+    en: 'Player 1 selected Special piece. Place it on an empty square.',
+    ja: 'プレイヤー1が特殊駒を選択しました。空いているマスに配置してください。'
+  },
+  'message.player2SelectedSpecial': {
+    en: 'Player 2 selected Special piece. Place it on an empty square.',
+    ja: 'プレイヤー2が特殊駒を選択しました。空いているマスに配置してください。'
+  },
+  'message.player1ReceivedPiece.rock': {
+    en: 'Player 1 received rock. Select a position to place it.',
+    ja: 'プレイヤー1がグーを受け取りました。配置する位置を選んでください。'
+  },
+  'message.player1ReceivedPiece.paper': {
+    en: 'Player 1 received paper. Select a position to place it.',
+    ja: 'プレイヤー1がパーを受け取りました。配置する位置を選んでください。'
+  },
+  'message.player1ReceivedPiece.scissors': {
+    en: 'Player 1 received scissors. Select a position to place it.',
+    ja: 'プレイヤー1がチョキを受け取りました。配置する位置を選んでください。'
+  },
+  'message.player2ReceivedPiece.rock': {
+    en: 'Player 2 received rock. Select a position to place it.',
+    ja: 'プレイヤー2がグーを受け取りました。配置する位置を選んでください。'
+  },
+  'message.player2ReceivedPiece.paper': {
+    en: 'Player 2 received paper. Select a position to place it.',
+    ja: 'プレイヤー2がパーを受け取りました。配置する位置を選んでください。'
+  },
+  'message.player2ReceivedPiece.scissors': {
+    en: 'Player 2 received scissors. Select a position to place it.',
+    ja: 'プレイヤー2がチョキを受け取りました。配置する位置を選んでください。'
   }
 };
 
