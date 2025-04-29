@@ -332,20 +332,18 @@ export function GamePage() {
             <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-md border border-slate-200 p-4 mb-4">
               <h3 className="text-lg font-bold mb-3 flex items-center">
                 <FaRobot className="mr-2 text-slate-600" />
-                {language === 'ja' ? 'AI設定' : 'AI Controls'}
+                {t('game.aiControls')}
               </h3>
               
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center">
                   <span className="text-sm font-medium mr-2">
-                    {isAIEnabled 
-                      ? (language === 'ja' ? 'AI有効' : 'AI Enabled') 
-                      : (language === 'ja' ? 'AI無効' : 'AI Disabled')}
+                    {isAIEnabled ? t('game.aiEnabled') : t('game.aiDisabled')}
                   </span>
                   {isAIThinking && (
                     <div className="ml-2 animate-pulse flex items-center">
                       <span className="text-xs text-blue-600 font-semibold">
-                        {language === 'ja' ? '考え中...' : 'Thinking...'}
+                        {t('game.aiThinking')}
                       </span>
                       <span className="ml-1 flex space-x-1">
                         <span className="h-1.5 w-1.5 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
@@ -364,7 +362,7 @@ export function GamePage() {
               
               <div className="space-y-2">
                 <p className="text-sm font-medium mb-2">
-                  {language === 'ja' ? 'AI難易度:' : 'AI Difficulty:'}
+                  {t('game.aiDifficulty')}:
                 </p>
                 <div className="flex gap-2">
                   <Button 

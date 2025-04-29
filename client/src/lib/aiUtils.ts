@@ -1,5 +1,5 @@
 import { Board, Cell, PieceType, Player, PlayerInventory, Position } from './types';
-import { isValidMove, determineWinner } from './gameUtils';
+import { isValidMove, determineWinner, getRandomPiece } from './gameUtils';
 
 // AI difficulty levels
 export enum AIDifficulty {

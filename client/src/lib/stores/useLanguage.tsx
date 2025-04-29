@@ -99,6 +99,44 @@ const defaultTranslations: Record<string, Record<Language, string>> = {
     en: 'Back to Home',
     ja: 'ホームに戻る'
   },
+  
+  // AI関連
+  'game.aiControls': {
+    en: 'AI Controls',
+    ja: 'AI設定'
+  },
+  'game.aiEnabled': {
+    en: 'AI Enabled',
+    ja: 'AI有効'
+  },
+  'game.aiDisabled': {
+    en: 'AI Disabled',
+    ja: 'AI無効'
+  },
+  'game.aiThinking': {
+    en: 'Thinking...',
+    ja: '考え中...'
+  },
+  'game.aiDifficulty': {
+    en: 'AI Difficulty',
+    ja: 'AI難易度'
+  },
+  'game.aiEasy': {
+    en: 'Easy',
+    ja: '簡単'
+  },
+  'game.aiMedium': {
+    en: 'Medium',
+    ja: '普通'
+  },
+  'game.aiHard': {
+    en: 'Hard',
+    ja: '難しい'
+  },
+  'message.aiSelectedPiece': {
+    en: 'AI has selected a piece',
+    ja: 'AIが駒を選択しました'
+  },
   'game.player1': {
     en: 'Player 1',
     ja: 'プレイヤー1'

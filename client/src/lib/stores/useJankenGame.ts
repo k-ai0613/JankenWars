@@ -84,7 +84,8 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
   startGame: () => {
     set({ 
       phase: GamePhase.SELECTING_CELL,
-      message: "message.player1Turn"
+      message: "message.player1Turn",
+      selectedPiece: null  // Clear any selected piece at the start
     });
     
     // Select random piece for first player
@@ -221,14 +222,15 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       message: nextPlayer === Player.PLAYER1 ? 'message.player1Turn' : 'message.player2Turn'
     });
     
-    // Select random piece for next player
+    // Handle next player's turn
     setTimeout(() => {
-      get().getRandomPieceForCurrentPlayer();
-      
-      // If next player is Player 2 (AI) and AI is enabled, make AI move
+      // If next player is AI, let AI select the piece
       if (nextPlayer === Player.PLAYER2 && isAIEnabled) {
-        // Give a little time for the random piece to be selected
-        setTimeout(() => get().makeAIMove(), 500);
+        // AI gets to choose its piece and position
+        get().makeAIMove();
+      } else {
+        // For human player, get random piece
+        get().getRandomPieceForCurrentPlayer();
       }
     }, 100);
   },
