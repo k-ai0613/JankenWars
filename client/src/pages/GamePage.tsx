@@ -274,59 +274,66 @@ export function GamePage() {
           </Link>
         </div>
 
-        {/* Game message */}
-        <AnimatePresence mode="wait">
-          <motion.div 
-            key={message} // Forces re-animation when message changes
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ 
-              opacity: 1, 
-              y: 0,
-              scale: winAnimation ? [1, 1.05, 1] : 1,
-              transition: { 
-                duration: winAnimation ? 1 : 0.3,
-                repeat: winAnimation ? 5 : 0,
-                repeatType: "reverse" as const
-              }
-            }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.3 }}
-            className={`p-6 rounded-lg shadow-md mb-6 w-full max-w-xl text-center min-h-[80px] flex items-center justify-center
-              ${winAnimation ? 'ring-4 ring-yellow-400 bg-gradient-to-r from-yellow-50 to-yellow-100' : 'bg-white'}
-              ${drawAnimation ? 'ring-4 ring-green-400 bg-gradient-to-r from-green-50 to-green-100' : ''}
-              ${loseAnimation ? 'ring-2 ring-red-300 bg-gradient-to-r from-red-50 to-red-100' : ''}
-            `}
-          >
-            <p className={`
-              text-base md:text-lg
-              ${winAnimation ? 'font-bold animate-pulse' : ''}
-              ${drawAnimation ? 'font-semibold' : ''}
-              ${loseAnimation ? 'font-medium text-red-600' : ''}
-              ${!winAnimation && !drawAnimation && !loseAnimation ? 'font-medium' : ''}
-            `}>
-              {message.startsWith('message.') ? t(message) : message}
-            </p>
-          </motion.div>
-        </AnimatePresence>
+        <div className="flex flex-col md:flex-row gap-6 w-full max-w-6xl mx-auto mb-8">
+          {/* Left column - Player info and messages */}
+          <div className="md:w-1/3 flex flex-col gap-4">
+            {/* Game message */}
+            <AnimatePresence mode="wait">
+              <motion.div 
+                key={message} // Forces re-animation when message changes
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ 
+                  opacity: 1, 
+                  y: 0,
+                  scale: winAnimation ? [1, 1.05, 1] : 1,
+                  transition: { 
+                    duration: winAnimation ? 1 : 0.3,
+                    repeat: winAnimation ? 5 : 0,
+                    repeatType: "reverse" as const
+                  }
+                }}
+                exit={{ opacity: 0, y: 20 }}
+                transition={{ duration: 0.3 }}
+                className={`p-4 rounded-lg shadow-md w-full text-center min-h-[80px] flex items-center justify-center
+                  ${winAnimation ? 'ring-4 ring-yellow-400 bg-gradient-to-r from-yellow-50 to-yellow-100' : 'bg-white'}
+                  ${drawAnimation ? 'ring-4 ring-green-400 bg-gradient-to-r from-green-50 to-green-100' : ''}
+                  ${loseAnimation ? 'ring-2 ring-red-300 bg-gradient-to-r from-red-50 to-red-100' : ''}
+                `}
+              >
+                <p className={`
+                  text-base
+                  ${winAnimation ? 'font-bold animate-pulse' : ''}
+                  ${drawAnimation ? 'font-semibold' : ''}
+                  ${loseAnimation ? 'font-medium text-red-600' : ''}
+                  ${!winAnimation && !drawAnimation && !loseAnimation ? 'font-medium' : ''}
+                `}>
+                  {message.startsWith('message.') ? t(message) : message}
+                </p>
+              </motion.div>
+            </AnimatePresence>
 
-        {/* Players info */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-4xl mb-8">
-          <PlayerInfo 
-            player={Player.PLAYER1} 
-            inventory={player1Inventory} 
-            isCurrentPlayer={currentPlayer === Player.PLAYER1}
-            selectedPiece={selectedPiece}
-          />
-          <PlayerInfo 
-            player={Player.PLAYER2} 
-            inventory={player2Inventory} 
-            isCurrentPlayer={currentPlayer === Player.PLAYER2}
-            selectedPiece={selectedPiece}
-          />
+            {/* Players info */}
+            <div className="flex flex-col gap-4">
+              <PlayerInfo 
+                player={Player.PLAYER1} 
+                inventory={player1Inventory} 
+                isCurrentPlayer={currentPlayer === Player.PLAYER1}
+                selectedPiece={selectedPiece}
+              />
+              <PlayerInfo 
+                player={Player.PLAYER2} 
+                inventory={player2Inventory} 
+                isCurrentPlayer={currentPlayer === Player.PLAYER2}
+                selectedPiece={selectedPiece}
+              />
+            </div>
+          </div>
+
+          {/* Right column - Game board */}
+          <div className="md:w-2/3">
+            <GameBoard />
+          </div>
         </div>
-
-        {/* Game board */}
-        <GameBoard />
       </div>
     </div>
   );

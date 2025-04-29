@@ -1,6 +1,6 @@
 import React from 'react';
 import { GamePiece } from './GamePiece';
-import { Cell, Position } from '../../lib/types';
+import { Cell, Position, PieceType } from '../../lib/types';
 import { cn } from '../../lib/utils';
 import { motion } from 'framer-motion';
 import { useJankenGame } from '../../lib/stores/useJankenGame';
@@ -88,8 +88,10 @@ const GameSquare: React.FC<GameSquareProps> = ({
       <div className="absolute inset-0 bg-gradient-to-br from-white to-transparent opacity-10 pointer-events-none"></div>
       
       {/* Game piece */}
-      <div className="relative z-10">
-        <GamePiece type={cell.piece} owner={cell.owner} />
+      <div className="relative z-10 flex items-center justify-center h-full w-full p-2">
+        {cell.piece !== PieceType.EMPTY && (
+          <GamePiece type={cell.piece} owner={cell.owner} size="lg" />
+        )}
       </div>
     </motion.div>
   );
