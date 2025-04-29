@@ -82,28 +82,28 @@ const GameSquare: React.FC<GameSquareProps> = ({
   // 完全に再実装された背景色選択ロジック
   let bgColorClass = "";
   
-  // 極めて明確な条件分岐で背景色を決定
+  // 極めて明確な条件分岐で背景色を決定 - 同じ濃さに調整
   if (isValidMove) {
     // Valid move highlighting
     bgColorClass = "bg-green-300 cursor-pointer ring-2 ring-green-500 hover:bg-green-400";
   } 
   else if (cell.hasBeenUsed && cell.piece !== PieceType.EMPTY) {
     // Janken battle cell - amber - より鮮やかな色に
-    bgColorClass = "bg-amber-300 ring-1 ring-amber-500";
+    bgColorClass = "bg-amber-400 ring-2 ring-amber-600";
   }
   else if (cell.piece !== PieceType.EMPTY) {
-    // 文字列ベースの単純な比較で背景色を選択 - より大きなコントラストに
+    // 文字列ベースの単純な比較で背景色を選択 - 同じレベルの濃さに調整
     if (isPlayer1) {
-      bgColorClass = "bg-blue-300 ring-1 ring-blue-600"; // Player 1 - BLUE - より濃い色に
-      console.log(`Cell ${position.row},${position.col} - STRONGER BLUE for P1 ${cell.piece}`);
+      bgColorClass = "bg-blue-400 ring-2 ring-blue-600"; // Player 1 - BLUE - 色調整
+      console.log(`Cell ${position.row},${position.col} - MATCHING BLUE for P1 ${cell.piece}`);
     } 
     else if (isPlayer2) {
-      bgColorClass = "bg-red-300 ring-1 ring-red-600";  // Player 2 - RED - より鮮やかな赤に
-      console.log(`Cell ${position.row},${position.col} - STRONGER RED for P2 ${cell.piece}`);
+      bgColorClass = "bg-red-400 ring-2 ring-red-600";  // Player 2 - RED - 色調整
+      console.log(`Cell ${position.row},${position.col} - MATCHING RED for P2 ${cell.piece}`);
     }
     else {
       console.warn("Unknown owner string:", { ownerOriginal: cell.owner, ownerAsString });
-      bgColorClass = "bg-purple-300"; // Error indicator
+      bgColorClass = "bg-purple-400"; // Error indicator
     }
   } 
   else {
@@ -134,12 +134,12 @@ const GameSquare: React.FC<GameSquareProps> = ({
       <div className="absolute inset-0 bg-gradient-to-br from-white to-transparent opacity-10 pointer-events-none"></div>
       
       {/* Game piece */}
-      {/* プレイヤーに応じた強調オーバーレイ - 色を強調 */}
+      {/* プレイヤーに応じた強調オーバーレイ - 色を強調 - 同じ濃さに調整 */}
       {isPlayer1 && cell.piece !== PieceType.EMPTY && (
-        <div className="absolute inset-0 bg-blue-300 opacity-50 z-5 rounded-md"></div>
+        <div className="absolute inset-0 bg-blue-400 opacity-70 z-5 rounded-md"></div>
       )}
       {isPlayer2 && cell.piece !== PieceType.EMPTY && (
-        <div className="absolute inset-0 bg-red-300 opacity-50 z-5 rounded-md"></div>
+        <div className="absolute inset-0 bg-red-400 opacity-70 z-5 rounded-md"></div>
       )}
       
       <div className="relative z-10 flex items-center justify-center h-full w-full p-2">
