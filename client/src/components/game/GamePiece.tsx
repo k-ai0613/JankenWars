@@ -57,7 +57,14 @@ export const GamePiece: React.FC<GamePieceProps> = ({
     animate: { scale: 1, opacity: 1, rotate: 0, transition: { duration: 0.5, type: 'spring', stiffness: 200 } },
     exit: { scale: 0, opacity: 0, rotate: 180, transition: { duration: 0.3 } },
     hover: { scale: 1.1, transition: { duration: 0.2 } },
-    captured: { scale: [1, 1.5, 0], opacity: [1, 1, 0], rotate: [0, 180, 360], transition: { duration: 0.7 } }
+    // More dramatic and satisfying capture animation
+    captured: { 
+      scale: [1, 1.3, 0], 
+      opacity: [1, 1, 0], 
+      rotate: [0, 45, 270], 
+      filter: ["brightness(100%)", "brightness(150%)", "brightness(50%)"],
+      transition: { duration: 0.7, ease: "easeOut" } 
+    }
   };
 
   return (

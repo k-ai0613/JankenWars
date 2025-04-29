@@ -161,7 +161,11 @@ export function GamePage() {
     selectSpecialPiece,
     result,
     winAnimation,
+    drawAnimation,
+    loseAnimation,
     clearWinAnimation,
+    clearDrawAnimation,
+    clearLoseAnimation,
     // getRandomPieceForCurrentPlayer - removed
   } = useJankenGame();
   
@@ -221,7 +225,7 @@ export function GamePage() {
     setLanguage(language === 'en' ? 'ja' : 'en');
   };
   
-  // Clear win animation after a set time
+  // Clear animations after a set time
   useEffect(() => {
     if (winAnimation) {
       const timer = setTimeout(() => {
@@ -231,6 +235,26 @@ export function GamePage() {
       return () => clearTimeout(timer);
     }
   }, [winAnimation, clearWinAnimation]);
+  
+  useEffect(() => {
+    if (drawAnimation) {
+      const timer = setTimeout(() => {
+        clearDrawAnimation();
+      }, 6000); // 6 seconds for draw animation
+      
+      return () => clearTimeout(timer);
+    }
+  }, [drawAnimation, clearDrawAnimation]);
+  
+  useEffect(() => {
+    if (loseAnimation) {
+      const timer = setTimeout(() => {
+        clearLoseAnimation();
+      }, 4000); // 4 seconds for lose animation
+      
+      return () => clearTimeout(timer);
+    }
+  }, [loseAnimation, clearLoseAnimation]);
   
   // Get window size for confetti
   const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });

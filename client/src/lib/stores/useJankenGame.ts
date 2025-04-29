@@ -36,6 +36,8 @@ interface JankenGameState {
   // Animation states
   captureAnimation: Position | null; // Position where a capture happened
   winAnimation: boolean; // Whether to show the win animation
+  loseAnimation: boolean; // Whether to show the lose animation
+  drawAnimation: boolean; // Whether to show the draw animation
   
   // Actions
   startGame: () => void;
@@ -45,6 +47,8 @@ interface JankenGameState {
   resetGame: () => void;
   clearCaptureAnimation: () => void;
   clearWinAnimation: () => void;
+  clearLoseAnimation: () => void;
+  clearDrawAnimation: () => void;
 }
 
 export const useJankenGame = create<JankenGameState>((set, get) => ({
@@ -58,6 +62,8 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
   message: 'message.welcome', // 翻訳用のキーに変更
   captureAnimation: null,
   winAnimation: false,
+  loseAnimation: false,
+  drawAnimation: false,
   
   startGame: () => {
     set({ 
@@ -170,7 +176,8 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
         ...newState,
         result: GameResult.DRAW,
         phase: GamePhase.GAME_OVER,
-        message: 'message.draw'
+        message: 'message.draw',
+        drawAnimation: true
       });
       
       return;
@@ -246,7 +253,8 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
           set({
             result: GameResult.DRAW,
             phase: GamePhase.GAME_OVER,
-            message: "It's a draw! Both players are out of pieces."
+            message: "It's a draw! Both players are out of pieces.",
+            drawAnimation: true
           });
         }
       }
@@ -272,7 +280,9 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       player2Inventory: createInitialInventory(),
       message: 'message.welcome',
       captureAnimation: null,
-      winAnimation: false
+      winAnimation: false,
+      loseAnimation: false,
+      drawAnimation: false
     });
   },
   
@@ -282,5 +292,13 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
   
   clearWinAnimation: () => {
     set({ winAnimation: false });
+  },
+  
+  clearLoseAnimation: () => {
+    set({ loseAnimation: false });
+  },
+  
+  clearDrawAnimation: () => {
+    set({ drawAnimation: false });
   }
 }));

@@ -43,11 +43,21 @@ const GameSquare: React.FC<GameSquareProps> = ({
   const cellVariants = {
     idle: {},
     capturing: {
-      boxShadow: ['0px 0px 0px rgba(254, 240, 138, 0)', '0px 0px 20px rgba(254, 240, 138, 1)', '0px 0px 0px rgba(254, 240, 138, 0)'],
+      boxShadow: [
+        '0px 0px 0px rgba(254, 240, 138, 0)', 
+        '0px 0px 30px rgba(254, 240, 138, 1)', 
+        '0px 0px 0px rgba(254, 240, 138, 0)'
+      ],
+      scale: [1, 1.05, 1],
+      backgroundColor: [
+        'rgba(255, 255, 255, 0)', 
+        'rgba(254, 240, 138, 0.3)', 
+        'rgba(255, 255, 255, 0)'
+      ],
       transition: {
-        duration: 0.7,
-        times: [0, 0.5, 1],
-        repeat: 0
+        duration: 0.8,
+        times: [0, 0.4, 1],
+        ease: "easeInOut"
       }
     }
   };
