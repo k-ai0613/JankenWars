@@ -83,6 +83,10 @@ const defaultTranslations: Record<string, Record<Language, string>> = {
     en: 'Play Again',
     ja: 'もう一度プレイ'
   },
+  'game.reset': {
+    en: 'Reset Game',
+    ja: 'リセット'
+  },
   'game.mute': {
     en: 'Mute 🔊',
     ja: 'ミュート 🔊'

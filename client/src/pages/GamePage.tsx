@@ -248,6 +248,10 @@ export function GamePage() {
                 variant="outline">
                 {t('game.useSpecialPiece')}
               </Button>
+              
+              <Button onClick={handleResetGame} variant="secondary">
+                {t('game.reset')}
+              </Button>
             </>
           )}
           
