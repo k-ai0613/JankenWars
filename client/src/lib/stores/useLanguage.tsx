@@ -74,10 +74,11 @@ const defaultTranslations: Record<string, Record<Language, string>> = {
     en: 'Use Special Piece',
     ja: '特殊駒を使用'
   },
-  'game.getRandomPiece': {
+  // Removed 'Get Random Piece' button
+  /* 'game.getRandomPiece': {
     en: 'Get Random Piece',
     ja: 'ランダムな駒を取得'
-  },
+  }, */
   'game.playAgain': {
     en: 'Play Again',
     ja: 'もう一度プレイ'

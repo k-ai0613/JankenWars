@@ -149,7 +149,7 @@ export function GamePage() {
     startGame,
     resetGame,
     selectSpecialPiece,
-    getRandomPieceForCurrentPlayer
+    // getRandomPieceForCurrentPlayer - removed
   } = useJankenGame();
   
   const audioStore = useAudio();
@@ -242,10 +242,6 @@ export function GamePage() {
                   : player2Inventory[PieceType.SPECIAL] <= 0}
                 variant="outline">
                 {t('game.useSpecialPiece')}
-              </Button>
-              
-              <Button onClick={getRandomPieceForCurrentPlayer} variant="outline">
-                {t('game.getRandomPiece')}
               </Button>
             </>
           )}
