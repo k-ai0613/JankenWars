@@ -207,13 +207,16 @@ export function GamePage() {
     <div className="container mx-auto p-4 min-h-screen bg-slate-50">
       <div className="flex flex-col items-center">
         {/* Language toggle */}
-        <div className="self-end flex items-center space-x-2 mb-4">
-          <span className="text-sm">EN</span>
-          <Switch 
-            checked={language === 'ja'}
-            onCheckedChange={handleToggleLanguage}
-          />
-          <span className="text-sm">日本語</span>
+        <div className="self-end flex items-center space-x-3 mb-4 bg-slate-100 p-3 rounded-lg shadow-md border border-slate-200">
+          <span className={`text-sm font-bold transition-colors duration-200 ${language === 'en' ? 'text-blue-600' : 'text-gray-400'}`}>EN</span>
+          <div className="relative">
+            <Switch 
+              checked={language === 'ja'}
+              onCheckedChange={handleToggleLanguage}
+              className="data-[state=checked]:bg-red-500 data-[state=unchecked]:bg-blue-500 h-6 w-11"
+            />
+          </div>
+          <span className={`text-sm font-bold transition-colors duration-200 ${language === 'ja' ? 'text-red-600' : 'text-gray-400'}`}>日本語</span>
         </div>
 
         <h1 className="text-3xl font-bold mb-4 text-center">{t('game.title')}</h1>
