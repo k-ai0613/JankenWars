@@ -3,9 +3,12 @@ import { isValidMove, determineWinner, getRandomPiece } from './gameUtils';
 
 // AI difficulty levels
 export enum AIDifficulty {
-  EASY = 'EASY',
-  MEDIUM = 'MEDIUM',
-  HARD = 'HARD'
+  BEGINNER = 'BEGINNER',  // Completely new player level
+  EASY = 'EASY',          // Easy difficulty
+  NORMAL = 'NORMAL',      // Normal difficulty
+  MEDIUM = 'MEDIUM',      // Medium difficulty 
+  HARD = 'HARD',          // Hard difficulty
+  EXPERT = 'EXPERT'       // Expert difficulty, very challenging
 }
 
 // Calculate score for move based on various factors
@@ -159,28 +162,59 @@ export const findBestMove = (
   
   // Adjust AI behavior based on difficulty level
   switch (difficulty) {
+    case AIDifficulty.BEGINNER:
+      // Beginner AI chooses completely randomly from all possible moves
+      const beginnerIndex = Math.floor(Math.random() * possibleMoves.length);
+      return {
+        position: possibleMoves[beginnerIndex].position,
+        piece: possibleMoves[beginnerIndex].piece
+      };
+      
     case AIDifficulty.EASY:
-      // Easy AI chooses randomly among top 70% of moves
-      const easyIndex = Math.floor(Math.random() * Math.ceil(possibleMoves.length * 0.7));
+      // Easy AI chooses randomly among top 80% of moves
+      const easyIndex = Math.floor(Math.random() * Math.ceil(possibleMoves.length * 0.8));
       return {
         position: possibleMoves[easyIndex].position,
         piece: possibleMoves[easyIndex].piece
       };
+    
+    case AIDifficulty.NORMAL:
+      // Normal AI chooses randomly among top 60% of moves
+      const normalIndex = Math.floor(Math.random() * Math.ceil(possibleMoves.length * 0.6));
+      return {
+        position: possibleMoves[normalIndex].position,
+        piece: possibleMoves[normalIndex].piece
+      };
       
     case AIDifficulty.MEDIUM:
-      // Medium AI chooses randomly among top 30% of moves
-      const mediumIndex = Math.floor(Math.random() * Math.ceil(possibleMoves.length * 0.3));
+      // Medium AI chooses randomly among top 40% of moves
+      const mediumIndex = Math.floor(Math.random() * Math.ceil(possibleMoves.length * 0.4));
       return {
         position: possibleMoves[mediumIndex].position,
         piece: possibleMoves[mediumIndex].piece
       };
       
     case AIDifficulty.HARD:
-    default:
-      // Hard AI always chooses the best move
+      // Hard AI chooses randomly among top 20% of moves
+      const hardIndex = Math.floor(Math.random() * Math.ceil(possibleMoves.length * 0.2));
+      return {
+        position: possibleMoves[hardIndex].position,
+        piece: possibleMoves[hardIndex].piece
+      };
+      
+    case AIDifficulty.EXPERT:
+      // Expert AI always chooses the absolute best move
       return {
         position: possibleMoves[0].position,
         piece: possibleMoves[0].piece
+      };
+      
+    default:
+      // Default to normal difficulty
+      const defaultIndex = Math.floor(Math.random() * Math.ceil(possibleMoves.length * 0.6));
+      return {
+        position: possibleMoves[defaultIndex].position,
+        piece: possibleMoves[defaultIndex].piece
       };
   }
 };

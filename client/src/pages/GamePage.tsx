@@ -389,20 +389,36 @@ export function GamePage() {
                 <p className="text-sm font-medium mb-2">
                   {t('game.aiDifficulty')}:
                 </p>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <Button 
+                    onClick={() => handleSetAIDifficulty(AIDifficulty.BEGINNER)}
+                    variant={aiDifficulty === AIDifficulty.BEGINNER ? 'default' : 'outline'}
+                    size="sm"
+                    className={aiDifficulty === AIDifficulty.BEGINNER ? 'bg-blue-400 hover:bg-blue-500' : 'hover:bg-blue-50'}
+                  >
+                    {t('game.aiBeginner') || 'Beginner'}
+                  </Button>
                   <Button 
                     onClick={() => handleSetAIDifficulty(AIDifficulty.EASY)}
                     variant={aiDifficulty === AIDifficulty.EASY ? 'default' : 'outline'}
                     size="sm"
-                    className={aiDifficulty === AIDifficulty.EASY ? 'bg-green-500 hover:bg-green-600' : 'hover:bg-green-100'}
+                    className={aiDifficulty === AIDifficulty.EASY ? 'bg-green-400 hover:bg-green-500' : 'hover:bg-green-50'}
                   >
                     {t('game.aiEasy')}
+                  </Button>
+                  <Button 
+                    onClick={() => handleSetAIDifficulty(AIDifficulty.NORMAL)}
+                    variant={aiDifficulty === AIDifficulty.NORMAL ? 'default' : 'outline'}
+                    size="sm"
+                    className={aiDifficulty === AIDifficulty.NORMAL ? 'bg-cyan-500 hover:bg-cyan-600' : 'hover:bg-cyan-50'}
+                  >
+                    {t('game.aiNormal') || 'Normal'}
                   </Button>
                   <Button 
                     onClick={() => handleSetAIDifficulty(AIDifficulty.MEDIUM)}
                     variant={aiDifficulty === AIDifficulty.MEDIUM ? 'default' : 'outline'}
                     size="sm"
-                    className={aiDifficulty === AIDifficulty.MEDIUM ? 'bg-yellow-500 hover:bg-yellow-600' : 'hover:bg-yellow-100'}
+                    className={aiDifficulty === AIDifficulty.MEDIUM ? 'bg-yellow-500 hover:bg-yellow-600' : 'hover:bg-yellow-50'}
                   >
                     {t('game.aiMedium')}
                   </Button>
@@ -410,9 +426,17 @@ export function GamePage() {
                     onClick={() => handleSetAIDifficulty(AIDifficulty.HARD)}
                     variant={aiDifficulty === AIDifficulty.HARD ? 'default' : 'outline'}
                     size="sm"
-                    className={aiDifficulty === AIDifficulty.HARD ? 'bg-red-500 hover:bg-red-600' : 'hover:bg-red-100'}
+                    className={aiDifficulty === AIDifficulty.HARD ? 'bg-orange-500 hover:bg-orange-600' : 'hover:bg-orange-50'}
                   >
                     {t('game.aiHard')}
+                  </Button>
+                  <Button 
+                    onClick={() => handleSetAIDifficulty(AIDifficulty.EXPERT)}
+                    variant={aiDifficulty === AIDifficulty.EXPERT ? 'default' : 'outline'}
+                    size="sm"
+                    className={aiDifficulty === AIDifficulty.EXPERT ? 'bg-red-600 hover:bg-red-700' : 'hover:bg-red-50'}
+                  >
+                    {t('game.aiExpert') || 'Expert'}
                   </Button>
                 </div>
               </div>
