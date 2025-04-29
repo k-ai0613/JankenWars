@@ -18,13 +18,13 @@ const GameBoard: React.FC = () => {
   };
 
   return (
-    <div className="grid grid-cols-6 gap-1 w-full max-w-md mx-auto">
+    <div className="grid grid-cols-6 gap-2 w-full max-w-xl mx-auto">
       {board.map((row, rowIndex) => (
         row.map((cell, colIndex) => (
           <button
             key={`${rowIndex}-${colIndex}`}
             className={`
-              w-full aspect-square border-2 p-1 flex items-center justify-center
+              w-full aspect-square border-2 p-2 flex items-center justify-center
               ${cell.piece === PieceType.EMPTY ? 'bg-slate-200' : ''}
               ${cell.owner === Player.PLAYER1 ? 'bg-blue-100 border-blue-500' : ''}
               ${cell.owner === Player.PLAYER2 ? 'bg-red-100 border-red-500' : ''}
@@ -53,9 +53,9 @@ interface GamePieceProps {
 const GamePiece: React.FC<GamePieceProps> = ({ type, owner, selected, size = 'md' }) => {
   // Size classes based on the size prop
   const sizeClasses = {
-    sm: 'w-6 h-6 text-xs',
-    md: 'w-10 h-10 text-md',
-    lg: 'w-12 h-12 text-lg',
+    sm: 'w-7 h-7 text-sm',
+    md: 'w-12 h-12 text-xl',
+    lg: 'w-16 h-16 text-2xl',
   }[size];
 
   // Owner color classes
