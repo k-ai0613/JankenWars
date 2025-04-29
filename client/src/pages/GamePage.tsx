@@ -9,6 +9,7 @@ import { useAudio } from '../lib/stores/useAudio';
 import { useLanguage } from '../lib/stores/useLanguage';
 import Confetti from 'react-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
+import { FaStar } from 'react-icons/fa';
 
 // Components for the game UI
 const GameBoard: React.FC = () => {
