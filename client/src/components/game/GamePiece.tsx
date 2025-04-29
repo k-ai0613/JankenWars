@@ -1,5 +1,5 @@
 import React from 'react';
-import { PieceType, Player } from '../../lib/types';
+import { PieceType, Player, normalizePlayer } from '../../lib/types';
 import { FaHandRock, FaHandPaper, FaHandScissors, FaStar } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -37,39 +37,29 @@ export const GamePiece: React.FC<GamePieceProps> = ({
   // Ensure the correct owner colors are being used
   let ownerColor = 'text-gray-800 font-bold text-3xl'; // Default fallback
   
-  // 超強力なプレイヤー識別ロジックを実装
-  // 文字列比較、列挙体比較、内部値比較など複数の識別方法を使用
-  const ownerStr = String(owner);
-  const ownerType = typeof owner;
-  const isP1ByString = ownerStr.includes('PLAYER1');
-  const isP2ByString = ownerStr.includes('PLAYER2');
-  const isP1ByEnum = owner === Player.PLAYER1;
-  const isP2ByEnum = owner === Player.PLAYER2;
+  // normalizePlayer関数を使用して最高レベルの信頼性を確保
+  const normalizedOwner = normalizePlayer(owner);
+  const isPlayer1 = normalizedOwner === Player.PLAYER1;
+  const isPlayer2 = normalizedOwner === Player.PLAYER2;
   
-  console.log('GamePiece owner DETAILED check:', { 
+  console.log('GamePiece normalized owner:', { 
     owner, 
-    ownerStr, 
-    ownerType,
-    isP1ByString,
-    isP2ByString,
-    isP1ByEnum,
-    isP2ByEnum,
+    normalizedOwner,
+    ownerStr: String(owner),
+    normalizedStr: String(normalizedOwner),
+    isPlayer1,
+    isPlayer2,
     // プレイヤー列挙体の値を確認
     Player1Value: Player.PLAYER1,
-    Player2Value: Player.PLAYER2,
-    Player1Str: String(Player.PLAYER1),
-    Player2Str: String(Player.PLAYER2)
+    Player2Value: Player.PLAYER2
   });
-  
-  // 複数の条件を考慮してプレイヤーを識別
-  const isPlayer1 = isP1ByEnum || isP1ByString;
-  const isPlayer2 = isP2ByEnum || isP2ByString || ownerStr === 'PLAYER2';
   
   if (isPlayer1) {
     ownerColor = 'text-blue-800 font-bold text-3xl';
+    console.log('PLAYER1 COLOR APPLIED using normalized owner'); 
   } else if (isPlayer2) {
     ownerColor = 'text-red-800 font-bold text-3xl';
-    console.log('PLAYER2 COLOR APPLIED TO:', { position: owner, type });
+    console.log('PLAYER2 COLOR APPLIED using normalized owner to:', { normalizedOwner, type });
   }
   
   // Determine label for piece type (Unicode characters for better visibility)

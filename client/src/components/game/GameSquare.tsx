@@ -1,6 +1,6 @@
 import React from 'react';
 import { GamePiece } from './GamePiece';
-import { Cell, Position, PieceType, Player } from '../../lib/types';
+import { Cell, Position, PieceType, Player, normalizePlayer } from '../../lib/types';
 import { cn } from '../../lib/utils';
 import { motion } from 'framer-motion';
 import { useJankenGame } from '../../lib/stores/useJankenGame';
@@ -63,29 +63,21 @@ const GameSquare: React.FC<GameSquareProps> = ({
     }
   };
 
-  // プレイヤー識別ロジックの強化 - GamePieceと同様の複数メソッドを使用
-  const ownerType = typeof cell.owner;
-  const ownerValue = String(cell.owner);
-  const ownerIsP1ByString = ownerValue.includes('PLAYER1');
-  const ownerIsP2ByString = ownerValue.includes('PLAYER2');
-  const ownerIsP1ByEnum = cell.owner === Player.PLAYER1;
-  const ownerIsP2ByEnum = cell.owner === Player.PLAYER2;
+  // normalizePlayer関数を使用して最高レベルの信頼性を確保
+  const normalizedOwner = normalizePlayer(cell.owner);
   
-  // 複数の条件を組み合わせて判定
-  const ownerIsP1 = ownerIsP1ByEnum || ownerIsP1ByString;
-  const ownerIsP2 = ownerIsP2ByEnum || ownerIsP2ByString || ownerValue === 'PLAYER2';
+  // 正規化された値を使用してプレイヤーを判定
+  const isPlayer1 = normalizedOwner === Player.PLAYER1;
+  const isPlayer2 = normalizedOwner === Player.PLAYER2;
   
-  console.log(`Cell at ${position.row},${position.col}:`, { 
+  console.log(`Cell at ${position.row},${position.col} NORMALIZED:`, { 
     piece: cell.piece, 
     owner: cell.owner, 
-    ownerType,
-    ownerValue,
-    ownerIsP1ByString,
-    ownerIsP2ByString,
-    ownerIsP1ByEnum,
-    ownerIsP2ByEnum,
-    ownerIsP1,
-    ownerIsP2,
+    normalizedOwner,
+    ownerStr: String(cell.owner),
+    normalizedStr: String(normalizedOwner),
+    isPlayer1,
+    isPlayer2,
     hasBeenUsed: cell.hasBeenUsed 
   });
   
@@ -102,17 +94,17 @@ const GameSquare: React.FC<GameSquareProps> = ({
     bgColorClass = "bg-amber-300";
   }
   else if (cell.piece !== PieceType.EMPTY) {
-    // より強力なプレイヤー識別方法を使用した背景色選択
-    if (ownerIsP1) {
+    // normalizePlayerで正規化された安全な値を使用した背景色選択
+    if (isPlayer1) {
       bgColorClass = "bg-blue-300"; // Player 1 - BLUE
-      console.log(`Cell ${position.row},${position.col} - BLUE for P1`);
+      console.log(`Cell ${position.row},${position.col} - BLUE for P1 ${cell.piece}`);
     } 
-    else if (ownerIsP2) {
+    else if (isPlayer2) {
       bgColorClass = "bg-red-300";  // Player 2 - RED
       console.log(`Cell ${position.row},${position.col} - RED for P2 ${cell.piece}`);
     }
     else {
-      console.warn("Unknown owner:", cell.owner);
+      console.warn("Unknown owner:", { original: cell.owner, normalized: normalizedOwner });
       bgColorClass = "bg-purple-300"; // Error indicator
     }
   } 

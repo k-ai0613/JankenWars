@@ -397,10 +397,21 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       player2Inventory 
     } = get();
     
-    console.log('selectCellForPlayer called:', { position, player, piece });
+    // 重要な修正: normalizePlayer関数を使用して安全なPlayer列挙型値に変換
+    const safePlayer = normalizePlayer(player);
+    console.log('selectCellForPlayer called:', { 
+      position, 
+      originalPlayer: player, 
+      safePlayer, 
+      piece,
+      isEnum: player === Player.PLAYER2,
+      isSafeEnum: safePlayer === Player.PLAYER2,
+      playerType: typeof player,
+      safeType: typeof safePlayer
+    });
     
-    // Check if move is valid
-    if (!isValidMove(board, position, piece, player)) {
+    // Check if move is valid - 正規化されたプレイヤー値を使用
+    if (!isValidMove(board, position, piece, safePlayer)) {
       console.warn('Invalid AI move');
       set({ message: 'message.invalidMove', isAIThinking: false });
       return;
@@ -409,8 +420,14 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     // Clone the board
     const newBoard = [...board.map(row => [...row])];
     
-    // Create a new inventory - AIはプレイヤー2なので、player2Inventoryを使用
-    const currentInventory = { ...player2Inventory };
+    // 正規化されたプレイヤー値に基づいてインベントリを取得
+    const isPlayer1 = safePlayer === Player.PLAYER1;
+    const isPlayer2 = safePlayer === Player.PLAYER2;
+    
+    // Create a new inventory - 正規化されたプレイヤー値に基づく
+    const currentInventory = isPlayer1 
+      ? { ...player1Inventory }
+      : { ...player2Inventory };
     
     // Reduce the count of the selected piece
     if (piece && piece !== PieceType.EMPTY && 
@@ -427,27 +444,29 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     // Play sound effect
     const audioStore = useAudio.getState();
     
-    // Player2を強制
-    console.log('Forcing AI owner to PLAYER2');
+    // 正規化されたプレイヤー値を使用
+    console.log(`Using normalized player: ${safePlayer} for owner (original: ${player})`);
     
     // If the cell is empty
     if (targetCell.piece === PieceType.EMPTY) {
-      // Place the piece on empty cell (not locked)
+      // Place the piece on empty cell (not locked) - 正規化された値を使用
       const newCell = {
         piece: piece,
-        owner: Player.PLAYER2, // 明示的にPlayer.PLAYER2
+        owner: safePlayer, // 正規化されたプレイヤー値を使用
         hasBeenUsed: false // Not locked yet, can be captured with janken rules
       };
       
-      // キーポイント！プレイヤー2のセル内容を詳細に表示
-      console.log('AI_PLACING_PIECE', {
+      // デバッグ情報
+      console.log('NORMALIZED_PLACING_PIECE', {
         position,
+        originalPlayer: player,
+        safePlayer,
         cell: newCell,
         ownerType: typeof newCell.owner,
         ownerValue: String(newCell.owner),
-        isPlayerEnum: newCell.owner === Player.PLAYER2,
-        isPlayer2String: String(newCell.owner) === 'PLAYER2',
-        isPlayer2IncludesCheck: String(newCell.owner).includes('PLAYER2')
+        isP2Enum: newCell.owner === Player.PLAYER2,
+        isP2String: String(newCell.owner) === 'PLAYER2',
+        isP2ByIncludes: String(newCell.owner).includes('PLAYER2')
       });
       
       newBoard[position.row][position.col] = newCell;
@@ -460,7 +479,7 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       
       newBoard[position.row][position.col] = {
         piece: piece,
-        owner: Player.PLAYER2, // 明示的にPlayer.PLAYER2
+        owner: safePlayer, // 正規化されたプレイヤー値を使用
         hasBeenUsed: true // Lock this cell after janken battle
       };
       
