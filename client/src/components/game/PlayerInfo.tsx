@@ -51,7 +51,7 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({
               selected={selectedPiece === PieceType.ROCK} />
           </div>
           <div className="flex flex-col">
-            <span className="text-xs text-gray-500 -mb-1">Rock (R)</span>
+            <span className="text-xs text-gray-500 -mb-1">Rock / グー (R)</span>
             <span className={`text-base font-medium ${selectedPiece === PieceType.ROCK ? 'font-bold' : ''}`}>
               × {inventory[PieceType.ROCK]}
             </span>
@@ -64,7 +64,7 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({
               selected={selectedPiece === PieceType.PAPER} />
           </div>
           <div className="flex flex-col">
-            <span className="text-xs text-gray-500 -mb-1">Paper (P)</span>
+            <span className="text-xs text-gray-500 -mb-1">Paper / パー (P)</span>
             <span className={`text-base font-medium ${selectedPiece === PieceType.PAPER ? 'font-bold' : ''}`}>
               × {inventory[PieceType.PAPER]}
             </span>
@@ -77,7 +77,7 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({
               selected={selectedPiece === PieceType.SCISSORS} />
           </div>
           <div className="flex flex-col">
-            <span className="text-xs text-gray-500 -mb-1">Scissors (S)</span>
+            <span className="text-xs text-gray-500 -mb-1">Scissors / チョキ (S)</span>
             <span className={`text-base font-medium ${selectedPiece === PieceType.SCISSORS ? 'font-bold' : ''}`}>
               × {inventory[PieceType.SCISSORS]}
             </span>
@@ -90,7 +90,7 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({
               selected={selectedPiece === PieceType.SPECIAL} />
           </div>
           <div className="flex flex-col">
-            <span className="text-xs text-gray-500 -mb-1">Special (*)</span>
+            <span className="text-xs text-gray-500 -mb-1">Special / 特殊 (S*)</span>
             <span className={`text-base font-medium ${selectedPiece === PieceType.SPECIAL ? 'font-bold' : ''}`}>
               × {inventory[PieceType.SPECIAL]}
             </span>

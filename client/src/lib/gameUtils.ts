@@ -141,7 +141,7 @@ export const checkWin = (board: Board, player: Player): boolean => {
   return false;
 };
 
-// Determine the winner based on Rock-Paper-Scissors rules
+// Determine the winner based on Rock-Paper-Scissors rules (Japanese Janken rules)
 // IMPORTANT: This function always returns Player.PLAYER1 when the attacker wins
 // and Player.PLAYER2 when the defender wins, regardless of which actual player is attacking/defending
 export const determineWinner = (attackingPiece: PieceType, defendingPiece: PieceType): Player => {
@@ -150,17 +150,17 @@ export const determineWinner = (attackingPiece: PieceType, defendingPiece: Piece
     return Player.NONE;
   }
   
-  // Rock beats Scissors
+  // Rock (グー) beats Scissors (チョキ)
   if (attackingPiece === PieceType.ROCK && defendingPiece === PieceType.SCISSORS) {
     return Player.PLAYER1;
   }
   
-  // Scissors beats Paper
+  // Scissors (チョキ) beats Paper (パー)
   if (attackingPiece === PieceType.SCISSORS && defendingPiece === PieceType.PAPER) {
     return Player.PLAYER1;
   }
   
-  // Paper beats Rock
+  // Paper (パー) beats Rock (グー)
   if (attackingPiece === PieceType.PAPER && defendingPiece === PieceType.ROCK) {
     return Player.PLAYER1;
   }

@@ -62,14 +62,14 @@ export const GamePiece: React.FC<GamePieceProps> = ({
   // Render the appropriate icon based on piece type
   const renderPieceIcon = () => {
     switch (type) {
-      case PieceType.ROCK:
-        return '✊'; // グー
-      case PieceType.PAPER:
-        return '✋'; // パー
-      case PieceType.SCISSORS:
-        return '✌️'; // チョキ
-      case PieceType.SPECIAL:
-        return '⭐'; // 特殊駒
+      case PieceType.ROCK: // グー（拳を握った形）
+        return '✊';
+      case PieceType.PAPER: // パー（手のひらを広げた形）
+        return '✋';
+      case PieceType.SCISSORS: // チョキ（人差し指と中指を出した形）
+        return '✌️';
+      case PieceType.SPECIAL: // 特殊駒（星マーク）
+        return '⭐';
       default:
         return null;
     }
