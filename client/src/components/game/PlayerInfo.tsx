@@ -90,9 +90,12 @@ const PlayerInfo: React.FC<PlayerInfoProps> = ({
             <GamePiece type={PieceType.SPECIAL} owner={player} size="sm" 
               selected={selectedPiece === PieceType.SPECIAL} />
           </div>
-          <span className={`text-base font-medium ${selectedPiece === PieceType.SPECIAL ? 'font-bold' : ''}`}>
-            × {inventory[PieceType.SPECIAL]}
-          </span>
+          <div className="flex flex-col">
+            <span className="text-xs text-gray-500 -mb-1">Special (*)</span>
+            <span className={`text-base font-medium ${selectedPiece === PieceType.SPECIAL ? 'font-bold' : ''}`}>
+              × {inventory[PieceType.SPECIAL]}
+            </span>
+          </div>
         </div>
       </div>
     </div>
