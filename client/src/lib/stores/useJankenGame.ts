@@ -35,6 +35,9 @@ interface JankenGameState {
   // Game message
   message: string;
   
+  // Janken battle cells - track positions where battles occurred
+  jankenBattleCells: Position[]; // Keeps track of cells where janken battles occurred
+  
   // Animation states
   captureAnimation: Position | null; // Position where a capture happened
   winAnimation: boolean; // Whether to show the win animation
@@ -75,6 +78,7 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
   player1Inventory: createInitialInventory(),
   player2Inventory: createInitialInventory(),
   message: 'message.welcome', // 翻訳用のキーに変更
+  jankenBattleCells: [], // 初期値は空の配列
   captureAnimation: null,
   winAnimation: false,
   loseAnimation: false,
@@ -195,7 +199,11 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       audioStore.playHit();
       
       // Trigger capture animation
-      set({ captureAnimation: position });
+      set({ 
+        captureAnimation: position,
+        // じゃんけん勝負が行われたセルの位置を保存
+        jankenBattleCells: [...get().jankenBattleCells, position]
+      });
       
       // Display a message about the janken battle result
       let jankenResultMessage = '';
@@ -357,8 +365,22 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
   },
   
   resetGame: () => {
+    // 現在のjankenBattleCellsを保存
+    const { jankenBattleCells } = get();
+
+    // 新しいボードを作成
+    const newBoard = createEmptyBoard();
+
+    // jankenBattleCellsの各セルに対してhasBeenUsed=trueを設定
+    jankenBattleCells.forEach(position => {
+      if (position && position.row >= 0 && position.row < 6 && position.col >= 0 && position.col < 6) {
+        console.log(`[RESET] marking cell ${position.row},${position.col} as used (janken battle)`);
+        newBoard[position.row][position.col].hasBeenUsed = true;
+      }
+    });
+    
     set({
-      board: createEmptyBoard(),
+      board: newBoard,
       currentPlayer: Player.PLAYER1,
       phase: GamePhase.READY,
       result: GameResult.ONGOING,
@@ -369,7 +391,8 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       captureAnimation: null,
       winAnimation: false,
       loseAnimation: false,
-      drawAnimation: false
+      drawAnimation: false,
+      // jankenBattleCellsはリセットしない
     });
   },
   
@@ -532,7 +555,11 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       audioStore.playHit();
       
       // Trigger capture animation
-      set({ captureAnimation: position });
+      set({ 
+        captureAnimation: position,
+        // じゃんけん勝負が行われたセルの位置を保存
+        jankenBattleCells: [...get().jankenBattleCells, position]
+      });
       
       // Display a message about the janken battle result
       let jankenResultMessage = '';
