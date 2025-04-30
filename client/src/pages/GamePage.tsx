@@ -140,18 +140,7 @@ export function GamePage() {
   };
   
   // Clear animations after a set time
-  // Check if we're coming from AI mode button
-  useEffect(() => {
-    const aiMode = localStorage.getItem('ai_mode');
-    if (aiMode === 'true') {
-      // Enable AI mode
-      toggleAI();
-      // Set medium difficulty by default
-      setAIDifficulty(AIDifficulty.MEDIUM);
-      // Clear the flag
-      localStorage.removeItem('ai_mode');
-    }
-  }, [toggleAI, setAIDifficulty]);
+  // このコードは削除 (上記のuseEffectと重複しているため)
   
   useEffect(() => {
     if (winAnimation) {

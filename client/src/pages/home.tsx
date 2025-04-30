@@ -132,6 +132,14 @@ export function Home() {
               </Button>
             </Link>
             
+            <div className="w-full max-w-xs text-center mt-2 text-sm text-gray-600 bg-white/70 backdrop-blur-sm px-3 py-2 rounded-lg shadow-sm">
+              <p>
+                {language === 'en' 
+                  ? "You can also switch between Player vs Player and AI modes during the game using the AI toggle."
+                  : "ゲーム中でもAIトグルを使ってプレイヤー対戦とAIモードを切り替えることができます。"}
+              </p>
+            </div>
+            
             <Button className="w-full max-w-xs py-5 bg-white/80 backdrop-blur-sm text-slate-700 hover:bg-white/90" variant="outline" disabled>
               {t('home.playOnline')}
             </Button>
