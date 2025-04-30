@@ -81,7 +81,17 @@ export function GamePage() {
     if (gameStore.phase === 'ready') {
       handleStartGame();
     }
-  }, [audioStore, gameStore.phase, handleStartGame]);
+    
+    // Check if we should enable AI mode from home screen selection
+    const aiModeFromHome = localStorage.getItem('ai_mode');
+    if (aiModeFromHome === 'true' && !isAIEnabled) {
+      console.log('Enabling AI mode from home screen selection');
+      setTimeout(() => {
+        toggleAI(); // Enable AI
+        setAIDifficulty(AIDifficulty.MEDIUM); // Set default difficulty
+      }, 100);
+    }
+  }, [audioStore, gameStore.phase, handleStartGame, toggleAI, isAIEnabled, setAIDifficulty]);
 
   // Clean up audio when component unmounts
   useEffect(() => {
