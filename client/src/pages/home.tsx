@@ -153,7 +153,7 @@ export function Home() {
           >
             <h2 className="text-2xl font-bold mb-4 text-indigo-700">{t('home.rules')}</h2>
             
-            <div className="text-left text-slate-700 max-h-[500px] overflow-y-auto pr-2">
+            <div className={`text-left text-slate-700 overflow-y-auto pr-2 ${language === 'ja' ? 'max-h-[600px]' : 'max-h-[500px]'}`}>
               <h3 className="font-bold text-lg mb-2 text-indigo-600">{t('home.objective')}</h3>
               <p className="mb-4">{t('home.objective.description')}</p>
               
