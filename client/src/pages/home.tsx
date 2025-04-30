@@ -132,7 +132,7 @@ export function Home() {
               </Button>
             </Link>
             
-            <div className="w-full max-w-xs text-center mt-2 text-sm text-gray-600 bg-white/70 backdrop-blur-sm px-3 py-2 rounded-lg shadow-sm">
+            <div className="w-full max-w-sm text-center mt-2 text-sm text-gray-600 bg-white/70 backdrop-blur-sm px-4 py-2 rounded-lg shadow-sm">
               <p>
                 {language === 'en' 
                   ? "You can also switch between Player vs Player and AI modes during the game using the AI toggle."
@@ -146,7 +146,7 @@ export function Home() {
           </motion.div>
           
           <motion.div 
-            className="mt-12 p-6 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200 shadow-lg max-h-[500px] overflow-y-auto"
+            className="mt-12 p-6 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200 shadow-lg max-h-[500px] overflow-y-auto max-w-3xl mx-auto"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
@@ -200,20 +200,37 @@ export function Home() {
               </ul>
               
               <h3 className="font-bold text-lg mb-2 text-indigo-600">{t('home.specialPiece')}</h3>
-              <p className="mb-4">
-                {language === 'en' 
-                  ? 'Each player has one Special Piece that can only be placed on empty squares. It cannot be captured and cannot capture other pieces. Use it strategically to block important positions on the board.'
-                  : '各プレイヤーは、空いているマスにのみ配置できる特殊駒を1つ持っています。特殊駒は、相手に取られることも、相手の駒を取ることもできません。盤上の重要な位置を確保するために戦略的に使いましょう。'
-                }
-              </p>
+              <div className="mb-4">
+                {language === 'en' ? (
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>Each player has one Special Piece that can only be placed on empty squares.</li>
+                    <li>It cannot be captured and cannot capture other pieces.</li>
+                    <li>Use it strategically to block important positions on the board.</li>
+                  </ul>
+                ) : (
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>各プレイヤーは、特殊駒を1つ持っています。</li>
+                    <li>特殊駒は空いているマスにのみ配置できます。</li>
+                    <li>特殊駒は、相手に取られることも、相手の駒を取ることもできません。</li>
+                    <li>盤上の重要な位置を確保するために戦略的に使いましょう。</li>
+                  </ul>
+                )}
+              </div>
               
               <h3 className="font-bold text-lg mb-2 text-indigo-600">{t('home.drawCondition')}</h3>
-              <p>
-                {language === 'en'
-                  ? 'If the board fills up or both players run out of pieces without achieving 5 in a row, the game ends in a draw.'
-                  : 'ボードがいっぱいになるか、5つ並べることなく両プレイヤーが駒を使い切った場合、ゲームは引き分けとなります。'
-                }
-              </p>
+              <div>
+                {language === 'en' ? (
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>If the board fills up without any winner, the game ends in a draw.</li>
+                    <li>If both players run out of pieces without achieving 5 in a row, the game ends in a draw.</li>
+                  </ul>
+                ) : (
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>ボードがいっぱいになり、勝者がいない場合、ゲームは引き分けとなります。</li>
+                    <li>5つ並べることなく両プレイヤーが駒を使い切った場合、ゲームは引き分けとなります。</li>
+                  </ul>
+                )}
+              </div>
             </div>
           </motion.div>
         </div>
