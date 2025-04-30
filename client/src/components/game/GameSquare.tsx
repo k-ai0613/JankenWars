@@ -134,12 +134,12 @@ const GameSquare: React.FC<GameSquareProps> = ({
       <div className="absolute inset-0 bg-gradient-to-br from-white to-transparent opacity-10 pointer-events-none"></div>
       
       {/* Game piece */}
-      {/* プレイヤーに応じた強調オーバーレイ - 色を強調 - 同じ濃さに調整 */}
+      {/* プレイヤーに応じた強調オーバーレイ - 固定の不透明度で鮮明に表示 */}
       {isPlayer1 && cell.piece !== PieceType.EMPTY && (
-        <div className="absolute inset-0 bg-blue-400 opacity-70 z-5 rounded-md"></div>
+        <div className="absolute inset-0 bg-blue-500 opacity-100 z-5 rounded-md"></div>
       )}
       {isPlayer2 && cell.piece !== PieceType.EMPTY && (
-        <div className="absolute inset-0 bg-red-400 opacity-70 z-5 rounded-md"></div>
+        <div className="absolute inset-0 bg-red-500 opacity-100 z-5 rounded-md"></div>
       )}
       
       <div className="relative z-10 flex items-center justify-center h-full w-full p-2">
