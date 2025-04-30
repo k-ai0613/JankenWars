@@ -146,14 +146,14 @@ export function Home() {
           </motion.div>
           
           <motion.div 
-            className="mt-8 mb-40 p-6 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200 shadow-lg overflow-visible max-w-3xl mx-auto"
+            className="mt-8 mb-20 p-6 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200 shadow-lg max-w-3xl mx-auto"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
           >
             <h2 className="text-2xl font-bold mb-4 text-indigo-700">{t('home.rules')}</h2>
             
-            <div className="text-left text-slate-700">
+            <div className="text-left text-slate-700 max-h-96 overflow-y-auto pr-2">
               <h3 className="font-bold text-lg mb-2 text-indigo-600">{t('home.objective')}</h3>
               <p className="mb-4">{t('home.objective.description')}</p>
               
