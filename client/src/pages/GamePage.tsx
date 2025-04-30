@@ -88,14 +88,13 @@ export function GamePage() {
     }
   }, [toggleAI, isAIEnabled, setAIDifficulty]);
 
-  // Clean up audio when component unmounts (use soundService directly)
+  // Clean up audio when component unmounts
   useEffect(() => {
     return () => {
-      // stopAllSounds()はuseAudioストアのメソッドですが、
-      // 実装上はsoundService.stopAll()を呼び出します
-      soundService.stopAll();
+      // Use the useAudio store to stop all sounds
+      audioStore.stopAllSounds();
     };
-  }, []);
+  }, [audioStore]);
 
   const handleResetGame = () => {
     // Remember AI status to keep it enabled after reset
