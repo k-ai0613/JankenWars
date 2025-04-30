@@ -18,7 +18,12 @@ const GameSquare: React.FC<GameSquareProps> = ({
   isValidMove,
   onClick 
 }) => {
-  const { captureAnimation, clearCaptureAnimation } = useJankenGame();
+  const { captureAnimation, clearCaptureAnimation, isAIEnabled, isAIThinking, currentPlayer } = useJankenGame();
+  
+  // AIのターン中かどうかチェック
+  const isAITurn = isAIEnabled && currentPlayer === Player.PLAYER2;
+  // AI操作中かどうか
+  const isDisabledDueToAI = isAITurn || isAIThinking;
   
   // Check if this square is being captured
   const isCapturing = captureAnimation?.row === position.row && 
@@ -36,6 +41,11 @@ const GameSquare: React.FC<GameSquareProps> = ({
   }, [isCapturing, clearCaptureAnimation]);
   
   const handleClick = () => {
+    // AI操作中はクリック無効化
+    if (isDisabledDueToAI) {
+      console.log('AI is currently playing, please wait...');
+      return;
+    }
     onClick(position);
   };
 
@@ -80,8 +90,12 @@ const GameSquare: React.FC<GameSquareProps> = ({
   
   // 極めて明確な条件分岐で背景色を決定 - 同じ濃さに調整
   if (isValidMove) {
-    // Valid move highlighting
-    bgColorClass = "bg-green-300 cursor-pointer ring-2 ring-green-500 hover:bg-green-400";
+    // Valid move highlighting - AIのターンの場合は見た目を変える
+    if (isDisabledDueToAI) {
+      bgColorClass = "bg-gray-300 cursor-not-allowed ring-2 ring-gray-400";
+    } else {
+      bgColorClass = "bg-green-300 cursor-pointer ring-2 ring-green-500 hover:bg-green-400";
+    }
   } 
   // じゃんけんバトルセルを判定（hasBeenUsedのみで判断）
   else if (cell.hasBeenUsed) {
@@ -102,8 +116,8 @@ const GameSquare: React.FC<GameSquareProps> = ({
     }
   } 
   else {
-    // Empty cell
-    bgColorClass = "bg-green-50";
+    // Empty cell - AIプレイ中は少し暗く
+    bgColorClass = isDisabledDueToAI ? "bg-gray-100" : "bg-green-50";
   }
   
   return (

@@ -5,12 +5,15 @@ import { GamePhase, Player, Position } from '../../lib/types';
 import { isValidMove } from '../../lib/gameUtils';
 
 const GameBoard: React.FC = () => {
+  // Extract all needed state from the store
   const { 
     board, 
     currentPlayer, 
     phase, 
     selectedPiece,
-    selectCell
+    selectCell,
+    isAIEnabled,
+    isAIThinking
   } = useJankenGame();
   
   // デバッグ: ボードの状態を表示
@@ -71,10 +74,15 @@ const GameBoard: React.FC = () => {
     return moves;
   }, [board, currentPlayer, phase, selectedPiece]);
 
-  // Handler for square click
+  // Handler for square click with AI check
   const handleSquareClick = (position: Position) => {
-    if (phase === GamePhase.SELECTING_CELL) {
+    // AIのターン中はプレイヤーがクリックできないようにする
+    const isAITurn = isAIEnabled && currentPlayer === Player.PLAYER2;
+    
+    if (phase === GamePhase.SELECTING_CELL && !isAITurn && !isAIThinking) {
       selectCell(position);
+    } else if (isAITurn || isAIThinking) {
+      console.log('AI is currently playing, please wait...');
     }
   };
 
