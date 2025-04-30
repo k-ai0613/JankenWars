@@ -100,12 +100,26 @@ export function GamePage() {
     resetGame();
     gameStore.restart();
     
+    // じゃんけんバトルパターンを即時適用する（UIでボタンを押さなくても良いように）
+    setTimeout(() => {
+      // ストアの状態を取得して処理
+      const store = useJankenGame.getState();
+      
+      // 現在のボードにじゃんけんパターンを適用
+      const updatedBoard = store.applyJankenBattlePatternToBoard(store.board);
+      
+      // 更新されたボードをストアに設定
+      useJankenGame.setState({ board: updatedBoard });
+      
+      console.log('[RESET] Auto-applied janken battle pattern to board');
+    }, 200);
+    
     // Re-enable AI if it was enabled before reset
     if (wasAIEnabled) {
       setTimeout(() => {
         toggleAI();
         setAIDifficulty(currentDifficulty);
-      }, 100);
+      }, 300);
     }
   };
 

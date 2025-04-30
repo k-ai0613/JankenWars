@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import GameSquare from './GameSquare';
 import { useJankenGame } from '../../lib/stores/useJankenGame';
 import { GamePhase, Player, Position } from '../../lib/types';
@@ -10,8 +10,25 @@ const GameBoard: React.FC = () => {
     currentPlayer, 
     phase, 
     selectedPiece,
-    selectCell
+    selectCell,
+    jankenBattleCells,
+    applyJankenBattlePatternToBoard
   } = useJankenGame();
+  
+  // デバッグ: コンポーネントマウント時にjankenBattleCellsの内容を表示
+  useEffect(() => {
+    console.log('[GameBoard] jankenBattleCells:', jankenBattleCells);
+    console.log('[GameBoard] board cells hasBeenUsed status:');
+    
+    // 各セルのhasBeenUsed状態を確認
+    for (let i = 0; i < board.length; i++) {
+      for (let j = 0; j < board[i].length; j++) {
+        if (board[i][j].hasBeenUsed) {
+          console.log(`[GameBoard] Cell ${i},${j} hasBeenUsed=true`);
+        }
+      }
+    }
+  }, [board, jankenBattleCells]);
 
   // Generate the valid moves for the current selected piece
   const validMoves = useMemo(() => {
@@ -39,6 +56,17 @@ const GameBoard: React.FC = () => {
       selectCell(position);
     }
   };
+  
+  // じゃんけんバトルパターンを手動で適用するハンドラ
+  const handleApplyJankenPattern = () => {
+    // ボードのクローンを作成
+    const newBoard = applyJankenBattlePatternToBoard(board);
+    
+    // Storeの状態を更新（参照を変えるために新しいオブジェクトとして設定）
+    useJankenGame.setState({ board: [...newBoard] });
+    
+    console.log('[GameBoard] Manually applied janken battle pattern to board');
+  };
 
   return (
     <div className="relative">
@@ -62,6 +90,20 @@ const GameBoard: React.FC = () => {
             />
           ))
         )}
+      </div>
+      
+      {/* デバッグと修正のコントロール */}
+      <div className="mt-4 flex flex-col items-center">
+        <div className="text-sm text-gray-600 mb-1">じゃんけんバトル履歴: {jankenBattleCells.length}件</div>
+        <button 
+          onClick={handleApplyJankenPattern}
+          className="px-4 py-2 bg-amber-500 text-white rounded-md text-sm font-bold hover:bg-amber-600 transition-colors"
+        >
+          バトルパターンを適用
+        </button>
+        <div className="mt-2 text-xs text-gray-500">
+          (リセット後に押すと、じゃんけんバトルのあったマスが黄色くなります)
+        </div>
       </div>
     </div>
   );
