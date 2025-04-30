@@ -8,22 +8,22 @@ class SoundService {
     // 各種サウンドファイルの読み込み
     this.sounds = {
       // 剣で斬る3.mp3 - 駒を置く音
-      place: new Audio('/剣で斬る3.mp3'),
+      place: new Audio('./剣で斬る3.mp3'),
       
       // 倒れる.mp3 - じゃんけん対決の音
-      battle: new Audio('/倒れる.mp3'),
+      battle: new Audio('./倒れる.mp3'),
       
       // jingle_12.mp3 - 勝利の音
-      victory: new Audio('/jingle_12.mp3'),
+      victory: new Audio('./jingle_12.mp3'),
       
       // 他のサウンド。ボタン音として使用
-      success: new Audio('/jingle_12.mp3'), 
+      success: new Audio('./jingle_12.mp3'), 
       
       // 他のサウンド。現在はフォールバックとして使用
-      hit: new Audio('/倒れる.mp3'),
+      hit: new Audio('./倒れる.mp3'),
       
       // バックグラウンドミュージック（未使用）
-      background: new Audio('/jingle_12.mp3')
+      background: new Audio('./jingle_12.mp3')
     };
     
     // 全てのサウンドのボリュームを設定

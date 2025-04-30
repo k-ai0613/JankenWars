@@ -8,6 +8,7 @@ import { AIDifficulty } from '../lib/aiUtils';
 import { PieceType, Player, Position, GameResult } from '../lib/types';
 import { useAudio } from '../lib/stores/useAudio';
 import { useLanguage } from '../lib/stores/useLanguage';
+import { soundService } from '../lib/soundService';
 import Confetti from 'react-confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaStar, FaRobot, FaChessKnight, FaUserFriends } from 'react-icons/fa';
@@ -87,12 +88,14 @@ export function GamePage() {
     }
   }, [toggleAI, isAIEnabled, setAIDifficulty]);
 
-  // Clean up audio when component unmounts
+  // Clean up audio when component unmounts (use soundService directly)
   useEffect(() => {
     return () => {
-      audioStore.stopAllSounds();
+      // stopAllSounds()はuseAudioストアのメソッドですが、
+      // 実装上はsoundService.stopAll()を呼び出します
+      soundService.stopAll();
     };
-  }, [audioStore]);
+  }, []);
 
   const handleResetGame = () => {
     // Remember AI status to keep it enabled after reset
@@ -330,11 +333,7 @@ export function GamePage() {
             </Button>
           )}
           
-          <Button onClick={handleToggleMute} 
-            className="bg-white/60 hover:bg-white/80 backdrop-blur-sm text-slate-600 hover:text-slate-900 border border-slate-200 shadow-sm"
-            variant="ghost">
-            {audioStore.isMuted ? t('game.unmute') : t('game.mute')}
-          </Button>
+{/* ミュートボタンはAudioControlコンポーネントで提供されています */}
           
           <Link to="/">
             <Button 
