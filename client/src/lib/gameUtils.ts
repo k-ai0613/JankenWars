@@ -2,18 +2,22 @@ import { Board, Cell, GameResult, PieceType, Player, PlayerInventory, Position }
 
 // Create an empty 6x6 board
 export const createEmptyBoard = (): Board => {
+  // 完全にクリーンな盤面を作成（常に新しいオブジェクトを生成）
   const board: Board = [];
   for (let i = 0; i < 6; i++) {
     const row: Cell[] = [];
     for (let j = 0; j < 6; j++) {
-      row.push({ 
+      // 各セルを完全新規に作成し直す
+      const cell: Cell = { 
         piece: PieceType.EMPTY, 
         owner: Player.NONE, // Explicitly set to NONE for all empty cells
-        hasBeenUsed: false 
-      });
+        hasBeenUsed: false  // 特に重要: 必ずfalseにリセット
+      };
+      row.push(cell);
     }
     board.push(row);
   }
+  console.log('[CREATE_BOARD] Generated completely new empty board');
   return board;
 };
 

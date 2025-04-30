@@ -374,13 +374,13 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
   },
   
   resetGame: () => {
-    // バトルパターン機能の削除に伴い、リセット処理も簡素化
-    console.log('[RESET] Game reset initiated');
+    // 徹底的なリセット処理（問題のあるセルを完全に再生成）
+    console.log('[RESET] Game reset initiated - COMPLETE REGENERATION');
     
-    // 新しい空のボードを作成
+    // 新しい空のボードを徹底的に作成（参照も含めて完全に新しいオブジェクト）
     const newBoard = createEmptyBoard();
     
-    // すべてをリセット（履歴も含む）
+    // すべての状態を完全にリセット
     set({
       board: newBoard,
       currentPlayer: Player.PLAYER1,
@@ -394,11 +394,13 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       winAnimation: false,
       loseAnimation: false,
       drawAnimation: false,
-      // バトル履歴もリセット（ユーザーリクエストに従い機能削除）
+      // バトル履歴は完全にリセット
       jankenBattleCells: []
     });
     
-    console.log('[RESET] Game state completely reset');
+    // デバッグ用：ボードの状態を確認
+    console.log('[RESET] Board after reset:', newBoard);
+    console.log('[RESET] Game state completely reset and regenerated');
   },
   
   clearCaptureAnimation: () => {
