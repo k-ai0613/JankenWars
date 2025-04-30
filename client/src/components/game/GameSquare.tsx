@@ -70,13 +70,24 @@ const GameSquare: React.FC<GameSquareProps> = ({
   const isPlayer1 = ownerAsString === 'PLAYER1' || ownerAsString.includes('PLAYER1');
   const isPlayer2 = ownerAsString === 'PLAYER2' || ownerAsString.includes('PLAYER2');
   
+  // 状態デバッグのために追加
+  const { jankenBattleCells } = useJankenGame();
+  
+  // じゃんけんバトル履歴との比較
+  const isInJankenHistory = jankenBattleCells.some(
+    pos => pos.row === position.row && pos.col === position.col
+  );
+  
+  // より詳細なデバッグログ
   console.log(`Cell at ${position.row},${position.col} DIRECT CHECK:`, { 
     piece: cell.piece, 
     owner: cell.owner, 
     ownerAsString,
     isPlayer1,
     isPlayer2,
-    hasBeenUsed: cell.hasBeenUsed 
+    hasBeenUsed: cell.hasBeenUsed,
+    isInJankenHistory,
+    position
   });
   
   // 完全に再実装された背景色選択ロジック
@@ -87,11 +98,18 @@ const GameSquare: React.FC<GameSquareProps> = ({
     // Valid move highlighting
     bgColorClass = "bg-green-300 cursor-pointer ring-2 ring-green-500 hover:bg-green-400";
   } 
-  else if (cell.hasBeenUsed) {
+  // 2つの条件でじゃんけんバトルセルを判定（hasBeenUsed OR jankenBattleCellsリストに含まれる）
+  else if (cell.hasBeenUsed || isInJankenHistory) {
     // Janken battle cell - amber - より鮮やかな色に
-    // hasBeenUsed プロパティのみを使用して判断（駒の有無に関わらず）- リセット時のバグ修正
     bgColorClass = "bg-amber-400 ring-2 ring-amber-600";
-    console.log(`Cell ${position.row},${position.col} - JANKEN BATTLE CELL (hasBeenUsed = true)`);
+    
+    if (cell.hasBeenUsed) {
+      console.log(`Cell ${position.row},${position.col} - JANKEN BATTLE CELL (hasBeenUsed = true)`);
+    }
+    
+    if (isInJankenHistory) {
+      console.log(`Cell ${position.row},${position.col} - JANKEN BATTLE CELL (in history list)`);
+    }
   }
   else if (cell.piece !== PieceType.EMPTY) {
     // 文字列ベースの単純な比較で背景色を選択 - 同じレベルの濃さに調整

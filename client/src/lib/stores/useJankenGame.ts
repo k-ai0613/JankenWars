@@ -390,6 +390,9 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
     // 現在のjankenBattleCellsを保存
     const { jankenBattleCells, applyJankenBattlePatternToBoard } = get();
 
+    // じゃんけんバトル履歴を明示的にデバッグ出力
+    console.log('[RESET] Current jankenBattleCells:', JSON.stringify(jankenBattleCells));
+    
     // 新しい空のボードを作成
     let newBoard = createEmptyBoard();
     
@@ -407,7 +410,8 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       }
     }
     
-    set({
+    // 新しいステートで更新（jankenBattleCellsは保持）
+    const newState = {
       board: newBoard,
       currentPlayer: Player.PLAYER1,
       phase: GamePhase.READY,
@@ -420,8 +424,22 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       winAnimation: false,
       loseAnimation: false,
       drawAnimation: false,
-      // jankenBattleCellsはリセットしない
-    });
+      // 明示的に保持
+      jankenBattleCells: [...jankenBattleCells]
+    };
+    
+    console.log('[RESET] Setting new state with jankenBattleCells kept:', 
+                JSON.stringify(newState.jankenBattleCells));
+    
+    // ステートを更新
+    set(newState);
+    
+    // セットタイムアウトで状態が確実に更新された後に再確認
+    setTimeout(() => {
+      const state = get();
+      console.log('[RESET-VERIFY] jankenBattleCells after reset:', 
+                 JSON.stringify(state.jankenBattleCells));
+    }, 100);
   },
   
   clearCaptureAnimation: () => {
