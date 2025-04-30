@@ -363,10 +363,11 @@ export function GamePage() {
                 animate={{ 
                   opacity: 1, 
                   y: 0,
-                  scale: winAnimation ? [1, 1.05, 1] : 1,
+                  scale: winAnimation ? [1, 1.05, 1] : (loseAnimation ? [1, 0.95, 1] : 1),
+                  rotate: loseAnimation ? [0, -1, 1, -1, 0] : 0,
                   transition: { 
-                    duration: winAnimation ? 1 : 0.3,
-                    repeat: winAnimation ? 5 : 0,
+                    duration: winAnimation ? 1 : (loseAnimation ? 0.5 : 0.3),
+                    repeat: winAnimation ? 5 : (loseAnimation ? 3 : 0),
                     repeatType: "reverse" as const
                   }
                 }}
@@ -375,14 +376,14 @@ export function GamePage() {
                 className={`p-3 rounded-lg shadow-md w-full text-center min-h-[70px] flex items-center justify-center
                   ${winAnimation ? 'ring-4 ring-yellow-400 bg-gradient-to-r from-yellow-50 to-yellow-100' : 'bg-white'}
                   ${drawAnimation ? 'ring-4 ring-green-400 bg-gradient-to-r from-green-50 to-green-100' : ''}
-                  ${loseAnimation ? 'ring-2 ring-red-300 bg-gradient-to-r from-red-50 to-red-100' : ''}
+                  ${loseAnimation ? 'ring-4 ring-red-400 bg-gradient-to-r from-red-50 to-red-100 shadow-lg shadow-red-200/50' : ''}
                 `}
               >
                 <p className={`
                   text-base
                   ${winAnimation ? 'font-bold animate-pulse' : ''}
                   ${drawAnimation ? 'font-semibold' : ''}
-                  ${loseAnimation ? 'font-medium text-red-600' : ''}
+                  ${loseAnimation ? 'font-bold text-red-600 animate-[shake_0.5s_ease-in-out_infinite]' : ''}
                   ${!winAnimation && !drawAnimation && !loseAnimation ? 'font-medium' : ''}
                 `}>
                   {message.startsWith('message.') ? t(message) : message}
