@@ -16,7 +16,7 @@ export function Home() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-y-scroll bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100">
+    <div className="min-h-screen relative bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100">
       {/* Background decorative elements */}
       <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-indigo-200 to-transparent opacity-40"></div>
       <div className="absolute bottom-0 right-0 w-full h-64 bg-gradient-to-t from-pink-200 to-transparent opacity-30"></div>
@@ -80,7 +80,7 @@ export function Home() {
           <span className={`text-sm font-bold transition-colors duration-200 ${language === 'ja' ? 'text-red-600' : 'text-gray-400'}`}>日本語</span>
         </div>
 
-        <div className="max-w-2xl mx-auto text-center">
+        <div className="max-w-2xl mx-auto text-center mt-20">
           {/* Title with shadow effect */}
           <motion.h1 
             className="text-5xl md:text-6xl font-bold mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 drop-shadow-md"
@@ -146,7 +146,7 @@ export function Home() {
           </motion.div>
           
           <motion.div 
-            className="mt-8 mb-16 p-6 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200 shadow-lg overflow-visible max-w-3xl mx-auto"
+            className="mt-8 mb-40 p-6 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200 shadow-lg overflow-visible max-w-3xl mx-auto"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
