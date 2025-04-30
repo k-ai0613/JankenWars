@@ -10,13 +10,11 @@ const GameBoard: React.FC = () => {
     currentPlayer, 
     phase, 
     selectedPiece,
-    selectCell,
-    jankenBattleCells
+    selectCell
   } = useJankenGame();
   
-  // デバッグ: コンポーネントマウント時にjankenBattleCellsの内容を表示
+  // デバッグ: ボードの状態を表示
   useEffect(() => {
-    console.log('[GameBoard] jankenBattleCells:', jankenBattleCells);
     console.log('[GameBoard] board cells hasBeenUsed status:');
     
     // 各セルのhasBeenUsed状態を確認
@@ -27,7 +25,7 @@ const GameBoard: React.FC = () => {
         }
       }
     }
-  }, [board, jankenBattleCells]);
+  }, [board]);
 
   // Generate the valid moves for the current selected piece
   const validMoves = useMemo(() => {
@@ -81,8 +79,6 @@ const GameBoard: React.FC = () => {
           ))
         )}
       </div>
-      
-      {/* バトルパターン関連の機能を削除 */}
     </div>
   );
 };
