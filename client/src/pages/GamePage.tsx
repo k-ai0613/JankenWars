@@ -20,6 +20,7 @@ import { GamePiece } from '../components/game/GamePiece';
 
 // Import PlayerInfo component
 import PlayerInfo from '../components/game/PlayerInfo';
+import { AudioControl } from '../components/game/AudioControl';
 
 export function GamePage() {
   const gameStore = useGame();

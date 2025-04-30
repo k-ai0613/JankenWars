@@ -3,29 +3,35 @@ type SoundType = 'battle' | 'place' | 'victory' | 'background' | 'success' | 'hi
 class SoundService {
   private sounds: Record<SoundType, HTMLAudioElement>;
   private isMuted: boolean = false;
-  
+
   constructor() {
+    // 各種サウンドファイルの読み込み
     this.sounds = {
-      battle: new Audio('/sounds/battle.mp3'),     // じゃんけん勝敗が付いたとき
-      place: new Audio('/sounds/place.mp3'),       // 駒を置いたとき
-      victory: new Audio('/sounds/victory.mp3'),   // 勝利したとき
-      background: new Audio('/sounds/background.mp3'), // BGM
-      success: new Audio('/sounds/success.mp3'),   // 特殊駒を置いたとき
-      hit: new Audio('/sounds/hit.mp3')            // エラー/警告
+      // 剣で斬る3.mp3 - 駒を置く音
+      place: new Audio('/剣で斬る3.mp3'),
+      
+      // 倒れる.mp3 - じゃんけん対決の音
+      battle: new Audio('/倒れる.mp3'),
+      
+      // jingle_12.mp3 - 勝利の音
+      victory: new Audio('/jingle_12.mp3'),
+      
+      // 他のサウンド。ボタン音として使用
+      success: new Audio('/jingle_12.mp3'), 
+      
+      // 他のサウンド。現在はフォールバックとして使用
+      hit: new Audio('/倒れる.mp3'),
+      
+      // バックグラウンドミュージック（未使用）
+      background: new Audio('/jingle_12.mp3')
     };
     
-    // Set volumes
-    this.sounds.battle.volume = 0.5;
-    this.sounds.place.volume = 0.3;
-    this.sounds.victory.volume = 0.7;
-    this.sounds.background.volume = 0.2;
-    this.sounds.success.volume = 0.4;
-    this.sounds.hit.volume = 0.4;
-    
-    // Loop background music
-    this.sounds.background.loop = true;
+    // 全てのサウンドのボリュームを設定
+    Object.values(this.sounds).forEach(sound => {
+      sound.volume = 0.5;
+    });
   }
-  
+
   /**
    * Play a sound effect
    */
@@ -33,72 +39,72 @@ class SoundService {
     if (this.isMuted) return;
     
     try {
-      // If already playing, reset and play again
       const audio = this.sounds[sound];
-      audio.currentTime = 0;
-      
-      // For background music, only play if not already playing
-      if (sound === 'background' && !audio.paused) {
-        return;
+      if (audio) {
+        audio.currentTime = 0; // Reset to start
+        audio.play().catch(e => console.error(`Error playing sound ${sound}:`, e));
       }
-      
-      audio.play().catch(err => {
-        console.warn(`Failed to play sound ${sound}:`, err);
-      });
     } catch (error) {
-      console.error(`Error playing ${sound} sound:`, error);
+      console.error(`Error playing sound ${sound}:`, error);
     }
   }
-  
+
   /**
    * Stop a sound
    */
   stop(sound: SoundType): void {
     try {
       const audio = this.sounds[sound];
-      audio.pause();
-      audio.currentTime = 0;
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
     } catch (error) {
-      console.error(`Error stopping ${sound} sound:`, error);
+      console.error(`Error stopping sound ${sound}:`, error);
     }
   }
-  
+
   /**
    * Stop all sounds
    */
   stopAll(): void {
-    Object.values(this.sounds).forEach(audio => {
-      audio.pause();
-      audio.currentTime = 0;
-    });
+    try {
+      Object.values(this.sounds).forEach(sound => {
+        sound.pause();
+        sound.currentTime = 0;
+      });
+    } catch (error) {
+      console.error('Error stopping all sounds:', error);
+    }
   }
-  
+
   /**
    * Mute/unmute all sounds
    */
   setMuted(muted: boolean): void {
     this.isMuted = muted;
-    
     if (muted) {
       this.stopAll();
     }
   }
-  
+
   /**
    * Get current mute state
    */
   getMuted(): boolean {
     return this.isMuted;
   }
-  
+
   /**
    * Toggle mute state
    */
   toggleMute(): boolean {
-    this.setMuted(!this.isMuted);
+    this.isMuted = !this.isMuted;
+    if (this.isMuted) {
+      this.stopAll();
+    }
     return this.isMuted;
   }
 }
 
-// Create a singleton instance
 export const soundService = new SoundService();
