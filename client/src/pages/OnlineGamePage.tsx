@@ -8,6 +8,7 @@ import { PieceType, Player, GamePhase, GameResult } from '../lib/types';
 import { motion } from 'framer-motion';
 import { FaHome, FaRedo, FaCopy, FaUser, FaUserFriends } from 'react-icons/fa';
 import { useLanguage } from '../lib/stores/useLanguage';
+import { AudioControl } from '../components/game/AudioControl';
 
 export function OnlineGamePage() {
   const { t, language } = useLanguage();

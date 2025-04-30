@@ -251,7 +251,7 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
         : GameResult.PLAYER2_WIN;
       
       // Play victory sound (jingle_12.mp3)
-      audioStore.playVictory ? audioStore.playVictory() : audioStore.playSuccess();
+      audioStore.playSuccess();
         
       // The current player won!
       set({

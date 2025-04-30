@@ -56,33 +56,15 @@ export function GamePage() {
   const handleStartGame = React.useCallback(() => {
     startGame();
     gameStore.start();
-    
-    // Start background music
-    if (audioStore.backgroundMusic) {
-      audioStore.backgroundMusic.play().catch(err => {
-        console.error('Failed to play background music:', err);
-      });
-    }
-  }, [startGame, gameStore, audioStore]);
+  }, [startGame, gameStore]);
 
   // Initialize audio and auto-start game when component mounts
   useEffect(() => {
-    // Set mock audio for now to avoid errors
-    if (!audioStore.backgroundMusic) {
-      // We'll use empty functions to prevent errors
-      audioStore.setBackgroundMusic(new Audio());
-      audioStore.setHitSound(new Audio());
-      audioStore.setSuccessSound(new Audio());
-      
-      // Mute by default until we have actual audio files
-      audioStore.toggleMute();
-    }
-    
     // Auto-start the game when the component mounts
     if (gameStore.phase === 'ready') {
       handleStartGame();
     }
-  }, [audioStore, gameStore.phase, handleStartGame]);
+  }, [gameStore.phase, handleStartGame]);
   
   // Check for AI mode from home screen (separate effect to ensure it runs after game starts)
   useEffect(() => {
@@ -108,9 +90,7 @@ export function GamePage() {
   // Clean up audio when component unmounts
   useEffect(() => {
     return () => {
-      if (audioStore.backgroundMusic) {
-        audioStore.backgroundMusic.pause();
-      }
+      audioStore.stopAllSounds();
     };
   }, [audioStore]);
 
@@ -217,6 +197,9 @@ export function GamePage() {
 
   return (
     <div className="container mx-auto px-4 pt-2 pb-0 min-h-screen relative overflow-hidden bg-gradient-to-b from-blue-50 via-indigo-50 to-purple-50">
+      {/* Audio Control Button */}
+      <AudioControl />
+      
       {/* Animation effects */}
       {winAnimation && (
         <Confetti
