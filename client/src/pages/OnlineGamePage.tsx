@@ -350,6 +350,9 @@ export function OnlineGamePage() {
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 p-4">
+      {/* Audio Control Button - Only show during actual gameplay */}
+      {gamePhase !== GamePhase.READY && <AudioControl />}
+      
       <div className="container mx-auto flex items-center justify-center min-h-screen">
         {renderContent()}
       </div>
