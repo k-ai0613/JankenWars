@@ -230,16 +230,50 @@ export function GamePage() {
         />
       )}
       {loseAnimation && (
-        <motion.div 
-          className="absolute inset-0 pointer-events-none"
-          initial={{ opacity: 0 }}
-          animate={{
-            opacity: [0, 0.2, 0],
-            transition: { duration: 1.5, repeat: 2, repeatType: "reverse" as const }
-          }}
-        >
-          <div className="w-full h-full bg-red-500 opacity-20"></div>
-        </motion.div>
+        <>
+          <motion.div 
+            className="absolute inset-0 pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{
+              opacity: [0, 0.3, 0],
+              transition: { duration: 0.7, repeat: 4, repeatType: "reverse" as const }
+            }}
+          >
+            <div className="w-full h-full bg-red-500 opacity-30"></div>
+          </motion.div>
+          
+          {/* ゲームオーバーのビジュアルエフェクト - 落下する碁石アニメーション */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {Array.from({ length: 15 }).map((_, i) => (
+              <motion.div
+                key={`falling-piece-${i}`}
+                className="absolute"
+                initial={{ 
+                  x: `${Math.random() * 100}vw`, 
+                  y: -100, 
+                  rotate: 0,
+                  opacity: 0.9
+                }}
+                animate={{ 
+                  y: '120vh',
+                  rotate: Math.random() > 0.5 ? 360 : -360,
+                  opacity: [0.9, 0.7, 0]
+                }}
+                transition={{ 
+                  duration: 3 + Math.random() * 4,
+                  ease: "easeIn",
+                  delay: Math.random() * 1
+                }}
+              >
+                <div className={`w-8 h-8 rounded-full ${
+                  Math.random() > 0.5 
+                    ? 'bg-blue-500 border-2 border-blue-600' 
+                    : 'bg-red-500 border-2 border-red-600'
+                }`}></div>
+              </motion.div>
+            ))}
+          </div>
+        </>
       )}
       
       <div className="flex flex-col items-center">
