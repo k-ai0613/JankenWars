@@ -1,6 +1,6 @@
 import React from 'react';
 import { GamePiece } from './GamePiece';
-import { Cell, Position, PieceType, Player, normalizePlayer } from '../../lib/types';
+import { Cell, Position, PieceType, Player } from '../../lib/types';
 import { cn } from '../../lib/utils';
 import { motion } from 'framer-motion';
 import { useJankenGame } from '../../lib/stores/useJankenGame';
@@ -70,14 +70,7 @@ const GameSquare: React.FC<GameSquareProps> = ({
   const isPlayer1 = ownerAsString === 'PLAYER1' || ownerAsString.includes('PLAYER1');
   const isPlayer2 = ownerAsString === 'PLAYER2' || ownerAsString.includes('PLAYER2');
   
-  // 状態デバッグのために追加
-  const { jankenBattleCells } = useJankenGame();
-  
-  // じゃんけんバトル履歴との比較
-  const isInJankenHistory = jankenBattleCells.some(
-    pos => pos.row === position.row && pos.col === position.col
-  );
-  
+  // バトルパターン機能を削除したため、不要なデバッグコードも削除
   // より詳細なデバッグログ
   console.log(`Cell at ${position.row},${position.col} DIRECT CHECK:`, { 
     piece: cell.piece, 
@@ -86,7 +79,6 @@ const GameSquare: React.FC<GameSquareProps> = ({
     isPlayer1,
     isPlayer2,
     hasBeenUsed: cell.hasBeenUsed,
-    isInJankenHistory,
     position
   });
   
@@ -98,18 +90,11 @@ const GameSquare: React.FC<GameSquareProps> = ({
     // Valid move highlighting
     bgColorClass = "bg-green-300 cursor-pointer ring-2 ring-green-500 hover:bg-green-400";
   } 
-  // 2つの条件でじゃんけんバトルセルを判定（hasBeenUsed OR jankenBattleCellsリストに含まれる）
-  else if (cell.hasBeenUsed || isInJankenHistory) {
+  // じゃんけんバトルセルを判定（hasBeenUsedのみで判断）
+  else if (cell.hasBeenUsed) {
     // Janken battle cell - amber - より鮮やかな色に
     bgColorClass = "bg-amber-400 ring-2 ring-amber-600";
-    
-    if (cell.hasBeenUsed) {
-      console.log(`Cell ${position.row},${position.col} - JANKEN BATTLE CELL (hasBeenUsed = true)`);
-    }
-    
-    if (isInJankenHistory) {
-      console.log(`Cell ${position.row},${position.col} - JANKEN BATTLE CELL (in history list)`);
-    }
+    console.log(`Cell ${position.row},${position.col} - JANKEN BATTLE CELL (hasBeenUsed = true)`);
   }
   else if (cell.piece !== PieceType.EMPTY) {
     // 文字列ベースの単純な比較で背景色を選択 - 同じレベルの濃さに調整

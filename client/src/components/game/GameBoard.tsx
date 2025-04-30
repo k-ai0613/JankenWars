@@ -11,8 +11,7 @@ const GameBoard: React.FC = () => {
     phase, 
     selectedPiece,
     selectCell,
-    jankenBattleCells,
-    applyJankenBattlePatternToBoard
+    jankenBattleCells
   } = useJankenGame();
   
   // デバッグ: コンポーネントマウント時にjankenBattleCellsの内容を表示
@@ -57,16 +56,7 @@ const GameBoard: React.FC = () => {
     }
   };
   
-  // じゃんけんバトルパターンを手動で適用するハンドラ
-  const handleApplyJankenPattern = () => {
-    // ボードのクローンを作成
-    const newBoard = applyJankenBattlePatternToBoard(board);
-    
-    // Storeの状態を更新（参照を変えるために新しいオブジェクトとして設定）
-    useJankenGame.setState({ board: [...newBoard] });
-    
-    console.log('[GameBoard] Manually applied janken battle pattern to board');
-  };
+  // 不要な機能を削除
 
   return (
     <div className="relative">
@@ -92,19 +82,7 @@ const GameBoard: React.FC = () => {
         )}
       </div>
       
-      {/* デバッグと修正のコントロール */}
-      <div className="mt-4 flex flex-col items-center">
-        <div className="text-sm text-gray-600 mb-1">じゃんけんバトル履歴: {jankenBattleCells.length}件</div>
-        <button 
-          onClick={handleApplyJankenPattern}
-          className="px-4 py-2 bg-amber-500 text-white rounded-md text-sm font-bold hover:bg-amber-600 transition-colors"
-        >
-          バトルパターンを適用
-        </button>
-        <div className="mt-2 text-xs text-gray-500">
-          (リセット後に押すと、じゃんけんバトルのあったマスが黄色くなります)
-        </div>
-      </div>
+      {/* バトルパターン関連の機能を削除 */}
     </div>
   );
 };
