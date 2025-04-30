@@ -35,8 +35,8 @@ interface JankenGameState {
   // Game message
   message: string;
   
-  // Janken battle cells - track positions where battles occurred
-  jankenBattleCells: Position[]; // Keeps track of cells where janken battles occurred
+  // バトルセル機能は削除済み - 互換性のために空の宣言を残す
+  jankenBattleCells: Position[];
   
   // Animation states
   captureAnimation: Position | null; // Position where a capture happened
