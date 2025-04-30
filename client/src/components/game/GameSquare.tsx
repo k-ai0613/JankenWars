@@ -87,9 +87,11 @@ const GameSquare: React.FC<GameSquareProps> = ({
     // Valid move highlighting
     bgColorClass = "bg-green-300 cursor-pointer ring-2 ring-green-500 hover:bg-green-400";
   } 
-  else if (cell.hasBeenUsed && cell.piece !== PieceType.EMPTY) {
+  else if (cell.hasBeenUsed) {
     // Janken battle cell - amber - より鮮やかな色に
+    // hasBeenUsed プロパティのみを使用して判断（駒の有無に関わらず）- リセット時のバグ修正
     bgColorClass = "bg-amber-400 ring-2 ring-amber-600";
+    console.log(`Cell ${position.row},${position.col} - JANKEN BATTLE CELL (hasBeenUsed = true)`);
   }
   else if (cell.piece !== PieceType.EMPTY) {
     // 文字列ベースの単純な比較で背景色を選択 - 同じレベルの濃さに調整
