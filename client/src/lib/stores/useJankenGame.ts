@@ -49,6 +49,9 @@ interface JankenGameState {
   aiDifficulty: AIDifficulty;
   isAIThinking: boolean; // For showing AI "thinking" animation
   
+  // Board utility functions
+  applyJankenBattlePatternToBoard: (board: Board) => Board;
+  
   // Actions
   startGame: () => void;
   selectCell: (position: Position) => void;
@@ -88,6 +91,25 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
   isAIEnabled: false,
   aiDifficulty: AIDifficulty.NORMAL, // Default difficulty level is NORMAL
   isAIThinking: false,
+  
+  // ボード上にじゃんけんバトルパターンを適用する関数
+  applyJankenBattlePatternToBoard: (board: Board): Board => {
+    const { jankenBattleCells } = get();
+    
+    // Clone the board to avoid mutation
+    const newBoard = board.map(row => [...row]);
+    
+    // Mark each cell that had a janken battle with hasBeenUsed=true
+    jankenBattleCells.forEach(position => {
+      if (position && position.row >= 0 && position.row < 6 && 
+          position.col >= 0 && position.col < 6) {
+        console.log(`[APPLY_PATTERN] marking cell ${position.row},${position.col} as used (janken battle)`);
+        newBoard[position.row][position.col].hasBeenUsed = true;
+      }
+    });
+    
+    return newBoard;
+  },
   
   startGame: () => {
     set({ 
@@ -366,18 +388,24 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
   
   resetGame: () => {
     // 現在のjankenBattleCellsを保存
-    const { jankenBattleCells } = get();
+    const { jankenBattleCells, applyJankenBattlePatternToBoard } = get();
 
-    // 新しいボードを作成
-    const newBoard = createEmptyBoard();
-
-    // jankenBattleCellsの各セルに対してhasBeenUsed=trueを設定
-    jankenBattleCells.forEach(position => {
-      if (position && position.row >= 0 && position.row < 6 && position.col >= 0 && position.col < 6) {
-        console.log(`[RESET] marking cell ${position.row},${position.col} as used (janken battle)`);
-        newBoard[position.row][position.col].hasBeenUsed = true;
+    // 新しい空のボードを作成
+    let newBoard = createEmptyBoard();
+    
+    // 新しいボードにじゃんけんバトルパターンを適用
+    newBoard = applyJankenBattlePatternToBoard(newBoard);
+    
+    console.log('[RESET] Created new board with janken battle pattern applied');
+    
+    // ボード内のすべてのセルをチェックしてデバッグログを出力
+    for (let i = 0; i < 6; i++) {
+      for (let j = 0; j < 6; j++) {
+        if (newBoard[i][j].hasBeenUsed) {
+          console.log(`[RESET-CHECK] Cell at ${i},${j} is marked as used`);
+        }
       }
-    });
+    }
     
     set({
       board: newBoard,
