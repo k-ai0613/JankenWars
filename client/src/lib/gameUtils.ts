@@ -1,5 +1,52 @@
 import { Board, Cell, GameResult, PieceType, Player, PlayerInventory, Position } from './types';
 
+// Cell selection utility for online games
+export const selectCellForPlayer = (
+  position: Position,
+  player: Player,
+  piece: PieceType,
+  board: Board
+): Board => {
+  const { row, col } = position;
+  const newBoard = [...board.map(r => [...r.map(c => ({...c}))])]; // Deep copy
+  
+  const targetCell = newBoard[row][col];
+  
+  // If cell is empty, place the piece
+  if (targetCell.piece === PieceType.EMPTY) {
+    targetCell.piece = piece;
+    targetCell.owner = player;
+    return newBoard;
+  }
+  
+  // Special piece can't be used to capture
+  if (piece === PieceType.SPECIAL) {
+    return board; // No change
+  }
+  
+  // Cannot capture own pieces
+  if (targetCell.owner === player) {
+    return board; // No change
+  }
+  
+  // Can't capture special pieces
+  if (targetCell.piece === PieceType.SPECIAL) {
+    return board; // No change
+  }
+  
+  // Calculate if attacking piece wins
+  const attackResult = determineWinner(piece, targetCell.piece);
+  
+  // If attacker wins, replace the piece and mark as used
+  if (attackResult === Player.PLAYER1) { // PLAYER1 means attacker wins
+    targetCell.piece = piece;
+    targetCell.owner = player;
+    targetCell.hasBeenUsed = true; // Lock the cell after Janken battle
+  }
+  
+  return newBoard;
+};
+
 // Create an empty 6x6 board
 export const createEmptyBoard = (): Board => {
   // 完全にクリーンな盤面を作成（常に新しいオブジェクトを生成）

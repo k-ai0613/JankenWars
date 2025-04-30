@@ -140,9 +140,13 @@ export function Home() {
               </p>
             </div>
             
-            <Button className="w-full max-w-xs py-5 bg-white/80 backdrop-blur-sm text-slate-700 hover:bg-white/90" variant="outline" disabled>
-              {t('home.playOnline')}
-            </Button>
+            <Link to="/online" className="w-full max-w-xs">
+              <Button 
+                className="w-full py-5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg shadow-purple-500/20 hover:shadow-purple-600/30 transition-all duration-300 text-white"
+              >
+                {t('home.playOnline')}
+              </Button>
+            </Link>
           </motion.div>
           
           <motion.div 
