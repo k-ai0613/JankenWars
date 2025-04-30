@@ -16,7 +16,7 @@ export function Home() {
   };
 
   return (
-    <div className="min-h-screen relative overflow-auto bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100">
+    <div className="min-h-screen relative overflow-y-scroll bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100">
       {/* Background decorative elements */}
       <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-indigo-200 to-transparent opacity-40"></div>
       <div className="absolute bottom-0 right-0 w-full h-64 bg-gradient-to-t from-pink-200 to-transparent opacity-30"></div>
@@ -61,7 +61,7 @@ export function Home() {
       </motion.div>
       
       {/* Main content container */}
-      <div className="container mx-auto p-6 min-h-screen flex flex-col items-center justify-center relative z-10">
+      <div className="container mx-auto p-6 flex flex-col items-center relative z-10 pb-20">
         {/* Language toggle */}
         <div className="self-end flex items-center space-x-3 mb-4 bg-white/80 backdrop-blur-sm p-3 rounded-lg shadow-md border border-slate-200">
           <span className={`text-sm font-bold transition-colors duration-200 ${language === 'en' ? 'text-blue-600' : 'text-gray-400'}`}>EN</span>
