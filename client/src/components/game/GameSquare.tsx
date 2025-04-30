@@ -70,17 +70,10 @@ const GameSquare: React.FC<GameSquareProps> = ({
   const isPlayer1 = ownerAsString === 'PLAYER1' || ownerAsString.includes('PLAYER1');
   const isPlayer2 = ownerAsString === 'PLAYER2' || ownerAsString.includes('PLAYER2');
   
-  // バトルパターン機能を削除したため、不要なデバッグコードも削除
-  // より詳細なデバッグログ
-  console.log(`Cell at ${position.row},${position.col} DIRECT CHECK:`, { 
-    piece: cell.piece, 
-    owner: cell.owner, 
-    ownerAsString,
-    isPlayer1,
-    isPlayer2,
-    hasBeenUsed: cell.hasBeenUsed,
-    position
-  });
+  // 重要なセルの状態のみのデバッグログ
+  if (cell.hasBeenUsed) {
+    console.log(`[GameSquare] Cell at ${position.row},${position.col} hasBeenUsed=true, piece=${cell.piece}, owner=${cell.owner}`);
+  }
   
   // 完全に再実装された背景色選択ロジック
   let bgColorClass = "";
@@ -94,17 +87,14 @@ const GameSquare: React.FC<GameSquareProps> = ({
   else if (cell.hasBeenUsed) {
     // Janken battle cell - amber - より鮮やかな色に
     bgColorClass = "bg-amber-400 ring-2 ring-amber-600";
-    console.log(`Cell ${position.row},${position.col} - JANKEN BATTLE CELL (hasBeenUsed = true)`);
   }
   else if (cell.piece !== PieceType.EMPTY) {
     // 文字列ベースの単純な比較で背景色を選択 - 同じレベルの濃さに調整
     if (isPlayer1) {
       bgColorClass = "bg-blue-400 ring-2 ring-blue-600"; // Player 1 - BLUE - 色調整
-      console.log(`Cell ${position.row},${position.col} - MATCHING BLUE for P1 ${cell.piece}`);
     } 
     else if (isPlayer2) {
       bgColorClass = "bg-red-400 ring-2 ring-red-600";  // Player 2 - RED - 色調整
-      console.log(`Cell ${position.row},${position.col} - MATCHING RED for P2 ${cell.piece}`);
     }
     else {
       console.warn("Unknown owner string:", { ownerOriginal: cell.owner, ownerAsString });
