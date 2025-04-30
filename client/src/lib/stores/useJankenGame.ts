@@ -194,8 +194,8 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
         hasBeenUsed: false // Not locked yet, can be captured with janken rules
       };
       
-      // Play success sound
-      audioStore.playSuccess();
+      // Play place sound (剣で斬る3.mp3)
+      audioStore.playPlace();
     } else {
       // Janken battle - replace opponent's piece and lock this cell
       const defendingPiece = targetCell.piece;
@@ -207,8 +207,8 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
         hasBeenUsed: true // Lock this cell after janken battle
       };
       
-      // Play hit sound
-      audioStore.playHit();
+      // Play battle sound (倒れる.mp3)
+      audioStore.playBattle();
       
       // Trigger capture animation only
       set({ 
