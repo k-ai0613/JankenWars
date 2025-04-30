@@ -100,42 +100,8 @@ export function GamePage() {
     resetGame();
     gameStore.restart();
     
-    // じゃんけんバトルパターンを即時適用する機能を強化
-    const applyPatternWithBackoff = (attempt = 1, maxAttempts = 3) => {
-      // ストアの状態を取得して処理
-      const store = useJankenGame.getState();
-      
-      // じゃんけんバトル履歴を確認
-      console.log(`[RESET] Attempt ${attempt}: jankenBattleCells:`, 
-                 JSON.stringify(store.jankenBattleCells));
-      
-      if (store.jankenBattleCells.length === 0 && attempt < maxAttempts) {
-        // バトル履歴が空の場合、数百ミリ秒待って再試行
-        console.log(`[RESET] No battle cells found, retry in ${attempt * 200}ms...`);
-        setTimeout(() => applyPatternWithBackoff(attempt + 1), attempt * 200);
-        return;
-      }
-      
-      // 現在のボードにじゃんけんパターンを適用
-      const updatedBoard = store.applyJankenBattlePatternToBoard(store.board);
-      
-      // 更新されたボードをストアに設定
-      useJankenGame.setState({ board: [...updatedBoard] });
-      
-      console.log('[RESET] Auto-applied janken battle pattern to board');
-      
-      // 検証のため、更新後の状態を再確認
-      setTimeout(() => {
-        const latestState = useJankenGame.getState();
-        console.log('[RESET] Verification after pattern application:');
-        console.log('- Battle cells:', JSON.stringify(latestState.jankenBattleCells));
-        console.log('- Board has used cells:', latestState.board.some(row => 
-          row.some(cell => cell.hasBeenUsed)));
-      }, 100);
-    };
-    
-    // バックオフ再試行で適用開始
-    setTimeout(() => applyPatternWithBackoff(), 200);
+      // バトルパターン機能を完全に削除（ユーザーリクエスト）
+    console.log('[RESET] Game reset complete');
     
     // Re-enable AI if it was enabled before reset
     if (wasAIEnabled) {

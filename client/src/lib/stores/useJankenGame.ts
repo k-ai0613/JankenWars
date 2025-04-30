@@ -92,23 +92,10 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
   aiDifficulty: AIDifficulty.NORMAL, // Default difficulty level is NORMAL
   isAIThinking: false,
   
-  // ボード上にじゃんけんバトルパターンを適用する関数
+  // バトルパターン機能を削除（ユーザーからのリクエスト）
   applyJankenBattlePatternToBoard: (board: Board): Board => {
-    const { jankenBattleCells } = get();
-    
-    // Clone the board to avoid mutation
-    const newBoard = board.map(row => [...row]);
-    
-    // Mark each cell that had a janken battle with hasBeenUsed=true
-    jankenBattleCells.forEach(position => {
-      if (position && position.row >= 0 && position.row < 6 && 
-          position.col >= 0 && position.col < 6) {
-        console.log(`[APPLY_PATTERN] marking cell ${position.row},${position.col} as used (janken battle)`);
-        newBoard[position.row][position.col].hasBeenUsed = true;
-      }
-    });
-    
-    return newBoard;
+    // 何もせずにボードをそのまま返す
+    return board;
   },
   
   startGame: () => {
@@ -387,31 +374,14 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
   },
   
   resetGame: () => {
-    // 現在のjankenBattleCellsを保存
-    const { jankenBattleCells, applyJankenBattlePatternToBoard } = get();
-
-    // じゃんけんバトル履歴を明示的にデバッグ出力
-    console.log('[RESET] Current jankenBattleCells:', JSON.stringify(jankenBattleCells));
+    // バトルパターン機能の削除に伴い、リセット処理も簡素化
+    console.log('[RESET] Game reset initiated');
     
     // 新しい空のボードを作成
-    let newBoard = createEmptyBoard();
+    const newBoard = createEmptyBoard();
     
-    // 新しいボードにじゃんけんバトルパターンを適用
-    newBoard = applyJankenBattlePatternToBoard(newBoard);
-    
-    console.log('[RESET] Created new board with janken battle pattern applied');
-    
-    // ボード内のすべてのセルをチェックしてデバッグログを出力
-    for (let i = 0; i < 6; i++) {
-      for (let j = 0; j < 6; j++) {
-        if (newBoard[i][j].hasBeenUsed) {
-          console.log(`[RESET-CHECK] Cell at ${i},${j} is marked as used`);
-        }
-      }
-    }
-    
-    // 新しいステートで更新（jankenBattleCellsは保持）
-    const newState = {
+    // すべてをリセット（履歴も含む）
+    set({
       board: newBoard,
       currentPlayer: Player.PLAYER1,
       phase: GamePhase.READY,
@@ -424,22 +394,11 @@ export const useJankenGame = create<JankenGameState>((set, get) => ({
       winAnimation: false,
       loseAnimation: false,
       drawAnimation: false,
-      // 明示的に保持
-      jankenBattleCells: [...jankenBattleCells]
-    };
+      // バトル履歴もリセット（ユーザーリクエストに従い機能削除）
+      jankenBattleCells: []
+    });
     
-    console.log('[RESET] Setting new state with jankenBattleCells kept:', 
-                JSON.stringify(newState.jankenBattleCells));
-    
-    // ステートを更新
-    set(newState);
-    
-    // セットタイムアウトで状態が確実に更新された後に再確認
-    setTimeout(() => {
-      const state = get();
-      console.log('[RESET-VERIFY] jankenBattleCells after reset:', 
-                 JSON.stringify(state.jankenBattleCells));
-    }, 100);
+    console.log('[RESET] Game state completely reset');
   },
   
   clearCaptureAnimation: () => {
