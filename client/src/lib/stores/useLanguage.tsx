@@ -29,8 +29,8 @@ const defaultTranslations: Record<string, Record<Language, string>> = {
     ja: 'AIと対戦'
   },
   'home.playOnline': {
-    en: 'Online Multiplayer (Coming Soon)',
-    ja: 'オンライン対戦（近日公開）'
+    en: 'Online Multiplayer',
+    ja: 'オンライン対戦'
   },
   'home.rules': {
     en: 'Game Rules',
@@ -272,6 +272,116 @@ const defaultTranslations: Record<string, Record<Language, string>> = {
   'message.player2ReceivedPiece.scissors': {
     en: 'Player 2 received scissors. Select a position to place it.',
     ja: 'プレイヤー2がチョキを受け取りました。配置する位置を選んでください。'
+  },
+  
+  // オンライン対戦
+  'online.connect': {
+    en: 'Connect to Server',
+    ja: 'サーバーに接続'
+  },
+  'online.username': {
+    en: 'Username',
+    ja: 'ユーザー名'
+  },
+  'online.enterUsername': {
+    en: 'Enter your username',
+    ja: 'ユーザー名を入力してください'
+  },
+  'online.lobby': {
+    en: 'Game Lobby',
+    ja: 'ゲームロビー'
+  },
+  'online.roomCode': {
+    en: 'Room Code',
+    ja: 'ルームコード'
+  },
+  'online.enterRoomCode': {
+    en: 'Enter room code',
+    ja: 'ルームコードを入力'
+  },
+  'online.join': {
+    en: 'Join',
+    ja: '参加'
+  },
+  'online.createRoom': {
+    en: 'Create Room',
+    ja: 'ルーム作成'
+  },
+  'online.joinRoom': {
+    en: 'Join Room',
+    ja: 'ルームに参加'
+  },
+  'online.quickMatch': {
+    en: 'Quick Match',
+    ja: 'クイックマッチ'
+  },
+  'online.waitingRoom': {
+    en: 'Waiting Room',
+    ja: '待機ルーム'
+  },
+  'online.shareCode': {
+    en: 'Share this code with a friend to join:',
+    ja: '友達と共有するコード:'
+  },
+  'online.players': {
+    en: 'Players',
+    ja: 'プレイヤー'
+  },
+  'online.you': {
+    en: 'You',
+    ja: 'あなた'
+  },
+  'online.player': {
+    en: 'Player',
+    ja: 'プレイヤー'
+  },
+  'online.ready': {
+    en: 'Ready',
+    ja: '準備完了'
+  },
+  'online.notReady': {
+    en: 'Not Ready',
+    ja: '準備中'
+  },
+  'online.spectating': {
+    en: 'You are spectating this game',
+    ja: 'あなたは観戦者です'
+  },
+  'online.findingOpponent': {
+    en: 'Finding Opponent',
+    ja: '対戦相手を探しています'
+  },
+  'online.searchingForPlayers': {
+    en: 'Searching for players...',
+    ja: 'プレイヤーを探しています...'
+  },
+  'online.cancel': {
+    en: 'Cancel',
+    ja: 'キャンセル'
+  },
+  'online.onlineMatch': {
+    en: 'Online Match',
+    ja: 'オンライン対戦'
+  },
+  'back': {
+    en: 'Back',
+    ja: '戻る'
+  },
+  'yourTurn': {
+    en: 'Your Turn',
+    ja: 'あなたの番'
+  },
+  'waiting': {
+    en: 'Waiting',
+    ja: '待機中'
+  },
+  'selectPiece': {
+    en: 'Select a piece',
+    ja: '駒を選択'
+  },
+  'playAgain': {
+    en: 'Play Again',
+    ja: 'もう一度プレイ'
   }
 };
 
