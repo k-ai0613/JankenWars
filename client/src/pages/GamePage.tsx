@@ -81,17 +81,28 @@ export function GamePage() {
     if (gameStore.phase === 'ready') {
       handleStartGame();
     }
-    
-    // Check if we should enable AI mode from home screen selection
+  }, [audioStore, gameStore.phase, handleStartGame]);
+  
+  // Check for AI mode from home screen (separate effect to ensure it runs after game starts)
+  useEffect(() => {
     const aiModeFromHome = localStorage.getItem('ai_mode');
-    if (aiModeFromHome === 'true' && !isAIEnabled) {
+    console.log('Checking AI mode from home:', aiModeFromHome, isAIEnabled);
+    
+    if (aiModeFromHome === 'true') {
       console.log('Enabling AI mode from home screen selection');
+      // Clear the flag immediately to prevent multiple activations
+      localStorage.removeItem('ai_mode');
+      
+      // Enable AI with a slight delay to ensure game is initialized
       setTimeout(() => {
-        toggleAI(); // Enable AI
-        setAIDifficulty(AIDifficulty.MEDIUM); // Set default difficulty
-      }, 100);
+        if (!isAIEnabled) {
+          toggleAI(); // Enable AI
+          setAIDifficulty(AIDifficulty.MEDIUM); // Set default difficulty
+          console.log('AI mode enabled with MEDIUM difficulty');
+        }
+      }, 500);
     }
-  }, [audioStore, gameStore.phase, handleStartGame, toggleAI, isAIEnabled, setAIDifficulty]);
+  }, [toggleAI, isAIEnabled, setAIDifficulty]);
 
   // Clean up audio when component unmounts
   useEffect(() => {
@@ -140,7 +151,6 @@ export function GamePage() {
   };
   
   // Clear animations after a set time
-  // このコードは削除 (上記のuseEffectと重複しているため)
   
   useEffect(() => {
     if (winAnimation) {

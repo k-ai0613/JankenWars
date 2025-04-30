@@ -164,13 +164,15 @@ export function Home() {
                     <li>Players take turns placing pieces on the board.</li>
                     <li>On your turn, you'll receive a random piece (Rock, Paper, or Scissors).</li>
                     <li>Place your piece on an empty square OR capture an opponent's piece using Janken (Rock-Paper-Scissors) rules.</li>
+                    <li>Squares used in a Janken battle become locked and cannot be used again.</li>
                     <li>You cannot move your pieces once placed.</li>
                   </>
                 ) : (
                   <>
-                    <li>プレイヤーは交代でボードに駒を配置します。</li>
-                    <li>あなたの番になると、ランダムに一つ（グー、パー、またはチョキ）を受け取ります。</li>
+                    <li>あなたの番になると、ランダムな駒（グー、パー、またはチョキ）を受け取ります。</li>
                     <li>空いているマスに自分の駒を置くか、じゃんけんルールを使って相手の駒を取り替えます。</li>
+                    <li>使いたいマスに既に相手の駒がある場合、じゃんけん勝負になります。</li>
+                    <li>一度じゃんけん勝負が行われたマスは、再び使うことができません。</li>
                     <li>一度配置した駒を動かすことはできません。</li>
                   </>
                 )}
@@ -200,8 +202,8 @@ export function Home() {
               <h3 className="font-bold text-lg mb-2 text-indigo-600">{t('home.specialPiece')}</h3>
               <p className="mb-4">
                 {language === 'en' 
-                  ? 'Each player has one Special Piece that can only be placed on empty squares. It cannot be captured and cannot capture other pieces.'
-                  : '各プレイヤーは1つの特殊駒を持っています。特殊駒は空いているマスにのみ配置でき、捕獲されることも他の駒を捕獲することもできません。'
+                  ? 'Each player has one Special Piece that can only be placed on empty squares. It cannot be captured and cannot capture other pieces. Use it strategically to block important positions on the board.'
+                  : '各プレイヤーは、空いているマスにのみ配置できる特殊駒を1つ持っています。特殊駒は、相手に取られることも、相手の駒を取ることもできません。盤上の重要な位置を確保するために戦略的に使いましょう。'
                 }
               </p>
               
