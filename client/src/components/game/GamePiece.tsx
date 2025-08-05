@@ -7,7 +7,7 @@ interface GamePieceProps {
   type: PieceType;
   owner: Player;
   selected?: boolean;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'auto';
 }
 
 export const GamePiece: React.FC<GamePieceProps> = ({
@@ -16,6 +16,9 @@ export const GamePiece: React.FC<GamePieceProps> = ({
   selected = false,
   size = 'md',
 }) => {
+  // 所有者の型を安全に変換
+  const normalizedOwner = normalizePlayer(owner);
+
   if (type === PieceType.EMPTY) {
     return null;
   }
@@ -23,14 +26,16 @@ export const GamePiece: React.FC<GamePieceProps> = ({
   // Determine font size based on the size prop
   const fontSize = {
     sm: 'text-lg',
-    md: 'text-2xl',
-    lg: 'text-3xl',
+    md: 'text-xl',
+    lg: 'text-2xl',
+    auto: 'text-base md:text-xl lg:text-2xl', // レスポンシブフォントサイズ
   }[size];
 
   const containerSize = {
-    sm: 'w-7 h-7',
-    md: 'w-12 h-12',
-    lg: 'w-14 h-14'
+    sm: 'w-6 h-6',
+    md: 'w-10 h-10',
+    lg: 'w-12 h-12',
+    auto: 'w-7 h-7 md:w-9 md:h-9 lg:w-11 lg:h-11' // レスポンシブサイズ
   }[size];
   
   // 明示的にスタイルを定義 - 明確な条件分岐で信頼性を高める
@@ -39,42 +44,38 @@ export const GamePiece: React.FC<GamePieceProps> = ({
   let bgColorClass = '';
   
   // 所有者の文字列表現を取得して完全なデバッグデータを書き出す
-  const ownerAsString = String(owner).toUpperCase();
+  const ownerAsString = String(normalizedOwner).toUpperCase();
   
-  console.log('GamePiece [DEBUG]:', { 
-    owner, 
-    type,
-    ownerAsString,
-    rawOwner: owner,
-    ownerType: typeof owner,
-    isP1direct: owner === Player.PLAYER1, 
-    isP2direct: owner === Player.PLAYER2,
-    isP1string: ownerAsString === 'PLAYER1',
-    isP2string: ownerAsString === 'PLAYER2',
-    isP1includes: ownerAsString.includes('PLAYER1'),
-    isP2includes: ownerAsString.includes('PLAYER2'),
-  });
+  // console.log('GamePiece [DEBUG]:', { 
+  //   ownerType: typeof normalizedOwner,
+  //   normalizedOwner,
+  //   type,
+  //   ownerAsString,
+  //   isP1direct: normalizedOwner === Player.PLAYER1, 
+  //   isP2direct: normalizedOwner === Player.PLAYER2,
+  // });
 
-  // 完全にハードコードされた条件分岐で判断 - 文字列で決定 - 極めて鮮明なスタイル
-  if (ownerAsString === 'PLAYER1' || ownerAsString.includes('PLAYER1')) {
+  // 正規化されたPlayerの値でスタイルを決定
+  if (normalizedOwner === Player.PLAYER1) {
     // Player 1のスタイル - 青色 - 極めて鮮明な色にする
     ownerColor = 'text-white font-extrabold text-3xl';
-    borderColorClass = 'border-blue-800 border-[4px]';
+    borderColorClass = 'border-blue-800 border-[2px] md:border-[3px]'; // モバイル対応で境界線調整
     bgColorClass = 'bg-blue-600';
-    console.log('✅ PLAYER1 STYLE APPLIED (VIVID BLUE)', { owner, ownerAsString });
+    // console.log('✅ PLAYER1 STYLE APPLIED (VIVID BLUE)');
   } 
-  else if (ownerAsString === 'PLAYER2' || ownerAsString.includes('PLAYER2')) {
+  else if (normalizedOwner === Player.PLAYER2) {
     // Player 2のスタイル - 赤色 - 極めて鮮明な色にする
     ownerColor = 'text-white font-extrabold text-3xl';
-    borderColorClass = 'border-red-800 border-[4px]';
+    borderColorClass = 'border-red-800 border-[2px] md:border-[3px]'; // モバイル対応で境界線調整
     bgColorClass = 'bg-red-600';
-    console.log('✅ PLAYER2 STYLE APPLIED (VIVID RED):', { owner, ownerAsString, type });
+    // console.log('✅ PLAYER2 STYLE APPLIED (VIVID RED)');
   }
   else {
     // デフォルトスタイル
     ownerColor = 'text-gray-800 font-bold text-3xl';
     borderColorClass = 'border-gray-400';
     bgColorClass = 'bg-white';
+    // console.log('⚠️ DEFAULT STYLE APPLIED (NO OWNER MATCH)');
   }
   
   // Determine label for piece type (Unicode characters for better visibility)
@@ -87,9 +88,10 @@ export const GamePiece: React.FC<GamePieceProps> = ({
   
   // Label size based on container size
   const labelSize = {
-    sm: 'w-4 h-4 text-[9px] -mt-1 -mr-1',
-    md: 'w-6 h-6 text-xs -mt-2 -mr-2',
-    lg: 'w-7 h-7 text-sm -mt-2 -mr-2'
+    sm: 'w-3.5 h-3.5 text-[8px] -mt-0.5 -mr-0.5',
+    md: 'w-5 h-5 text-[10px] -mt-1 -mr-1',
+    lg: 'w-6 h-6 text-xs -mt-1.5 -mr-1.5',
+    auto: 'w-3.5 h-3.5 text-[7px] -mt-0.5 -mr-0.5 md:w-4.5 md:h-4.5 md:text-[9px] md:-mt-1 md:-mr-1 lg:w-5.5 lg:h-5.5 lg:text-[11px] lg:-mt-1 lg:-mr-1' // レスポンシブサイズ
   }[size];
   
   // すべてのクラスを結合
@@ -105,18 +107,32 @@ export const GamePiece: React.FC<GamePieceProps> = ({
   // - Paper (パー) beats Rock (グー)
   // Using larger, more distinct emoji symbols
   const renderPieceIcon = () => {
-    // Using more vibrant, larger emojis for better visibility
-    const style = { fontSize: '2rem' }; // Larger font size for icons
-    
+    // スマートフォン対応のレスポンシブなアイコンサイズ
+    const getIconSizeClass = () => {
+      if (size === 'auto') {
+        // レスポンシブなフォントサイズクラス
+        return 'text-lg sm:text-xl md:text-2xl lg:text-3xl';
+      } else {
+        const fontSizesClasses = {
+          sm: 'text-lg',
+          md: 'text-2xl',
+          lg: 'text-3xl'
+        };
+        return fontSizesClasses[size] || 'text-2xl';
+      }
+    };
+
+    const iconSizeClass = getIconSizeClass();
+
     switch (type) {
-      case PieceType.ROCK: // グー (Rock, 拳を握った形) - Beats Scissors
-        return <span style={style}>✊</span>;
-      case PieceType.PAPER: // パー (Paper, 手のひらを広げた形) - Beats Rock
-        return <span style={style}>✋</span>;
-      case PieceType.SCISSORS: // チョキ (Scissors, 人差し指と中指を出した形) - Beats Paper
-        return <span style={style}>✌️</span>;
-      case PieceType.SPECIAL: // 特殊駒 (Special, 星マーク) - Can't attack or be attacked
-        return <span style={style}>⭐</span>;
+      case PieceType.ROCK:
+        return <span className={iconSizeClass}>✊</span>;
+      case PieceType.PAPER:
+        return <span className={iconSizeClass}>✋</span>;
+      case PieceType.SCISSORS:
+        return <span className={iconSizeClass}>✌️</span>;
+      case PieceType.SPECIAL:
+        return <span className={iconSizeClass}>⭐</span>;
       default:
         return null;
     }
@@ -139,7 +155,7 @@ export const GamePiece: React.FC<GamePieceProps> = ({
   };
 
   return (
-    <div className={`flex items-center justify-center ${selectedClass}`}>
+    <div className={`flex items-center justify-center ${selectedClass} touch-manipulation`}>
       <div className={pieceClass}>
         {renderPieceIcon()}
         <div className={`absolute top-0 right-0 ${labelSize} bg-white text-black font-bold rounded-full flex items-center justify-center shadow-sm border border-gray-300`}>

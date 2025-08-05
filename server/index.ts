@@ -3,8 +3,28 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+
+// セッション安定性のための設定
+app.use(express.json({ limit: '10mb' })); // ペイロードサイズ制限を追加
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+
+// Keep-Alive設定でコネクション安定化
+app.set('trust proxy', 1);
+
+// セッション関連のヘッダー設定
+app.use((req, res, next) => {
+  // Keep-Alive設定
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Keep-Alive', 'timeout=30, max=1000');
+  
+  // CORS設定の改善
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Max-Age', '86400'); // 24時間キャッシュ
+  
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -56,14 +76,35 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client
+  // サーバーをポート5000で起動
   const port = 5000;
+  
+  // サーバー設定の改善
+  server.timeout = 30000; // 30秒タイムアウト
+  server.keepAliveTimeout = 31000; // Keep-Aliveタイムアウト
+  server.headersTimeout = 32000; // ヘッダータイムアウト
+  
   server.listen({
     port,
     host: "0.0.0.0",
-    reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+  });
+  
+  // サーバーの優雅な終了処理
+  process.on('SIGTERM', () => {
+    log('SIGTERM received, closing server gracefully');
+    server.close(() => {
+      log('Server closed');
+      process.exit(0);
+    });
+  });
+  
+  process.on('SIGINT', () => {
+    log('SIGINT received, closing server gracefully');
+    server.close(() => {
+      log('Server closed');
+      process.exit(0);
+    });
   });
 })();

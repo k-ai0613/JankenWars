@@ -1,0 +1,18 @@
+{
+  "online": {
+    "you": "(あなた)",
+    "ready": "準備完了",
+    "notReady": "準備中",
+    "waitingForOpponent": "対戦相手を待っています...",
+    "autoReadying": "自動で準備中...",
+    "winsSuffix": "さんの勝ち！"
+  },
+  "pieces": {
+    "rock": "グー",
+    "paper": "パー",
+    "scissors": "チョキ",
+    "special": "スペシャル"
+  },
+  "yourTurn": "あなたのターン",
+  "aiThinking": "考え中..."
+}  

@@ -58,9 +58,10 @@ export function normalizePlayer(player: Player | string | any): Player {
 
 // Cell interface represents a square on the board
 export interface Cell {
-  piece: PieceType;
-  owner: Player;
+  piece: PieceType | null;
+  owner: Player | null;
   hasBeenUsed: boolean; // If true, this cell cannot be used for any further moves (locked after janken battle)
+  // 必要に応じて他のプロパティ (例: isRevealed など)
 }
 
 // Board is a 6x6 grid of cells
@@ -68,9 +69,12 @@ export type Board = Cell[][];
 
 // Game phase
 export enum GamePhase {
+  NOT_CONNECTED = 'NOT_CONNECTED',
   READY = 'READY',
   SELECTING_CELL = 'SELECTING_CELL',
-  GAME_OVER = 'GAME_OVER'
+  GAME_OVER = 'GAME_OVER',
+  SHOWDOWN = 'SHOWDOWN',
+  ENDED = 'ENDED'
 }
 
 // Game result
@@ -89,6 +93,18 @@ export interface PlayerInventory {
   [PieceType.SPECIAL]: number;
 }
 
+// Position on the board
+export interface Position {
+  row: number;
+  col: number;
+}
+
+// 勝利ラインを示す座標の配列
+export interface WinningLine {
+  positions: Position[];
+  player: Player;
+}
+
 // Game state
 export interface GameState {
   board: Board;
@@ -99,10 +115,5 @@ export interface GameState {
   player1Inventory: PlayerInventory;
   player2Inventory: PlayerInventory;
   message: string;
-}
-
-// Position on the board
-export interface Position {
-  row: number;
-  col: number;
+  winningLine: WinningLine | null; // 勝利ラインの情報（存在しない場合はnull）
 }

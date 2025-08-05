@@ -4,6 +4,50 @@ import { Server as SocketIOServer } from "socket.io";
 import { storage } from "./storage";
 import { v4 as uuidv4 } from "uuid";
 import { log } from "./vite";
+import {
+  Board,
+  Player,
+  PieceType,
+  PlayerInventory,
+  GamePhase,
+  GameResult,
+  Position,
+  Cell,
+  WinningLine,
+} from "../client/src/lib/types";
+import {
+  createEmptyBoard,
+  createInitialInventory,
+  isValidMove,
+  checkWin,
+  checkDraw,
+  findWinningLine,
+} from "../client/src/lib/gameUtils";
+
+// サーバーの起動時間を記録
+const SERVER_START_TIME = new Date();
+const SERVER_VERSION = '1.0.1';
+let SERVER_UPTIME = 0;
+
+// 1分ごとにアップタイムを更新
+setInterval(() => {
+  const now = new Date();
+  SERVER_UPTIME = Math.floor((now.getTime() - SERVER_START_TIME.getTime()) / 1000);
+}, 60000);
+
+// 初期値を設定
+SERVER_UPTIME = 0;
+
+interface GameState {
+  board: Board;
+  player1Inventory: PlayerInventory;
+  player2Inventory: PlayerInventory;
+  currentPlayer: Player;
+  gamePhase: GamePhase;
+  gameResult: GameResult;
+  lastMove?: { player: Player; piece: PieceType; position: Position } | null;
+  winningLine?: WinningLine | null;
+}
 
 interface GameRoom {
   id: string;
@@ -14,24 +58,42 @@ interface GameRoom {
       playerNumber: 1 | 2 | null;
     }
   };
-  gameState: any;
+  gameState: GameState | null;
   inProgress: boolean;
-  spectators: string[]; // SocketIDs of spectators
+  spectators: string[];
 }
 
-// Store active game rooms
 const gameRooms: { [roomId: string]: GameRoom } = {};
 
-// Store waiting users for matchmaking
 let waitingUsers: { socketId: string, username: string }[] = [];
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
+  // ヘルスチェックエンドポイント
+  app.get('/api/health', (req, res) => {
+    try {
+      // 最新のアップタイムを計算（常に最新の値を取得するため）
+      const now = new Date();
+      const currentUptime = Math.floor((now.getTime() - SERVER_START_TIME.getTime()) / 1000);
+      
+      res.json({
+        status: 'ok',
+        version: SERVER_VERSION,
+        uptime: currentUptime,
+        startTime: SERVER_START_TIME.toISOString(),
+        env: process.env.NODE_ENV || 'development'
+      });
+    } catch (error) {
+      // エラーが発生した場合は基本的な情報だけを返す
+      log(`Health check error: ${error instanceof Error ? error.message : String(error)}`);
+      res.status(200).json({
+        status: 'degraded',
+        version: SERVER_VERSION,
+        message: 'Health check encountered an error but service is running'
+      });
+    }
+  });
 
-  // API routes for game rooms
   app.get('/api/game-rooms', (req, res) => {
-    // Return only rooms that are not in progress
     const availableRooms = Object.entries(gameRooms)
       .filter(([_, room]) => !room.inProgress)
       .map(([id, room]) => ({
@@ -45,7 +107,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
   
-  // Set up Socket.IO
   const io = new SocketIOServer(httpServer, {
     cors: {
       origin: "*",
@@ -56,62 +117,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
   io.on("connection", (socket) => {
     log(`New client connected: ${socket.id}`);
     
-    // User joins with username
     socket.on("user:join", (username: string) => {
       log(`User joined: ${username} (${socket.id})`);
       
-      // Store user data in socket
       socket.data.username = username;
     });
     
-    // User requests to create a game room
     socket.on("room:create", () => {
-      const roomId = uuidv4().substring(0, 8);
-      const username = socket.data.username || "Anonymous";
-      
-      gameRooms[roomId] = {
-        id: roomId,
-        players: {
-          [socket.id]: {
+      try {
+        const roomId = uuidv4().substring(0, 8);
+        const username = socket.data.username || "Anonymous";
+        
+        gameRooms[roomId] = {
+          id: roomId,
+          players: {
+            [socket.id]: {
+              username,
+              ready: false,
+              playerNumber: 1
+            }
+          },
+          gameState: null,
+          inProgress: false,
+          spectators: []
+        };
+        
+        socket.join(roomId);
+        
+        socket.emit("room:created", {
+          roomId,
+          players: [{
+            id: socket.id,
             username,
-            ready: false,
-            playerNumber: 1 // Creator is player 1
-          }
-        },
-        gameState: null,
-        inProgress: false,
-        spectators: []
-      };
-      
-      // Join the room
-      socket.join(roomId);
-      
-      // Notify client
-      socket.emit("room:created", {
-        roomId,
-        players: [{
-          id: socket.id,
-          username,
-          playerNumber: 1,
-          ready: false
-        }]
-      });
-      
-      log(`Room created: ${roomId} by ${username}`);
+            playerNumber: 1,
+            ready: false
+          }]
+        });
+        
+        log(`Room created: ${roomId} by ${username}`);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        log(`Error creating room for socket ${socket.id}: ${errorMessage}`);
+        console.error("Full error details:", error);
+        socket.emit("error", { message: "Failed to create room due to server error." });
+      }
     });
     
-    // User joins an existing room
     socket.on("room:join", (roomId: string) => {
+      log(`Received room:join request for roomId: ${roomId}`);
+      log(`Current gameRooms: ${JSON.stringify(Object.keys(gameRooms))}`);
       const room = gameRooms[roomId];
+      log(`Found room? ${!!room}`);
+
       const username = socket.data.username || "Anonymous";
       
       if (!room) {
+        log(`Room ${roomId} not found.`);
         socket.emit("error", { message: "Room not found" });
         return;
       }
       
       if (room.inProgress) {
-        // If game is in progress, add as spectator
         room.spectators.push(socket.id);
         socket.join(roomId);
         socket.emit("room:joined:spectator", {
@@ -129,7 +195,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const playerCount = Object.keys(room.players).length;
       
       if (playerCount >= 2) {
-        // Room is full, add as spectator
         room.spectators.push(socket.id);
         socket.join(roomId);
         socket.emit("room:joined:spectator", {
@@ -142,7 +207,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }))
         });
       } else {
-        // Join as player 2
         room.players[socket.id] = {
           username,
           ready: false,
@@ -151,22 +215,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         socket.join(roomId);
         
-        // Notify all clients in the room
-        io.to(roomId).emit("room:player:joined", {
+        const roomDataForJoiner = {
           roomId,
           players: Object.entries(room.players).map(([id, data]) => ({
             id,
             username: data.username,
-            playerNumber: data.playerNumber,
+            playerNumber: data.playerNumber as 1 | 2,
             ready: data.ready
           }))
-        });
+        };
+        socket.emit("room:joined", roomDataForJoiner);
+        
+        socket.to(roomId).emit("room:player:joined", roomDataForJoiner);
         
         log(`Player joined room: ${username} joined ${roomId}`);
       }
     });
     
-    // Player ready status toggle
     socket.on("player:ready", (roomId: string) => {
       const room = gameRooms[roomId];
       
@@ -174,10 +239,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
       
-      // Toggle ready status
       room.players[socket.id].ready = !room.players[socket.id].ready;
       
-      // Notify all clients in the room
       io.to(roomId).emit("room:player:ready", {
         playerId: socket.id,
         ready: room.players[socket.id].ready,
@@ -189,46 +252,236 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }))
       });
       
-      // Check if all players are ready to start
       const allReady = Object.values(room.players).every(p => p.ready);
       const playerCount = Object.keys(room.players).length;
       
-      if (allReady && playerCount === 2) {
+      if (allReady && playerCount === 2 && !room.inProgress) {
         room.inProgress = true;
+        room.gameState = {
+          board: createEmptyBoard(),
+          player1Inventory: createInitialInventory(),
+          player2Inventory: createInitialInventory(),
+          currentPlayer: Player.PLAYER1,
+          gamePhase: GamePhase.SELECTING_CELL,
+          gameResult: GameResult.ONGOING,
+          lastMove: null,
+          winningLine: null,
+        };
+
         io.to(roomId).emit("game:start", {
           roomId,
           players: Object.entries(room.players).map(([id, data]) => ({
             id,
             username: data.username,
-            playerNumber: data.playerNumber
-          }))
+            playerNumber: data.playerNumber,
+            ready: data.ready
+          })),
+          gameState: room.gameState
         });
-        
         log(`Game started in room ${roomId}`);
       }
     });
     
-    // Player game move
-    socket.on("game:move", (roomId: string, moveData: any) => {
+    socket.on("game:move", (data: { roomId: string, position: Position, piece: PieceType }) => {
+      const { roomId, position, piece } = data;
       const room = gameRooms[roomId];
       
-      if (!room || !room.players[socket.id] || !room.inProgress) {
+      if (!room) {
+        socket.emit("error", { message: "Room not found" });
         return;
       }
       
-      // Forward the move to all players in the room
-      socket.to(roomId).emit("game:move", {
-        playerId: socket.id,
-        playerNumber: room.players[socket.id].playerNumber,
-        ...moveData
+      if (!room.inProgress || !room.gameState) {
+        socket.emit("error", { message: "Game not in progress" });
+        return;
+      }
+      
+      const gameState = room.gameState;
+      const playerSocketId = socket.id;
+      const playerInfo = room.players[playerSocketId];
+      
+      if (!playerInfo) {
+        socket.emit("error", { message: "Player not in room" });
+        return;
+      }
+      
+      const isPlayer1 = playerInfo.playerNumber === 1;
+      const isPlayer2 = playerInfo.playerNumber === 2;
+      const currentPlayer = gameState.currentPlayer;
+      
+      if ((isPlayer1 && currentPlayer !== Player.PLAYER1) || (isPlayer2 && currentPlayer !== Player.PLAYER2)) {
+        socket.emit("error", { message: "Not your turn" });
+        return;
+      }
+
+      // Check if valid move
+      if (!isValidMove(gameState.board, position, piece, currentPlayer)) {
+        socket.emit("error", { message: "Invalid move" });
+        return;
+      }
+      
+      // Check if piece is in inventory
+      const playerInventory = currentPlayer === Player.PLAYER1 ? gameState.player1Inventory : gameState.player2Inventory;
+      if (playerInventory[piece] <= 0) {
+        socket.emit("error", { message: "Piece not in inventory" });
+        return;
+      }
+      
+      // Deep clone the board
+      const newBoard = JSON.parse(JSON.stringify(gameState.board));
+      const { row, col } = position;
+      const targetCell = newBoard[row][col];
+      
+      // Keep track of captured piece for animation
+      const oldPiece = targetCell.piece;
+      const justCaptured = oldPiece !== PieceType.EMPTY;
+      const justUsed = justCaptured && oldPiece !== piece;
+      
+      // Update the inventory
+      playerInventory[piece]--;
+      
+      // Place the piece
+      if (targetCell.piece === PieceType.EMPTY) {
+        targetCell.piece = piece;
+        targetCell.owner = currentPlayer;
+      } else {
+        // This is a capture
+        targetCell.piece = piece;
+        targetCell.owner = currentPlayer;
+        targetCell.hasBeenUsed = true;
+      }
+      
+      // Check for win
+      const winLine = findWinningLine(newBoard, currentPlayer);
+      if (winLine) {
+        gameState.gamePhase = GamePhase.GAME_OVER;
+        gameState.gameResult = currentPlayer === Player.PLAYER1 ? GameResult.PLAYER1_WIN : GameResult.PLAYER2_WIN;
+        gameState.winningLine = winLine;
+      } else if (checkDraw(newBoard, gameState.player1Inventory, gameState.player2Inventory)) {
+        gameState.gamePhase = GamePhase.GAME_OVER;
+        gameState.gameResult = GameResult.DRAW;
+        gameState.winningLine = null;
+      } else {
+        // Switch turn
+        gameState.currentPlayer = currentPlayer === Player.PLAYER1 ? Player.PLAYER2 : Player.PLAYER1;
+      }
+      
+      // Update the game state
+      gameState.board = newBoard;
+      gameState.lastMove = {
+        player: currentPlayer,
+        piece,
+        position
+      };
+      
+      // Emit game state update
+      io.to(roomId).emit("game:state:update", {
+        gameState,
+        moveDetails: {
+          player: currentPlayer,
+          piece,
+          position,
+          capturedPiece: justCaptured ? oldPiece : null,
+          hasBeenUsed: justUsed
+        }
+      });
+
+      log(`Game state updated for room ${roomId}. Turn: ${gameState.currentPlayer}`);
+    });
+    
+    socket.on("game:request_rematch", (roomId: string) => {
+      const room = gameRooms[roomId];
+      const playerSocketId = socket.id;
+
+      log(`[game:request_rematch] Received from ${playerSocketId} for room ${roomId}`);
+
+      if (!room) {
+        log(`[game:request_rematch] Room ${roomId} not found.`);
+        socket.emit("error", { message: "Room not found for rematch request." });
+        return;
+      }
+
+      if (!room.players[playerSocketId]) {
+        log(`[game:request_rematch] Player ${playerSocketId} not in room ${roomId}.`);
+        socket.emit("error", { message: "You are not in this room." });
+        return;
+      }
+      
+      room.inProgress = false; 
+      room.gameState = {
+        board: createEmptyBoard(),
+        player1Inventory: createInitialInventory(),
+        player2Inventory: createInitialInventory(),
+        currentPlayer: Player.PLAYER1,
+        gamePhase: GamePhase.READY,
+        gameResult: GameResult.ONGOING,
+        lastMove: null,
+        winningLine: null,
+      };
+
+      for (const id in room.players) {
+        room.players[id].ready = false;
+      }
+
+      log(`[game:request_rematch] Game reset for room ${roomId}. Waiting for players to be ready.`);
+
+      io.to(roomId).emit("game:rematch:initiated", { 
+        roomId,
+        players: Object.entries(room.players).map(([id, data]) => ({
+          id,
+          username: data.username,
+          playerNumber: data.playerNumber,
+          ready: data.ready 
+        })),
+        gameState: room.gameState 
       });
     });
     
-    // Quick matchmaking
+    socket.on("room:leave", (roomId: string) => {
+      const room = gameRooms[roomId];
+      const playerSocketId = socket.id;
+
+      if (room && room.players[playerSocketId]) {
+        const username = room.players[playerSocketId].username;
+        log(`Player leaving room: ${username} (${playerSocketId}) is leaving room ${roomId}`);
+
+        delete room.players[playerSocketId];
+        socket.leave(roomId);
+
+        socket.emit("room:left:success");
+
+        const remainingPlayers = Object.keys(room.players).length;
+
+        if (remainingPlayers === 0) {
+          delete gameRooms[roomId];
+          log(`Room ${roomId} deleted because it became empty.`);
+        } else {
+          io.to(roomId).emit("player:left", {
+            playerId: playerSocketId,
+            players: Object.entries(room.players).map(([id, data]) => ({
+              id,
+              username: data.username,
+              playerNumber: data.playerNumber,
+              ready: data.ready
+            }))
+          });
+          log(`Notified remaining players in room ${roomId} about ${username} leaving.`);
+          
+          if (room.inProgress) {
+             log(`Player left during an ongoing game in room ${roomId}. Game state might need reset.`);
+             room.inProgress = false;
+             room.gameState = null;
+             io.to(roomId).emit("game:force:end", { message: "Opponent left the game." }); 
+          }
+        }
+      } else {
+        log(`Player ${playerSocketId} attempted to leave room ${roomId}, but was not found in the room.`);
+      }
+    });
+    
     socket.on("matchmaking:join", () => {
       const username = socket.data.username || "Anonymous";
       
-      // Add user to waiting queue
       waitingUsers.push({
         socketId: socket.id,
         username
@@ -236,7 +489,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       log(`User ${username} joined matchmaking queue`);
       
-      // If we have at least 2 users waiting, match them
       if (waitingUsers.length >= 2) {
         const player1 = waitingUsers.shift()!;
         const player2 = waitingUsers.shift()!;
@@ -262,11 +514,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           spectators: []
         };
         
-        // Join both players to the room
         io.sockets.sockets.get(player1.socketId)?.join(roomId);
         io.sockets.sockets.get(player2.socketId)?.join(roomId);
         
-        // Notify both players
         io.to(roomId).emit("matchmaking:matched", {
           roomId,
           players: [
@@ -287,55 +537,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         log(`Matched players: ${player1.username} and ${player2.username} in room ${roomId}`);
       } else {
-        // Notify the user they're in queue
         socket.emit("matchmaking:waiting");
       }
     });
     
-    // Cancel matchmaking
     socket.on("matchmaking:cancel", () => {
-      // Remove user from waiting list
       waitingUsers = waitingUsers.filter(u => u.socketId !== socket.id);
       socket.emit("matchmaking:cancelled");
     });
     
-    // Handle game results
-    socket.on("game:result", (roomId: string, result: any) => {
-      const room = gameRooms[roomId];
-      
-      if (!room || !room.inProgress) {
-        return;
-      }
-      
-      // Broadcast result to all players and spectators
-      io.to(roomId).emit("game:result", result);
-      
-      // Game is no longer in progress
-      room.inProgress = false;
-      
-      log(`Game ended in room ${roomId} with result: ${JSON.stringify(result)}`);
-    });
-    
-    // Handle disconnect
     socket.on("disconnect", () => {
-      // Remove from waiting users
       waitingUsers = waitingUsers.filter(u => u.socketId !== socket.id);
       
-      // Handle player leaving rooms
       for (const roomId in gameRooms) {
         const room = gameRooms[roomId];
         
-        // If player is in this room
         if (room.players[socket.id]) {
-          // Remove player
           delete room.players[socket.id];
           
           if (Object.keys(room.players).length === 0) {
-            // Delete empty room
             delete gameRooms[roomId];
             log(`Room ${roomId} deleted (empty)`);
           } else {
-            // Notify remaining players
             io.to(roomId).emit("player:left", {
               playerId: socket.id,
               players: Object.entries(room.players).map(([id, data]) => ({
@@ -348,7 +571,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
-        // If spectator, remove from spectators
         const spectatorIndex = room.spectators.indexOf(socket.id);
         if (spectatorIndex !== -1) {
           room.spectators.splice(spectatorIndex, 1);

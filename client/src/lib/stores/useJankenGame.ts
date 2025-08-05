@@ -1,563 +1,954 @@
 import { create } from 'zustand';
-import { Board, Cell, GamePhase, GameResult, PieceType, Player, Position, normalizePlayer } from '../types';
+import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
+import { Board, Cell, GamePhase, GameResult, PieceType, Player, Position, normalizePlayer, PlayerInventory, WinningLine } from '../types';
 import { 
   checkDraw, 
   checkWin, 
   createEmptyBoard, 
   createInitialInventory, 
   getRandomPiece, 
-  isValidMove 
+  isValidMove,
+  selectCellForPlayer as selectCellForPlayerUtil,
+  findWinningLine
 } from '../gameUtils';
 import { AIDifficulty, findBestMove, findBestPosition } from '../aiUtils';
 import { useAudio } from './useAudio';
 import { useLanguage } from './useLanguage';
-// 修正されたセル選択関数をインポート
-import { selectCellForPlayer } from './selectCellForPlayer';
+import { pieces } from '../../config/jankenPieces';
+import { StateCreator } from 'zustand';
+import { soundService } from '../soundService';
 
 interface JankenGameState {
-  // Board state
   board: Board;
-  
-  // Current player
   currentPlayer: Player;
-  
-  // Game phase
   phase: GamePhase;
-  
-  // Game result
+  setPhase: (phase: GamePhase) => void;
   result: GameResult;
-  
-  // Selected piece
+  player1JankenChoice: PieceType | null;
+  player2JankenChoice: PieceType | null;
+  player1Score: number;
+  setPlayer1Score: (score: number) => void;
+  player2Score: number;
+  setPlayer2Score: (score: number) => void;
+  currentRound: number;
+  setCurrentRound: (round: number) => void;
   selectedPiece: PieceType | null;
-  
-  // Player inventories
+  previousSelectedPiece: PieceType | null;
+  setSelectedPiece: (piece: PieceType | null) => void;
   player1Inventory: ReturnType<typeof createInitialInventory>;
   player2Inventory: ReturnType<typeof createInitialInventory>;
-  
-  // Game message
   message: string;
-  
-  // バトルセル機能は削除済み - 互換性のために空の宣言を残す
   jankenBattleCells: Position[];
-  
-  // Animation states
-  captureAnimation: Position | null; // Position where a capture happened
-  winAnimation: boolean; // Whether to show the win animation
-  loseAnimation: boolean; // Whether to show the lose animation
-  drawAnimation: boolean; // Whether to show the draw animation
-  
-  // AI settings
+  captureAnimation: Position | null;
+  winAnimation: boolean;
+  loseAnimation: boolean;
+  drawAnimation: boolean;
   isAIEnabled: boolean;
+  setIsAIEnabled: (value: boolean) => void;
   aiDifficulty: AIDifficulty;
-  isAIThinking: boolean; // For showing AI "thinking" animation
-  
-  // Board utility functions
+  setAIDifficulty: (difficulty: AIDifficulty) => void;
+  initialAIDifficulty: AIDifficulty;
+  isAIThinking: boolean;
+  winningLine: WinningLine | null;
   applyJankenBattlePatternToBoard: (board: Board) => Board;
-  
-  // Actions
   startGame: () => void;
-  selectCell: (position: Position) => void;
-  selectSpecialPiece: () => void;
-  getRandomPieceForCurrentPlayer: () => void;
   resetGame: () => void;
+  resetBoardOnly: () => void;
+  resetInventory: () => void;
+  resetScoresOnly: () => void;
   clearCaptureAnimation: () => void;
   clearWinAnimation: () => void;
   clearLoseAnimation: () => void;
   clearDrawAnimation: () => void;
-  
-  // AI helper function for explicit piece placement
-  // インポートした新バージョンの関数で定義されるので削除
-  selectCellForPlayer: (position: Position, player: Player | string, piece: PieceType) => void;
-  
-  // AI actions
-  toggleAI: () => void;
-  setAIDifficulty: (difficulty: AIDifficulty) => void;
-  makeAIMove: () => void;
+  setInitialAIDifficulty: (difficulty: AIDifficulty) => void;
+  setPlayer1JankenChoice: (choice: PieceType | null) => void;
+  setPlayer2JankenChoice: (choice: PieceType | null) => void;
+  incrementPlayer1Score: () => void;
+  incrementPlayer2Score: () => void;
+  incrementRound: () => void;
+  resetScoresAndRound: () => void;
+  makeChoice: (playerChoice: PieceType) => void;
+  makeAIPieceSelection: () => void;
+  getRandomPieceForCurrentPlayer: () => void;
+  switchTurn: () => void;
+  placePiece: (row: number, col: number) => void;
+  selectCell: (position: Position) => void;
 }
 
-export const useJankenGame = create<JankenGameState>((set, get) => ({
+// persist で保存する状態の型を定義
+interface PersistedGameState {
+  player1Inventory: PlayerInventory;
+  player2Inventory: PlayerInventory;
+  player1Score: number;
+  player2Score: number;
+  currentRound: number;
+  board: Board;
+  isAIEnabled: boolean;
+  initialAIDifficulty: AIDifficulty;
+}
+
+// 型定義を避けて通常の関数として定義
+const createState = (set, get) => ({
   board: createEmptyBoard(),
-  currentPlayer: Player.PLAYER1, // Player 1 goes first
+  currentPlayer: Player.PLAYER1,
   phase: GamePhase.READY,
+  setPhase: (newPhase: GamePhase) => set({ phase: newPhase }),
   result: GameResult.ONGOING,
+  player1JankenChoice: null,
+  player2JankenChoice: null,
+  player1Score: 0,
+  setPlayer1Score: (score: number) => set({ player1Score: score }),
+  player2Score: 0,
+  setPlayer2Score: (score: number) => set({ player2Score: score }),
+  currentRound: 1,
+  setCurrentRound: (round: number) => set({ currentRound: round }),
   selectedPiece: null,
+  previousSelectedPiece: null,
+  setSelectedPiece: (piece) => {
+    const currentPhase = get().phase;
+    // DEBUG_GAME_FLOW: setSelectedPiece が呼ばれた時のログ（本番では削除）
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[DEBUG_GAME_FLOW] setSelectedPiece called. Target piece: ${piece}, Current phase: ${currentPhase}, Current selectedPiece: ${get().selectedPiece}`);
+    }
+
+    // 特殊駒以外の手動選択をブロック（AIモード時のみ）
+    if (piece !== null && piece !== PieceType.SPECIAL && get().isAIEnabled) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[DEBUG_GAME_FLOW] Manual selection blocked for ${piece}. Only SPECIAL pieces can be manually selected in AI mode.`);
+      }
+      return;
+    }
+
+    // ユーザーが駒を選択解除する場合（nullを設定）
+    if (piece === null) {
+      // DEBUG_GAME_FLOW: 駒の選択解除
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[DEBUG_GAME_FLOW] Deselecting piece.');
+      }
+      set((state) => ({
+        ...state,
+        selectedPiece: null,
+      }));
+      return;
+    }
+
+    // ゲームの準備フェーズまたはセル選択フェーズのみ駒を選択可能
+    if (currentPhase === GamePhase.READY || currentPhase === GamePhase.SELECTING_CELL) {
+      // DEBUG_GAME_FLOW: 駒選択が許可されたフェーズ
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[DEBUG_GAME_FLOW] Phase allows piece selection (${currentPhase}). Attempting to select: ${piece}`);
+      }
+
+      // 現在のプレイヤーのインベントリをチェック
+      const currentPlayer = get().currentPlayer;
+      const inventory = currentPlayer === Player.PLAYER1
+        ? get().player1Inventory
+        : get().player2Inventory;
+
+      // 選択した駒がインベントリにあるか確認（EMPTYは選択できない）
+      if (inventory && piece !== PieceType.EMPTY) {
+        // キーとして有効な駒タイプのみをチェック
+        if (piece === PieceType.ROCK || piece === PieceType.PAPER ||
+            piece === PieceType.SCISSORS || piece === PieceType.SPECIAL) {
+
+          // インベントリに駒があるか確認
+          if (inventory[piece] > 0) {
+            // 駒を選択し、フェーズを SELECTING_CELL に変更
+            set((state) => ({
+              ...state,
+              selectedPiece: piece,
+              phase: GamePhase.SELECTING_CELL, // 駒選択後はセル選択フェーズに
+            }));
+
+          } else {
+            // インベントリに駒がない場合
+            if (process.env.NODE_ENV === 'development') {
+              console.warn(`[DEBUG_GAME_FLOW] Cannot select piece ${piece}: not available in inventory`);
+            }
+          }
+        } else {
+          // 無効な駒タイプが渡された場合
+          if (process.env.NODE_ENV === 'development') {
+            console.warn(`[DEBUG_GAME_FLOW] Invalid piece type: ${piece}`);
+          }
+        }
+      } else {
+        // インベントリがundefinedまたはEMPTYが選択された場合
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`[DEBUG_GAME_FLOW] Cannot select piece ${piece}: inventory is undefined or piece is EMPTY`);
+        }
+      }
+    } else {
+      // 駒選択が許可されないフェーズの場合
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(
+          `[DEBUG_GAME_FLOW] Cannot select piece. Phase does not allow selection: ${currentPhase}, Attempted piece: ${piece}`
+        );
+      }
+    }
+  },
   player1Inventory: createInitialInventory(),
   player2Inventory: createInitialInventory(),
-  message: 'message.welcome', // 翻訳用のキーに変更
-  jankenBattleCells: [], // 初期値は空の配列
+  message: 'message.welcome',
+  jankenBattleCells: [],
   captureAnimation: null,
   winAnimation: false,
   loseAnimation: false,
   drawAnimation: false,
-  
-  // AI settings
   isAIEnabled: false,
-  aiDifficulty: AIDifficulty.NORMAL, // Default difficulty level is NORMAL
+  setIsAIEnabled: (value: boolean) => set({ isAIEnabled: value }),
+  aiDifficulty: AIDifficulty.NORMAL,
+  initialAIDifficulty: AIDifficulty.NORMAL,
   isAIThinking: false,
-  
-  // バトルパターン機能を削除（ユーザーからのリクエスト）
-  applyJankenBattlePatternToBoard: (board: Board): Board => {
-    // 何もせずにボードをそのまま返す
-    return board;
-  },
-  
+  winningLine: null,
+  applyJankenBattlePatternToBoard: (board: Board): Board => board,
   startGame: () => {
-    set({ 
-      phase: GamePhase.SELECTING_CELL,
-      message: "message.player1Turn",
-      selectedPiece: null  // Clear any selected piece at the start
-    });
+    const initialDifficulty = get().initialAIDifficulty;
+    const isAIMode = get().isAIEnabled;
     
-    // Select random piece for first player
-    get().getRandomPieceForCurrentPlayer();
+    console.log('[DEBUG] startGame called with AI enabled:', isAIMode, 'Current phase:', get().phase);
     
-    // If AI mode is enabled and AI is Player 1, make AI move immediately
-    const { isAIEnabled } = get();
-    if (isAIEnabled) {
-      // Store the current setting to restore it later
-      const currentAIEnabled = isAIEnabled;
-      // Temporarily disable AI to prevent immediate AI move (Player 1 should go first)
-      set({ isAIEnabled: false });
-      // Re-enable AI after a short delay
-      setTimeout(() => set({ isAIEnabled: currentAIEnabled }), 1000);
-    }
-  },
-  
-  selectCell: (position: Position) => {
-    const { 
-      board, 
-      currentPlayer, 
-      selectedPiece, 
-      player1Inventory, 
-      player2Inventory 
-    } = get();
-    
-    // Debug logging for selection
-    console.log('selectCell called:', { position, currentPlayer, selectedPiece });
-    
-    if (selectedPiece === null) {
-      set({ message: 'message.selectPieceFirst' });
+    // 現在のフェーズを確認して、すでにゲームが開始している場合は何もしない
+    if (get().phase !== GamePhase.READY) {
+      console.log('[DEBUG] Game already started. Skipping startGame call.');
       return;
     }
     
-    // Check if move is valid
-    if (!isValidMove(board, position, selectedPiece, currentPlayer)) {
-      set({ message: 'message.invalidMove' });
-      return;
-    }
+    // インベントリの初期化
+    const player1Inventory = get().player1Inventory || createInitialInventory();
+    const player2Inventory = get().player2Inventory || createInitialInventory();
     
-    // Clone the board
-    const newBoard = [...board.map(row => [...row])];
+    console.log('[DEBUG] Setting initial game state...');
     
-    // Create a new inventory based on current player
-    const currentInventory = currentPlayer === Player.PLAYER1 
-      ? { ...player1Inventory }
-      : { ...player2Inventory };
-    
-    // Reduce the count of the selected piece
-    if (selectedPiece && selectedPiece !== PieceType.EMPTY && 
-        (selectedPiece === PieceType.ROCK || 
-         selectedPiece === PieceType.PAPER || 
-         selectedPiece === PieceType.SCISSORS || 
-         selectedPiece === PieceType.SPECIAL)) {
-      currentInventory[selectedPiece]--;
-    }
-    
-    // Update the cell
-    const targetCell = newBoard[position.row][position.col];
-    
-    // Play sound effect
-    const audioStore = useAudio.getState();
-    
-    // プレイヤーを文字列で明確に判別
-    const isPlayer1 = String(currentPlayer) === String(Player.PLAYER1);
-    const isPlayer2 = String(currentPlayer) === String(Player.PLAYER2);
-    const playerStr = isPlayer1 ? 'PLAYER1' : (isPlayer2 ? 'PLAYER2' : 'UNKNOWN');
-    const actualOwner = isPlayer1 ? Player.PLAYER1 : (isPlayer2 ? Player.PLAYER2 : Player.NONE);
-    
-    console.log('Current player before cell update:', {
-      currentPlayer,
-      isPlayer1,
-      isPlayer2,
-      playerStr,
-      actualOwner
-    });
-    
-    // If the cell is empty
-    if (targetCell.piece === PieceType.EMPTY) {
-      // Place the piece on empty cell (not locked)
-      console.log('Placing piece on empty cell for player:', playerStr);
-      
-      newBoard[position.row][position.col] = {
-        piece: selectedPiece,
-        owner: actualOwner, // 厳密に構造化されたプレイヤー値を使用
-        hasBeenUsed: false // Not locked yet, can be captured with janken rules
-      };
-      
-      // Play place sound (剣で斬る3.mp3)
-      audioStore.playSuccess();
-    } else {
-      // Janken battle - replace opponent's piece and lock this cell
-      const defendingPiece = targetCell.piece;
-      console.log('Janken battle:', { attackingPiece: selectedPiece, defendingPiece, attacker: playerStr });
-      
-      newBoard[position.row][position.col] = {
-        piece: selectedPiece,
-        owner: actualOwner, // 厳密に構造化されたプレイヤー値を使用
-        hasBeenUsed: true // Lock this cell after janken battle
-      };
-      
-      // Play hit sound (battle) - 倒れる.mp3
-      audioStore.playHit();
-      
-      // Trigger capture animation only
-      set({ 
-        captureAnimation: position
-      });
-      
-      // Display a message about the janken battle result
-      let jankenResultMessage = '';
-
-      // Create a specific message based on what pieces were involved
-      // In Japanese Janken Rules:
-      // - Rock (グー) beats Scissors (チョキ)
-      // - Scissors (チョキ) beats Paper (パー)
-      // - Paper (パー) beats Rock (グー)
-      if (selectedPiece === PieceType.ROCK && defendingPiece === PieceType.SCISSORS) {
-        jankenResultMessage = 'message.rockVsScissors';
-      } else if (selectedPiece === PieceType.SCISSORS && defendingPiece === PieceType.PAPER) {
-        jankenResultMessage = 'message.scissorsVsPaper';
-      } else if (selectedPiece === PieceType.PAPER && defendingPiece === PieceType.ROCK) {
-        jankenResultMessage = 'message.paperVsRock';
-      }
-      
-      // Set the message key for translation
-      set({ message: jankenResultMessage });
-    }
-    
-    // Update inventories
-    const newState = {
-      board: newBoard,
-      selectedPiece: null,
-      ...(currentPlayer === Player.PLAYER1 
-          ? { player1Inventory: currentInventory }
-          : { player2Inventory: currentInventory })
-    };
-    
-    // Check for win condition
-    if (checkWin(newBoard, currentPlayer)) {
-      const result = currentPlayer === Player.PLAYER1 
-        ? GameResult.PLAYER1_WIN 
-        : GameResult.PLAYER2_WIN;
-      
-      // Play victory sound (jingle_12.mp3)
-      audioStore.playSuccess();
-        
-      // The current player won!
+    // AIモードと通常モードで異なる初期化
+    if (isAIMode) {
+      // AIモード：プレイヤー1は手動選択、プレイヤー2はAI自動選択
       set({
-        ...newState,
-        result,
-        phase: GamePhase.GAME_OVER,
-        message: currentPlayer === Player.PLAYER1 ? 'message.player1Win' : 'message.player2Win',
-        winAnimation: true
+        phase: GamePhase.SELECTING_CELL,
+        message: "特殊駒を選択してください",
+        selectedPiece: null, 
+        player1JankenChoice: null,
+        player2JankenChoice: null,
+        player1Score: 0,
+        player2Score: 0,
+        currentRound: 1,
+        aiDifficulty: initialDifficulty,
+        currentPlayer: Player.PLAYER1,
+        result: GameResult.ONGOING,
+        isAIThinking: false,
+        player1Inventory,
+        player2Inventory
       });
       
-      return;
-    }
-    
-    // Check for draw condition
-    if (checkDraw(newBoard, 
-        currentPlayer === Player.PLAYER1 ? currentInventory : player1Inventory,
-        currentPlayer === Player.PLAYER2 ? currentInventory : player2Inventory)) {
-      set({
-        ...newState,
-        result: GameResult.DRAW,
-        phase: GamePhase.GAME_OVER,
-        message: 'message.draw',
-        drawAnimation: true
-      });
+      console.log('[DEBUG] AI mode initialized. Player1 can manually select SPECIAL pieces, basic pieces auto-selected.');
       
-      return;
-    }
-    
-    // Switch player
-    const nextPlayer = currentPlayer === Player.PLAYER1 ? Player.PLAYER2 : Player.PLAYER1;
-    const { isAIEnabled } = get();
-    
-    set({
-      ...newState,
-      currentPlayer: nextPlayer,
-      message: nextPlayer === Player.PLAYER1 ? 'message.player1Turn' : 'message.player2Turn'
-    });
-    
-    // Handle next player's turn
-    setTimeout(() => {
-      // If next player is AI, let AI select the piece
-      if (nextPlayer === Player.PLAYER2 && isAIEnabled) {
-        // AI gets to choose its piece and position
-        get().makeAIMove();
-      } else {
-        // For human player, get random piece
-        get().getRandomPieceForCurrentPlayer();
-      }
-    }, 100);
-  },
-  
-  selectSpecialPiece: () => {
-    const { currentPlayer, player1Inventory, player2Inventory } = get();
-    
-    const currentInventory = currentPlayer === Player.PLAYER1 
-      ? player1Inventory 
-      : player2Inventory;
-    
-    // Check if the player has a special piece
-    if (currentInventory[PieceType.SPECIAL] <= 0) {
-      set({ message: 'message.specialPieceUsed' });
-      return;
-    }
-    
-    // Set the selected piece to special
-    set({ 
-      selectedPiece: PieceType.SPECIAL,
-      message: currentPlayer === Player.PLAYER1 ? 'message.player1SelectedSpecial' : 'message.player2SelectedSpecial'
-    });
-  },
-  
-  getRandomPieceForCurrentPlayer: () => {
-    const { currentPlayer, player1Inventory, player2Inventory } = get();
-    
-    const currentInventory = currentPlayer === Player.PLAYER1 
-      ? player1Inventory 
-      : player2Inventory;
-    
-    const randomPiece = getRandomPiece(currentInventory);
-    
-    if (randomPiece === null) {
-      // If no pieces available, check if the player has a special piece
-      if (currentInventory[PieceType.SPECIAL] > 0) {
-        set({ 
-          selectedPiece: null,
-          message: `${currentPlayer === Player.PLAYER1 ? 'Player 1' : 'Player 2'} has no normal pieces left. Use your special piece.`
-        });
-      } else {
-        // If no pieces left at all, switch to the other player or end the game
-        const nextPlayer = currentPlayer === Player.PLAYER1 ? Player.PLAYER2 : Player.PLAYER1;
-        const nextInventory = currentPlayer === Player.PLAYER1 ? player2Inventory : player1Inventory;
-        
-        const hasNextPlayerPieces = Object.values(nextInventory).some(count => count > 0);
-        
-        if (hasNextPlayerPieces) {
-          set({ 
-            currentPlayer: nextPlayer,
-            selectedPiece: null,
-            message: `${currentPlayer === Player.PLAYER1 ? 'Player 1' : 'Player 2'} has no pieces left. ${nextPlayer === Player.PLAYER1 ? 'Player 1' : 'Player 2'}'s turn.`,
-            loseAnimation: true // The current player has no more pieces - they're losing!
-          });
-          
-          // Select random piece for next player
-          setTimeout(() => get().getRandomPieceForCurrentPlayer(), 100);
-        } else {
-          // If both players have no pieces, it's a draw
-          set({
-            result: GameResult.DRAW,
-            phase: GamePhase.GAME_OVER,
-            message: "It's a draw! Both players are out of pieces.",
-            drawAnimation: true
-          });
+      // AIモードでも基本駒の自動選択を開始（遅延なし）
+      setTimeout(() => {
+        try {
+          const currentState = get();
+          if (currentState.phase === GamePhase.SELECTING_CELL && 
+              currentState.currentPlayer === Player.PLAYER1 &&
+              currentState.isAIEnabled &&
+              !currentState.selectedPiece) {
+            console.log('[DEBUG] Auto-selecting basic piece for Player 1 in AI mode');
+            get().getRandomPieceForCurrentPlayer();
+          }
+        } catch (error) {
+          console.error('[DEBUG] Error in AI mode auto-selection:', error);
         }
-      }
-      return;
+      }, 0);
+      
+    } else {
+      // 通常モード：自動選択
+      set({
+        phase: GamePhase.SELECTING_CELL,
+        message: "message.player1Turn",
+        selectedPiece: null, 
+        player1JankenChoice: null,
+        player2JankenChoice: null,
+        player1Score: 0,
+        player2Score: 0,
+        currentRound: 1,
+        aiDifficulty: initialDifficulty,
+        currentPlayer: Player.PLAYER1,
+        result: GameResult.ONGOING,
+        isAIThinking: false,
+        player1Inventory,
+        player2Inventory
+      });
+      
+      console.log('[DEBUG] Local mode initialized. Starting auto-selection for PLAYER1.');
+      
+      // 通常モードでは自動選択を開始（遅延なし）
+      setTimeout(() => {
+        try {
+          const currentState = get();
+          if (currentState.phase === GamePhase.SELECTING_CELL && 
+              currentState.currentPlayer === Player.PLAYER1 &&
+              !currentState.isAIEnabled) {
+            get().getRandomPieceForCurrentPlayer();
+          }
+        } catch (error) {
+          console.error('[DEBUG] Error in auto-selection:', error);
+        }
+      }, 0);
     }
-    
-    set({ 
-      selectedPiece: randomPiece,
-      message: currentPlayer === Player.PLAYER1 
-        ? `message.player1ReceivedPiece.${randomPiece.toLowerCase()}` 
-        : `message.player2ReceivedPiece.${randomPiece.toLowerCase()}`
-    });
   },
-  
   resetGame: () => {
-    // 徹底的なリセット処理（問題のあるセルを完全に再生成）
-    console.log('[RESET] Game reset initiated - COMPLETE REGENERATION');
+    const wasAIEnabled = get().isAIEnabled;
+    const previousInitialDifficulty = get().initialAIDifficulty;
     
-    // 新しい空のボードを徹底的に作成（参照も含めて完全に新しいオブジェクト）
-    const newBoard = createEmptyBoard();
+    console.log('[useJankenGame] resetGame called with AIモード状態:', wasAIEnabled);
     
-    // すべての状態を完全にリセット
+    // パフォーマンス向上のため、状態リセット前に操作をブロック
+    set(state => ({
+      ...state,
+      isAIThinking: true, // 操作を一時的にブロック
+      message: 'message.resetting'
+    }));
+    
+    // リセットループを防ぐためにローカルストレージの操作を削除
+    console.log('[useJankenGame] Skipping localStorage operations to prevent reset loops');
+
+    // 重要な状態のみリセット
     set({
-      board: newBoard,
+      board: createEmptyBoard(),
       currentPlayer: Player.PLAYER1,
-      phase: GamePhase.READY,
+      phase: GamePhase.READY, // READYに戻す
       result: GameResult.ONGOING,
+      player1JankenChoice: null,
+      player2JankenChoice: null,
+      player1Score: 0,
+      player2Score: 0,
+      currentRound: 1,
       selectedPiece: null,
+      previousSelectedPiece: null,
       player1Inventory: createInitialInventory(),
       player2Inventory: createInitialInventory(),
-      message: 'message.welcome',
+      message: 'message.welcome', // 初期メッセージに戻す
+      jankenBattleCells: [],
       captureAnimation: null,
       winAnimation: false,
       loseAnimation: false,
       drawAnimation: false,
-      // バトル履歴は完全にリセット
-      jankenBattleCells: []
+      isAIEnabled: wasAIEnabled, // AIモード設定を維持
+      initialAIDifficulty: previousInitialDifficulty, // 初期難易度を維持
+      aiDifficulty: previousInitialDifficulty, // 現在の難易度も初期値に戻す
+      isAIThinking: false, // 思考状態を解除
+      winningLine: null, // 勝利ラインのリセット
     });
     
-    // デバッグ用：ボードの状態を確認
-    console.log('[RESET] Board after reset:', newBoard);
-    console.log('[RESET] Game state completely reset and regenerated');
+    console.log('[useJankenGame] resetGame completed. Game state has been reset.');
   },
-  
-  clearCaptureAnimation: () => {
-    set({ captureAnimation: null });
-  },
-  
-  clearWinAnimation: () => {
-    set({ winAnimation: false });
-  },
-  
-  clearLoseAnimation: () => {
-    set({ loseAnimation: false });
-  },
-  
-  clearDrawAnimation: () => {
-    set({ drawAnimation: false });
-  },
-  
-  // AIの駒配置用のヘルパー関数 - 完全に文字列ベースのアプローチに変更
-  // インポートした改良版の実装を使用
-  selectCellForPlayer: (position: Position, player: Player | string, piece: PieceType) => {
-    // 状態を取得
-    const { 
-      board, 
-      player1Inventory, 
-      player2Inventory 
-    } = get();
+  resetBoardOnly: () => {
+    const audioStore = useAudio.getState();
+    audioStore.playClick();
     
-    // 新しいより安全な実装を呼び出す（import済み）
-    selectCellForPlayer(
-      position, 
-      player, 
-      piece, 
-      board, 
-      player1Inventory, 
-      player2Inventory, 
-      get,  // 現在の状態を取得する関数
-      set   // 状態を更新する関数
-    );
-  },
-
-  // AI actions
-  toggleAI: () => {
-    const { isAIEnabled } = get();
-    set({ isAIEnabled: !isAIEnabled });
-  },
-  
-  setAIDifficulty: (difficulty: AIDifficulty) => {
-    set({ aiDifficulty: difficulty });
-  },
-  
-  makeAIMove: () => {
-    const { 
-      board, 
-      currentPlayer, 
-      player2Inventory,
-      phase,
-      aiDifficulty,
-      isAIEnabled,
-      selectedPiece
-    } = get();
+    set({
+      board: createEmptyBoard(),
+      selectedPiece: null,
+      previousSelectedPiece: null,
+      currentPlayer: Player.PLAYER1,
+      phase: GamePhase.SELECTING_CELL,
+      message: 'message.boardReset',
+      captureAnimation: null,
+      winningLine: null, // 勝利ラインのリセット
+    });
     
-    // Only run if AI is enabled, it's Player 2's turn, and game is in the correct phase
-    if (!isAIEnabled || currentPlayer !== Player.PLAYER2 || phase !== GamePhase.SELECTING_CELL) {
-      return;
-    }
-    
-    // Set AI to "thinking" mode
-    set({ isAIThinking: true });
-    
-    // First, if we don't have a selected piece yet, get a random piece like human players
-    if (selectedPiece === null) {
-      // Randomly select a piece just like human players
-      get().getRandomPieceForCurrentPlayer();
-      
-      // We'll continue the AI move after a short thinking delay
-      setTimeout(() => {
-        // Now get the updated selected piece
-        const updatedSelectedPiece = get().selectedPiece;
-        
-        if (updatedSelectedPiece !== null) {
-          // Add a message that AI is deciding where to place the piece
-          set({ message: 'message.aiDecidingPlacement' });
-          
-          // Continue with placement decision after a short delay
-          setTimeout(() => get().makeAIMove(), 500);
-        } else {
-          // Something went wrong, end AI thinking
-          set({ isAIThinking: false });
-        }
-      }, 800); // Thinking time for piece selection
-      
-      return;
-    }
-    
-    // If we already have a selected piece, find the best position for it
+    // 少し遅延してプレイヤー1のターンメッセージに変更
     setTimeout(() => {
-      const { board, selectedPiece, aiDifficulty } = get();
+      set({ message: 'message.player1Turn' });
+    }, 1500);
+  },
+  resetInventory: () => {
+    const audioStore = useAudio.getState();
+    audioStore.playClick();
+    
+    // 完全に新しいインベントリを作成
+    const newPlayer1Inventory = createInitialInventory();
+    const newPlayer2Inventory = createInitialInventory();
+    
+    console.log('[useJankenGame] New inventories created:', 
+      { player1: newPlayer1Inventory, player2: newPlayer2Inventory });
+    
+    // 状態を更新
+    set({
+      player1Inventory: newPlayer1Inventory,
+      player2Inventory: newPlayer2Inventory,
+      selectedPiece: null,
+      message: 'message.inventoryReset',
+    });
+    
+    // 少し遅延して通常のメッセージに戻す
+    setTimeout(() => {
+      const currentPlayer = get().currentPlayer;
+      set({ 
+        message: currentPlayer === Player.PLAYER1 
+          ? 'message.player1Turn' 
+          : 'message.player2Turn' 
+      });
+    }, 1500);
+  },
+  resetScoresOnly: () => {
+    const audioStore = useAudio.getState();
+    audioStore.playClick();
+    
+    set({
+      player1Score: 0,
+      player2Score: 0,
+      currentRound: 1,
+      message: 'message.scoresReset',
+    });
+    
+    // 少し遅延して通常のメッセージに戻す
+    setTimeout(() => {
+      const currentPlayer = get().currentPlayer;
+      set({ 
+        message: currentPlayer === Player.PLAYER1 
+          ? 'message.player1Turn' 
+          : 'message.player2Turn' 
+      });
+    }, 1500);
+  },
+  setPlayer1JankenChoice: (choice: PieceType | null) => set({ player1JankenChoice: choice }),
+  setPlayer2JankenChoice: (choice: PieceType | null) => set({ player2JankenChoice: choice }),
+  incrementPlayer1Score: () => set((state: JankenGameState) => ({ player1Score: state.player1Score + 1 })),
+  incrementPlayer2Score: () => set((state: JankenGameState) => ({ player2Score: state.player2Score + 1 })),
+  incrementRound: () => set((state: JankenGameState) => ({ currentRound: state.currentRound + 1 })),
+  resetScoresAndRound: () => set({ player1Score: 0, player2Score: 0, currentRound: 1 }),
+  makeChoice: (playerChoice: PieceType) => {
+    const { currentPlayer, isAIEnabled, player1JankenChoice, aiDifficulty, currentRound, player1Score, player2Score } = get();
+    const audioStore = useAudio.getState();
+
+    if (currentPlayer === Player.PLAYER1) {
+      set({ player1JankenChoice: playerChoice, message: 'message.player1Selected' });
+      if (isAIEnabled) {
+        set({ isAIThinking: true, message: 'message.aiThinking' });
+        setTimeout(() => {
+          const aiChoice = pieces[Math.floor(Math.random() * pieces.length)].id;
+          set({ player2JankenChoice: aiChoice, isAIThinking: false, message: 'message.aiSelected' });
+          
+          const p1 = playerChoice;
+          const p2 = aiChoice;
+          let roundWinner: Player | 'DRAW' = 'DRAW';
+
+          if (p1 === p2) {
+            set({ message: 'message.drawRound' });
+            audioStore.playDraw();
+          } else if (
+            (p1 === PieceType.ROCK && p2 === PieceType.SCISSORS) ||
+            (p1 === PieceType.SCISSORS && p2 === PieceType.PAPER) ||
+            (p1 === PieceType.PAPER && p2 === PieceType.ROCK)
+          ) {
+            get().incrementPlayer1Score();
+            roundWinner = Player.PLAYER1;
+            set({ message: 'message.player1WinRound' });
+            audioStore.playWin();
+          } else {
+            get().incrementPlayer2Score();
+            roundWinner = Player.PLAYER2;
+            set({ message: 'message.player2WinRound' });
+            audioStore.playLose();
+          }
+
+          if (get().currentRound >= 3) {
+            set({ phase: GamePhase.GAME_OVER, message: 'message.gameOver' });
+          } else {
+            get().incrementRound();
+            set({ 
+              phase: GamePhase.SHOWDOWN,
+              currentPlayer: Player.PLAYER1,
+              message: roundWinner === Player.PLAYER1 ? 'message.player1WinRound' : roundWinner === Player.PLAYER2 ? 'message.player2WinRound' : 'message.drawRound'
+            });
+          }
+        }, 1000);
+      } else {
+        set({ currentPlayer: Player.PLAYER2, message: 'message.player2Turn' }); 
+      }
+    } else { 
+      set({ player2JankenChoice: playerChoice, message: 'message.player2Selected' });
+      const p1 = player1JankenChoice;
+      const p2 = playerChoice;
+      if (!p1) {
+        set({message: "message.player1NotSelectedYet"});
+        return; 
+      }
+      let roundWinner: Player | 'DRAW' = 'DRAW';
+
+      if (p1 === p2) {
+        set({ message: 'message.drawRound' });
+        audioStore.playDraw();
+      } else if (
+        (p1 === PieceType.ROCK && p2 === PieceType.SCISSORS) ||
+        (p1 === PieceType.SCISSORS && p2 === PieceType.PAPER) ||
+        (p1 === PieceType.PAPER && p2 === PieceType.ROCK)
+      ) {
+        get().incrementPlayer1Score();
+        roundWinner = Player.PLAYER1;
+        set({ message: 'message.player1WinRound' });
+        audioStore.playWin();
+      } else {
+        get().incrementPlayer2Score();
+        roundWinner = Player.PLAYER2;
+        set({ message: 'message.player2WinRound' });
+        audioStore.playLose();
+      }
       
-      // Add a message that AI is deciding where to place the piece
-      set({ message: 'message.aiDecidingPlacement' });
+      if (get().currentRound >= 3) {
+        set({ phase: GamePhase.GAME_OVER, message: 'message.gameOver' });
+      } else {
+        get().incrementRound();
+        set({ 
+          phase: GamePhase.SHOWDOWN, 
+          currentPlayer: Player.PLAYER1,
+          message: roundWinner === Player.PLAYER1 ? 'message.player1WinRound' : roundWinner === Player.PLAYER2 ? 'message.player2WinRound' : 'message.drawRound'
+        });
+      }
+    }
+  },
+  clearCaptureAnimation: () => set({ captureAnimation: null }),
+  clearWinAnimation: () => set({ winAnimation: false }),
+  clearLoseAnimation: () => set({ loseAnimation: false }),
+  clearDrawAnimation: () => set({ drawAnimation: false }),
+  setInitialAIDifficulty: (difficulty: AIDifficulty) => set({ initialAIDifficulty: difficulty, aiDifficulty: difficulty }),
+  setAIDifficulty: (difficulty: AIDifficulty) => set({ aiDifficulty: difficulty }),
+  selectCell: (position: Position) => {
+    const { board, currentPlayer, selectedPiece, phase } = get();
+    // DEBUG_GAME_FLOW: selectCell が呼ばれた時のログ
+    console.log(`[DEBUG_GAME_FLOW] selectCell called. Position: (${position.row}, ${position.col}), Current phase: ${phase}, Selected piece: ${selectedPiece}, Current player: ${currentPlayer}`);
+
+    // フェーズが SELECTING_CELL 以外なら何もしない
+    if (phase !== GamePhase.SELECTING_CELL) {
+      console.log(`[DEBUG_GAME_FLOW] selectCell ignored: Phase is not SELECTING_CELL (${phase}).`);
+      return;
+    }
+
+    // selectedPiece が null の場合（駒が選択されていない場合）
+    if (selectedPiece === null) {
+      console.log(`[DEBUG_GAME_FLOW] selectCell: No piece selected. Current phase: ${phase}.`);
+      // より分かりやすいメッセージを表示
+      set({ 
+        message: currentPlayer === Player.PLAYER1 
+          ? 'まず駒を選択してください（左パネルから）' 
+          : 'message.player2SelectPiece' 
+      });
       
-      // Find best position for the already selected piece
-      if (selectedPiece === null) {
-        set({ isAIThinking: false });
+      // 一定時間後に元のメッセージに戻す
+      setTimeout(() => {
+        const currentState = get();
+        if (currentState.phase === GamePhase.SELECTING_CELL) {
+          set({ 
+            message: currentState.currentPlayer === Player.PLAYER1 
+              ? 'message.player1Turn' 
+              : 'message.player2Turn' 
+          });
+        }
+      }, 2000);
+      return;
+    }
+
+    // 盤面データが不正な場合
+    if (!board || !Array.isArray(board) || !board[position.row] || !board[position.row][position.col]) {
+      console.error(`[DEBUG_GAME_FLOW] selectCell error: Invalid board data or position. Board valid: ${!!board}, Row exists: ${!!board[position.row]}, Cell exists: ${!!(board[position.row]?.[position.col])}`);
+      return;
+    }
+
+    const targetCell = board[position.row][position.col];
+    // DEBUG_GAME_FLOW: クリックされたセルの情報
+    console.log(`[DEBUG_GAME_FLOW] selectCell: Target cell info - piece: ${targetCell.piece}, owner: ${targetCell.owner}, hasBeenUsed: ${targetCell.hasBeenUsed}`);
+
+    // 有効な移動先かチェック
+    // isValidMove 関数に渡す board の型に注意 (Cell[][])
+    const boardAsCells = board as Cell[][]; // 型アサーション
+    const canPlace = isValidMove(boardAsCells, position, selectedPiece, currentPlayer);
+    // DEBUG_GAME_FLOW: isValidMove の結果
+    console.log(`[DEBUG_GAME_FLOW] selectCell: isValidMove result = ${canPlace}`);
+
+    if (canPlace) {
+      console.log(`[DEBUG_GAME_FLOW] selectCell: Valid move! Calling placePiece for position: (${position.row}, ${position.col}).`);
+      // 有効な場所であれば駒を配置
+      // placePiece 関数に渡す引数に注意
+      get().placePiece(position.row, position.col); // row, col のみ渡す
+      // placePiece の中で selectedPiece は null に設定されるはず
+      // DEBUG_GAME_FLOW: placePiece 呼び出し後、selectedPiece の状態を確認 (非同期かもしれないのであくまで参考)
+      setTimeout(() => {
+        console.log('[DEBUG_GAME_FLOW] selectCell: After placePiece call (with slight delay), selectedPiece is:', get().selectedPiece);
+      }, 0);
+
+    } else {
+      // 有効な移動先でない場合
+      console.log(`[DEBUG_GAME_FLOW] selectCell: Invalid move for piece ${selectedPiece} at position (${position.row}, ${position.col}).`);
+      // 無効な移動メッセージを表示
+      set({ message: 'その場所には駒を配置できません' });
+      
+      // 一定時間後に元のメッセージに戻す
+      setTimeout(() => {
+        const currentState = get();
+        if (currentState.phase === GamePhase.SELECTING_CELL) {
+          set({ 
+            message: currentState.currentPlayer === Player.PLAYER1 
+              ? 'message.player1Turn' 
+              : 'message.player2Turn' 
+          });
+        }
+      }, 2000);
+    }
+  },
+  placePiece: (row: number, col: number) => {
+    try {
+      const { board, selectedPiece, currentPlayer, phase, isAIThinking } = get();
+      
+      console.log(`[useJankenGame] placePiece called: row=${row}, col=${col}, player=${currentPlayer}, selectedPiece=${selectedPiece}`);
+      
+      // 基本的な検証
+      if (phase !== GamePhase.SELECTING_CELL) {
+        console.warn(`[useJankenGame] Cannot place piece, wrong phase: ${phase}`);
         return;
       }
       
-      // Different AI difficulty levels have different thinking times
-      let thinkingTime = 1200; // Default
+      if (selectedPiece === null) {
+        console.warn(`[useJankenGame] Cannot place piece, no piece selected`);
+        return;
+      }
       
-      if (aiDifficulty === AIDifficulty.BEGINNER) thinkingTime = 800;
-      else if (aiDifficulty === AIDifficulty.EASY) thinkingTime = 1000;
-      else if (aiDifficulty === AIDifficulty.NORMAL) thinkingTime = 1200;
-      else if (aiDifficulty === AIDifficulty.MEDIUM) thinkingTime = 1500;
-      else if (aiDifficulty === AIDifficulty.HARD) thinkingTime = 1800;
-      else if (aiDifficulty === AIDifficulty.EXPERT) thinkingTime = 2200;
+      // AI思考中の重複実行を防ぐ
+      if (isAIThinking && currentPlayer === Player.PLAYER2) {
+        console.warn('[useJankenGame] AI is thinking, ignoring duplicate placement');
+        return;
+      }
       
-      // Add randomness to thinking time
-      thinkingTime += Math.floor(Math.random() * 400);
+      // 位置の検証
+      if (row < 0 || row >= 6 || col < 0 || col >= 6) {
+        console.warn(`[useJankenGame] Invalid position: (${row}, ${col})`);
+        return;
+      }
       
-      // Find the best position after thinking
+      // 盤面の安全性チェック
+      if (!board || !Array.isArray(board) || !board[row] || !board[row][col]) {
+        console.error(`[useJankenGame] Invalid board state at position (${row}, ${col})`);
+        return;
+      }
+      
+      const position: Position = { row, col };
+      
+      // 有効な手かどうかを検証
+      if (!isValidMove(board, position, selectedPiece, currentPlayer)) {
+        console.warn(`[useJankenGame] Invalid move for ${selectedPiece} at (${row}, ${col})`);
+        soundService.play('hit');
+        return;
+      }
+      
+      console.log(`[useJankenGame] Valid move confirmed: placing ${selectedPiece} at (${row}, ${col})`);
+      
+      // インベントリから駒を消費
+      const currentInventory = currentPlayer === Player.PLAYER1 
+        ? { ...get().player1Inventory } 
+        : { ...get().player2Inventory };
+      
+      if (!currentInventory || currentInventory[selectedPiece] <= 0) {
+        console.warn(`[useJankenGame] No ${selectedPiece} pieces left for player ${currentPlayer}`);
+        return;
+      }
+      
+      currentInventory[selectedPiece]--;
+      console.log(`[useJankenGame] Consumed 1 ${selectedPiece} from player ${currentPlayer}`);
+      
+      // 新しい盤面を作成
+      const newBoard = selectCellForPlayerUtil(position, currentPlayer, selectedPiece, board);
+      
+      // 効果音を再生
+      soundService.play('place');
+      
+      // 状態を更新（一括更新）
+      const stateUpdate = currentPlayer === Player.PLAYER1
+        ? { 
+            player1Inventory: currentInventory,
+            board: newBoard,
+            selectedPiece: null,
+          }
+        : { 
+            player2Inventory: currentInventory,
+            board: newBoard,
+            selectedPiece: null,
+          };
+      
+      set(stateUpdate);
+      
+      // ゲーム終了判定を遅延実行
       setTimeout(() => {
-        const bestPosition = findBestPosition(board, selectedPiece, aiDifficulty);
-        
-        if (bestPosition) {
-          set({ isAIThinking: false });
+        try {
+          const currentState = get();
           
-          // Add a short delay before placing the piece
-          // ここがAIのプレイヤー2の動作の核心部分です
-          setTimeout(() => {
-            console.log('AI placing piece at:', bestPosition, 'USING DIRECT STRING VALUE');
-            
-            // AIの場合、プレイヤー2を明示的な文字列として指定
-            // 列挙型としての参照ではなく、直接文字列「PLAYER2」を使用
-            const PLAYER2_STRING = 'PLAYER2';
-            
-            console.log('AI using explicit string as player value:', {
-              value: PLAYER2_STRING,
-              type: typeof PLAYER2_STRING,
+          // 勝利判定
+          const winLine = findWinningLine(currentState.board, currentPlayer);
+          if (winLine) {
+            set({
+              phase: GamePhase.GAME_OVER,
+              result: currentPlayer === Player.PLAYER1 ? GameResult.PLAYER1_WIN : GameResult.PLAYER2_WIN,
+              message: `message.${normalizePlayer(currentPlayer)}Win`,
+              winningLine: winLine
             });
-            
-            // 直接文字列を渡して、現在の比較ロジックで確実に一致させる
-            // キャストを追加して型安全性を確保
-            get().selectCellForPlayer(bestPosition, PLAYER2_STRING as Player, selectedPiece);
-          }, 400);
+            soundService.play('victory');
+            return;
+          }
           
-          // 外部に定義したselectCellForPlayer関数を利用しています
-        } else {
-          // No valid moves, end AI thinking
-          set({ isAIThinking: false });
+          // 引き分け判定
+          if (checkDraw(currentState.board, currentState.player1Inventory, currentState.player2Inventory)) {
+            set({
+              phase: GamePhase.GAME_OVER,
+              result: GameResult.DRAW,
+              message: 'message.gameDraw',
+              winningLine: null
+            });
+            soundService.play('battle');
+            return;
+          }
+          
+          // ゲームが続行する場合、ターンを切り替え
+          console.log('[useJankenGame] No win or draw. Switching turn.');
+          setTimeout(() => {
+            get().switchTurn();
+          }, 200); // より短い遅延でターン切り替え
+          
+        } catch (error) {
+          console.error('[DEBUG] Error in post-placement processing:', error);
+          set({ 
+            message: 'message.gameError',
+            isAIThinking: false
+          });
         }
-      }, thinkingTime);
-    }, 1000);
-  }
-}));
+      }, 100);
+      
+    } catch (error) {
+      console.error('[DEBUG] Critical error in placePiece:', error);
+      set({ 
+        selectedPiece: null,
+        isAIThinking: false,
+        message: 'message.placementError' 
+      });
+    }
+  },
+  makeAIPieceSelection: async () => {
+    try {
+      const { board, player2Inventory, aiDifficulty, currentPlayer, phase, isAIThinking } = get();
+      
+      // 基本的な前提条件チェック
+      if (currentPlayer !== Player.PLAYER2) {
+        console.log('[DEBUG_GAME_FLOW] makeAIPieceSelection ignored: Not AI player turn');
+        return;
+      }
+
+      if (phase !== GamePhase.SELECTING_CELL) {
+        console.log('[DEBUG_GAME_FLOW] makeAIPieceSelection ignored: Not in SELECTING_CELL phase');
+        return;
+      }
+
+      if (isAIThinking) {
+        console.log('[DEBUG_GAME_FLOW] makeAIPieceSelection ignored: AI already thinking');
+        return;
+      }
+
+      if (!board || !player2Inventory) {
+        console.error('[DEBUG_GAME_FLOW] makeAIPieceSelection error: Board or inventory not ready.');
+        return;
+      }
+      
+      console.log('[DEBUG_GAME_FLOW] makeAIPieceSelection: Starting AI decision process.');
+      
+      // AI思考状態をセット
+      set({ isAIThinking: true, message: 'message.aiThinking' });
+
+      // AI決定を取得（同期的に処理）
+      const decision = findBestMove(board, player2Inventory, aiDifficulty);
+      
+      if (!decision) {
+        console.warn('[DEBUG_GAME_FLOW] makeAIPieceSelection: AI could not find a valid move.');
+        set({ 
+          isAIThinking: false,
+          message: 'message.aiNoMove'
+        });
+        return;
+      }
+
+      console.log('[DEBUG_GAME_FLOW] makeAIPieceSelection: AI decision:', decision);
+
+      // 思考時間のシミュレーション後に実行（遅延を最小化）
+      setTimeout(() => {
+        // 再度状態をチェック（思考時間中に状況が変わった可能性）
+        const currentState = get();
+        if (currentState.currentPlayer !== Player.PLAYER2 || 
+            currentState.phase !== GamePhase.SELECTING_CELL ||
+            !currentState.isAIThinking) {
+          console.log('[DEBUG_GAME_FLOW] makeAIPieceSelection: Conditions changed during thinking, aborting');
+          set({ isAIThinking: false });
+          return;
+        }
+
+        // 駒を選択して配置を実行（バッチ化）
+        set({ 
+          selectedPiece: decision.piece,
+          isAIThinking: false // 思考終了
+        });
+
+        console.log('[DEBUG_GAME_FLOW] makeAIPieceSelection: Placing AI piece at position:', decision.position);
+        
+        // DOM更新完了後に駒配置を実行
+        setTimeout(() => {
+          get().placePiece(decision.position.row, decision.position.col);
+        }, 0);
+      }, 50);
+
+    } catch (error) {
+      console.error('[DEBUG] Critical error in makeAIPieceSelection:', error);
+      set({ 
+        isAIThinking: false, 
+        selectedPiece: null,
+        message: 'message.aiError' 
+      });
+    }
+  },
+  getRandomPieceForCurrentPlayer: () => {
+    try {
+      const { currentPlayer, player1Inventory, player2Inventory, phase, isAIEnabled } = get();
+      
+      console.log('[DEBUG_GAME_FLOW] getRandomPieceForCurrentPlayer called.', { currentPlayer, phase });
+
+      // 駒選択フェーズでなければ何もしない
+      if (phase !== GamePhase.SELECTING_CELL) {
+        console.log('[DEBUG_GAME_FLOW] getRandomPieceForCurrentPlayer ignored: Not in SELECTING_CELL phase.');
+        return;
+      }
+
+      const inventory = currentPlayer === Player.PLAYER1 ? player1Inventory : player2Inventory;
+
+      if (!inventory) {
+        console.error('[DEBUG] getRandomPieceForCurrentPlayer: Inventory is null or undefined');
+        return;
+      }
+
+      console.log(`[DEBUG_GAME_FLOW] getRandomPieceForCurrentPlayer: Inventory for ${currentPlayer}:`, inventory);
+
+      const randomPiece = getRandomPiece(inventory);
+
+      if (randomPiece) {
+        console.log(`[DEBUG_GAME_FLOW] getRandomPieceForCurrentPlayer: Randomly selected piece: ${randomPiece}`);
+        
+        // 駒を選択
+        set({ selectedPiece: randomPiece });
+        
+        console.log('[DEBUG_GAME_FLOW] getRandomPieceForCurrentPlayer: Piece selected successfully');
+      } else {
+        console.warn('[DEBUG_GAME_FLOW] getRandomPieceForCurrentPlayer: Could not get a random piece. Inventory might be empty.');
+        console.warn('[DEBUG] Inventory contents:', inventory);
+      }
+    } catch (error) {
+      console.error('[DEBUG] Error in getRandomPieceForCurrentPlayer:', error);
+      set({ 
+        selectedPiece: null,
+        message: 'message.selectionError' 
+      });
+    }
+  },
+  switchTurn: () => {
+    try {
+      const { currentPlayer, isAIEnabled, phase, isAIThinking } = get();
+      
+      console.log(`[DEBUG] switchTurn: ${currentPlayer} → ${currentPlayer === Player.PLAYER1 ? Player.PLAYER2 : Player.PLAYER1}`);
+
+      // 基本チェック
+      if (phase !== GamePhase.SELECTING_CELL) {
+        console.log(`[DEBUG] switchTurn ignored: Not in SELECTING_CELL phase (${phase})`);
+        return;
+      }
+
+      if (isAIThinking) {
+        console.log(`[DEBUG] switchTurn ignored: AI is already thinking`);
+        return;
+      }
+
+      // 次のプレイヤーを決定
+      const nextPlayer = currentPlayer === Player.PLAYER1 ? Player.PLAYER2 : Player.PLAYER1;
+      const nextMessage = `message.${normalizePlayer(nextPlayer)}Turn`;
+      
+      // 状態を一括更新（バッチ化）
+      set({
+        currentPlayer: nextPlayer,
+        message: nextMessage,
+        selectedPiece: null, // 駒の選択をリセット
+      });
+      
+      // React DOM更新完了を待ってから次の処理
+      if (isAIEnabled && nextPlayer === Player.PLAYER2) {
+        // AI（プレイヤー2）のターン - 遅延なし
+        setTimeout(() => {
+          const currentState = get();
+          if (currentState.currentPlayer === Player.PLAYER2 && 
+              currentState.phase === GamePhase.SELECTING_CELL &&
+              currentState.isAIEnabled &&
+              !currentState.isAIThinking) {
+            console.log('[DEBUG] switchTurn: Executing AI move');
+            get().makeAIPieceSelection();
+          }
+        }, 0);
+      } else if (isAIEnabled && nextPlayer === Player.PLAYER1) {
+        // AIモードのプレイヤー1のターン - 基本駒の自動選択を実行（遅延なし）
+        setTimeout(() => {
+          const currentState = get();
+          if (currentState.currentPlayer === Player.PLAYER1 && 
+              currentState.phase === GamePhase.SELECTING_CELL &&
+              currentState.isAIEnabled &&
+              !currentState.selectedPiece) {
+            console.log('[DEBUG] switchTurn: Auto-selecting basic piece for Player 1 in AI mode');
+            get().getRandomPieceForCurrentPlayer();
+          }
+        }, 0);
+      } else if (!isAIEnabled) {
+        // ローカルモード（人間 vs 人間）- 自動選択を実行（遅延なし）
+        setTimeout(() => {
+          get().getRandomPieceForCurrentPlayer();
+        }, 0);
+      }
+      
+    } catch (error) {
+      console.error('[ERROR] switchTurn failed:', error);
+      set({ isAIThinking: false }); // エラー時はAI思考状態をリセット
+    }
+  },
+});
+
+export { createState };
+
+// Zustandのバージョン間の型互換性問題を解決するために型アサーションを使用
+// リセットループを防ぐためにpersistをいったん無効化
+const useJankenGame = create<JankenGameState>()(
+  (createState as any)
+  // 以下のpersistミドルウェアをコメントアウトしてローカルストレージの問題を解決
+  /*
+  persist(
+    (createState as any),
+    {
+      name: 'janken-game-storage',
+      storage: typeof window !== 'undefined' ? createJSONStorage(() => localStorage) : undefined,
+      partialize: (state) => ({
+        player1Inventory: state.player1Inventory,
+        player2Inventory: state.player2Inventory,
+        player1Score: state.player1Score,
+        player2Score: state.player2Score,
+        currentRound: state.currentRound,
+        board: state.board,
+        isAIEnabled: state.isAIEnabled,
+        initialAIDifficulty: state.initialAIDifficulty,
+      }),
+      version: 0,
+    }
+  )
+  */
+);
+
+export default useJankenGame;
+// 名前付きエクスポートも追加
+export { useJankenGame };
+
+const TOTAL_ROUNDS = 20; // 20ラウンド制
+// AIの思考時間（ミリ秒）
+const AI_THINKING_TIME = 1200;

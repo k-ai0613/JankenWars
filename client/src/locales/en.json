@@ -1,0 +1,18 @@
+{
+  "online": {
+    "you": "(You)",
+    "ready": "Ready",
+    "notReady": "Not Ready",
+    "waitingForOpponent": "Waiting for opponent...",
+    "autoReadying": "Auto readying...",
+    "winsSuffix": " wins!"
+  },
+  "pieces": {
+    "rock": "Rock",
+    "paper": "Paper",
+    "scissors": "Scissors",
+    "special": "Special"
+  },
+  "yourTurn": "Your Turn",
+  "aiThinking": "Thinking..."
+} 

@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { Position, PieceType, Player, Board, GameResult } from './types';
+import { Position, PieceType, Player, Board, GameResult, GamePhase, PlayerInventory } from './types';
 
 // Event handlers type definitions
 export interface GameMoveData {
@@ -36,12 +36,37 @@ export interface SocketHandlers {
   onPlayerJoined?: (data: RoomData) => void;
   onPlayerLeft?: (data: { playerId: string, players: RoomPlayerData[] }) => void;
   onPlayerReady?: (data: { playerId: string, ready: boolean, players: RoomPlayerData[] }) => void;
-  onGameStart?: (data: RoomData) => void;
+  onGameStart?: (data: RoomData & { gameState?: GameState }) => void;
   onGameMove?: (data: GameMoveEvent) => void;
   onGameResult?: (result: any) => void;
   onMatchmakingWaiting?: () => void;
   onMatchmakingMatched?: (data: RoomData) => void;
   onMatchmakingCancelled?: () => void;
+  onGameStateUpdate?: (data: { gameState: GameState, moveDetails: MoveDetails }) => void;
+  onRoomLeftSuccess?: () => void;
+  onGameRematchInitiated?: (data: RoomData & { gameState: GameState }) => void;
+}
+
+// ★ 追加: GameState 型 (サーバーから送られてくる完全な状態)
+//    server/routes.ts の GameState と一致させる
+export interface GameState {
+  board: Board;
+  player1Inventory: PlayerInventory;
+  player2Inventory: PlayerInventory;
+  currentPlayer: Player;
+  gamePhase: GamePhase;
+  gameResult: GameResult;
+  lastMove?: { player: Player; piece: PieceType; position: Position } | null;
+}
+
+// ★ 追加: MoveDetails 型 (サーバーから送られてくる手の詳細)
+//    server/routes.ts の game:state:update イベントデータと一致させる
+export interface MoveDetails {
+  player: Player;
+  piece: PieceType;
+  position: Position;
+  capturedPiece: PieceType | null;
+  hasBeenUsed: boolean;
 }
 
 class SocketService {
@@ -54,8 +79,10 @@ class SocketService {
       return;
     }
 
+    const serverUrl = 'http://localhost:5000'; // サーバーのURLを直接指定
+
     // Connect to the server
-    this.socket = io(window.location.origin, {
+    this.socket = io(serverUrl, {
       transports: ['websocket', 'polling']
     });
 
@@ -81,8 +108,13 @@ class SocketService {
       this.handlers.onRoomCreated?.(data);
     });
 
+    this.socket.on('room:joined', (data) => {
+      console.log('Joined room as player:', data);
+      this.handlers.onRoomJoined?.(data);
+    });
+
     this.socket.on('room:player:joined', (data) => {
-      console.log('Player joined room:', data);
+      console.log('Player joined room notification:', data);
       this.handlers.onPlayerJoined?.(data);
     });
 
@@ -132,6 +164,23 @@ class SocketService {
       console.log('Matchmaking cancelled');
       this.handlers.onMatchmakingCancelled?.();
     });
+
+    // ★ 追加: ゲーム状態更新イベントリスナー
+    this.socket.on('game:state:update', (data: { gameState: GameState, moveDetails: MoveDetails }) => {
+      console.log('Game state update received:', data);
+      this.handlers.onGameStateUpdate?.(data);
+    });
+
+    // ★ 追加: ルーム退出成功イベントリスナー
+    this.socket.on('room:left:success', () => {
+      console.log('Successfully left the room.');
+      this.handlers.onRoomLeftSuccess?.();
+    });
+
+    this.socket.on('game:rematch:initiated', (data) => {
+      console.log('[SocketService] game:rematch:initiated event received:', data);
+      this.handlers.onGameRematchInitiated?.(data);
+    });
   }
 
   // Disconnect from the server
@@ -177,25 +226,53 @@ class SocketService {
 
   toggleReady(roomId: string): void {
     if (!this.socket) {
+      console.error("Cannot toggle ready: Socket not connected");
       return;
     }
+    console.log(`Sending player:ready event for room ${roomId}`);
     this.socket.emit('player:ready', roomId);
+  }
+
+  // ★ 追加: ルーム退出アクション
+  leaveRoom(roomId: string): void {
+    if (!this.socket) {
+      console.error("Cannot leave room: Socket not connected");
+      return;
+    }
+    console.log(`Sending room:leave event for room ${roomId}`);
+    this.socket.emit('room:leave', roomId);
   }
 
   // Game actions
   sendGameMove(roomId: string, position: Position, piece: PieceType): void {
     if (!this.socket) {
+      console.error("Cannot send game move: Socket not connected");
       return;
     }
+    console.log(`Sending game:move event for room ${roomId}`, { position, piece });
     this.socket.emit('game:move', roomId, { position, piece });
   }
 
   sendGameResult(roomId: string, result: GameResult): void {
     if (!this.socket) {
+      console.error("Cannot send game result: Socket not connected");
       return;
     }
+    console.log(`Sending game:result event for room ${roomId}`, { result });
     this.socket.emit('game:result', roomId, result);
   }
+
+  // ★★★ 追加: ゲームリセット/再戦要求を送信する関数 ★★★
+  sendResetGameRequest(roomId: string): void {
+    if (!this.socket) {
+      console.error("Cannot send reset game request: Socket not connected");
+      return;
+    }
+    console.log(`Sending game:request_rematch event for room ${roomId}`);
+    // サーバー側で定義するイベント名に合わせてください (例: 'game:request_rematch')
+    this.socket.emit('game:request_rematch', roomId);
+  }
+  // ★★★ ここまで追加 ★★★
 
   // Matchmaking actions
   joinMatchmaking(): void {

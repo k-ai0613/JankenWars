@@ -97,7 +97,7 @@ const defaultTranslations: Record<string, Record<Language, string>> = {
   },
   'game.backToHome': {
     en: 'Back to Home',
-    ja: 'ホームに戻る'
+    ja: 'ホームへ'
   },
   
   // AI関連
@@ -369,7 +369,11 @@ const defaultTranslations: Record<string, Record<Language, string>> = {
   },
   'yourTurn': {
     en: 'Your Turn',
-    ja: 'あなたの番'
+    ja: 'あなたの番です'
+  },
+  'message.currentTurn': {
+    en: 'Current Turn',
+    ja: '現在の番です'
   },
   'waiting': {
     en: 'Waiting',
@@ -382,6 +386,120 @@ const defaultTranslations: Record<string, Record<Language, string>> = {
   'playAgain': {
     en: 'Play Again',
     ja: 'もう一度プレイ'
+  },
+  'online.waitingForAnotherPlayer': {
+    en: 'Waiting for another player...',
+    ja: '対戦相手をオンラインで待機中'
+  },
+  'online.gameStartingSoon': {
+    en: 'Game starting soon...',
+    ja: 'ゲームがすぐに始まります...'
+  },
+  'message.aiThinking': {
+    en: 'AI is thinking...',
+    ja: 'AIが考え中...'
+  },
+  'message.aiSelecting': {
+    en: 'AI is selecting a piece...',
+    ja: 'AIが駒を選択中...'
+  },
+  'message.aiPlacing': {
+    en: 'AI is placing a piece...',
+    ja: 'AIが駒を配置中...'
+  },
+  'message.cannotCapture': {
+    en: 'Cannot capture! Your piece does not beat the opponent piece.',
+    ja: '駒を取れません！あなたの駒は相手の駒に勝てません。'
+  },
+  
+  // GamePage用の追加翻訳
+  'AIモード': {
+    en: 'AI Mode',
+    ja: 'AIモード'
+  },
+  'ローカルゲームモード': {
+    en: 'Local Game Mode',
+    ja: 'ローカルゲームモード'
+  },
+  '⭐ 【AI対戦モード】特殊駒を選択してください（基本駒は自動選択されます）': {
+    en: '⭐ [AI Mode] Select a special piece (basic pieces are auto-selected)',
+    ja: '⭐ 【AI対戦モード】特殊駒を選択してください（基本駒は自動選択されます）'
+  },
+  '🤖 【AI対戦モード】AIが考え中...': {
+    en: '🤖 [AI Mode] AI is thinking...',
+    ja: '🤖 【AI対戦モード】AIが考え中...'
+  },
+  '駒を選択してください': {
+    en: 'Please select a piece',
+    ja: '駒を選択してください'
+  },
+  '⭐ 特殊駒（SPECIAL）が選択されました！配置場所をクリックしてください': {
+    en: '⭐ Special piece selected! Click where to place it',
+    ja: '⭐ 特殊駒（SPECIAL）が選択されました！配置場所をクリックしてください'
+  },
+  '🎯 基本駒（ROCK）が選択されました！配置場所をクリックしてください': {
+    en: '🎯 Rock piece selected! Click where to place it',
+    ja: '🎯 基本駒（ROCK）が選択されました！配置場所をクリックしてください'
+  },
+  '🎯 基本駒（PAPER）が選択されました！配置場所をクリックしてください': {
+    en: '🎯 Paper piece selected! Click where to place it',
+    ja: '🎯 基本駒（PAPER）が選択されました！配置場所をクリックしてください'
+  },
+  '🎯 基本駒（SCISSORS）が選択されました！配置場所をクリックしてください': {
+    en: '🎯 Scissors piece selected! Click where to place it',
+    ja: '🎯 基本駒（SCISSORS）が選択されました！配置場所をクリックしてください'
+  },
+  '✅ ROCKが選択されました！配置場所をクリックしてください': {
+    en: '✅ Rock selected! Click where to place it',
+    ja: '✅ ROCKが選択されました！配置場所をクリックしてください'
+  },
+  '✅ PAPERが選択されました！配置場所をクリックしてください': {
+    en: '✅ Paper selected! Click where to place it',
+    ja: '✅ PAPERが選択されました！配置場所をクリックしてください'
+  },
+  '✅ SCISSORSが選択されました！配置場所をクリックしてください': {
+    en: '✅ Scissors selected! Click where to place it',
+    ja: '✅ SCISSORSが選択されました！配置場所をクリックしてください'
+  },
+  '✅ SPECIALが選択されました！配置場所をクリックしてください': {
+    en: '✅ Special piece selected! Click where to place it',
+    ja: '✅ SPECIALが選択されました！配置場所をクリックしてください'
+  },
+  'ゲームデータを準備中です...': {
+    en: 'Preparing game data...',
+    ja: 'ゲームデータを準備中です...'
+  },
+  
+  // 難易度関連
+  'difficulty.beginner': {
+    en: 'Beginner',
+    ja: '初心者'
+  },
+  'difficulty.easy': {
+    en: 'Easy',
+    ja: '簡単'
+  },
+  'difficulty.normal': {
+    en: 'Normal',
+    ja: '普通'
+  },
+  'difficulty.medium': {
+    en: 'Medium',
+    ja: '中級'
+  },
+  'difficulty.hard': {
+    en: 'Hard',
+    ja: '難しい'
+  },
+  'difficulty.expert': {
+    en: 'Expert',
+    ja: '達人'
+  },
+  
+  // 言語切り替え
+  'toggleLanguage': {
+    en: 'Switch to Japanese',
+    ja: '英語に切り替え'
   }
 };
 

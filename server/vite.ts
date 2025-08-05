@@ -23,10 +23,11 @@ export function log(message: string, source = "express") {
 }
 
 export async function setupVite(app: Express, server: Server) {
+  try {
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
-    allowedHosts: true,
+      allowedHosts: true as true,
   };
 
   const vite = await createViteServer({
@@ -36,7 +37,7 @@ export async function setupVite(app: Express, server: Server) {
       ...viteLogger,
       error: (msg, options) => {
         viteLogger.error(msg, options);
-        process.exit(1);
+          console.error('Vite server error:', msg);
       },
     },
     server: serverOptions,
@@ -55,7 +56,10 @@ export async function setupVite(app: Express, server: Server) {
         "index.html",
       );
 
-      // always reload the index.html file from disk incase it changes
+        if (!fs.existsSync(clientTemplate)) {
+          throw new Error(`Template file not found: ${clientTemplate}`);
+        }
+
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
       template = template.replace(
         `src="/src/main.tsx"`,
@@ -65,24 +69,71 @@ export async function setupVite(app: Express, server: Server) {
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
+        console.error("Vite HTML transform error:", e);
       next(e);
     }
   });
+  } catch (error) {
+    console.error("Failed to setup Vite:", error);
+    serveStatic(app);
+  }
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(__dirname, "public");
+  const distPath = path.resolve(__dirname, "..", "dist", "client");
+  const publicPath = path.resolve(__dirname, "..", "client", "public");
 
-  if (!fs.existsSync(distPath)) {
-    throw new Error(
-      `Could not find the build directory: ${distPath}, make sure to build the client first`,
+  let staticPath;
+  if (fs.existsSync(distPath)) {
+    staticPath = distPath;
+    log(`Using production build from ${distPath}`);
+  } else if (fs.existsSync(publicPath)) {
+    staticPath = publicPath;
+    log(`Using development public folder from ${publicPath}`);
+  } else {
+    const error = new Error(
+      `Could not find static files. Please build the client or ensure the public directory exists.`
     );
+    console.error(error);
+    throw error;
   }
 
-  app.use(express.static(distPath));
+  app.use((req, res, next) => {
+    const url = req.url;
+    if (url.endsWith('.js')) {
+      res.type('application/javascript');
+    } else if (url.endsWith('.css')) {
+      res.type('text/css');
+    } else if (url.endsWith('.json')) {
+      res.type('application/json');
+    } else if (url.endsWith('.png')) {
+      res.type('image/png');
+    } else if (url.endsWith('.jpg') || url.endsWith('.jpeg')) {
+      res.type('image/jpeg');
+    } else if (url.endsWith('.svg')) {
+      res.type('image/svg+xml');
+    } else if (url.endsWith('.ico')) {
+      res.type('image/x-icon');
+    }
+    next();
+  });
 
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+  app.use(express.static(staticPath, {
+    setHeaders: (res, path) => {
+      if (path.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript');
+      } else if (path.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css');
+      }
+    }
+  }));
+
+  app.use("*", (req, res) => {
+    try {
+      res.sendFile(path.resolve(staticPath, "index.html"));
+    } catch (error) {
+      console.error("Error serving index.html:", error);
+      res.status(500).send("Internal Server Error: Could not serve the application");
+    }
   });
 }

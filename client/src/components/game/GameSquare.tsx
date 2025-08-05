@@ -1,162 +1,126 @@
 import React from 'react';
 import { GamePiece } from './GamePiece';
-import { Cell, Position, PieceType, Player } from '../../lib/types';
+import { Cell, Position, PieceType, Player, normalizePlayer } from '../../lib/types';
 import { cn } from '../../lib/utils';
-import { motion } from 'framer-motion';
 import { useJankenGame } from '../../lib/stores/useJankenGame';
 
 interface GameSquareProps {
   cell: Cell;
   position: Position;
   isValidMove: boolean;
+  isWinningCell?: boolean;
   onClick: (position: Position) => void;
+  isMobile?: boolean;
 }
 
 const GameSquare: React.FC<GameSquareProps> = ({ 
   cell, 
   position, 
   isValidMove,
-  onClick 
+  isWinningCell = false,
+  onClick,
+  isMobile = false
 }) => {
-  const { captureAnimation, clearCaptureAnimation, isAIEnabled, isAIThinking, currentPlayer } = useJankenGame();
+  const { isAIEnabled, isAIThinking, currentPlayer, phase, selectedPiece } = useJankenGame();
   
   // AIのターン中かどうかチェック
   const isAITurn = isAIEnabled && currentPlayer === Player.PLAYER2;
   // AI操作中かどうか
   const isDisabledDueToAI = isAITurn || isAIThinking;
   
-  // Check if this square is being captured
-  const isCapturing = captureAnimation?.row === position.row && 
-                      captureAnimation?.col === position.col;
-  
-  // Clear the capture animation after it finishes
-  React.useEffect(() => {
-    if (isCapturing) {
-      const timer = setTimeout(() => {
-        clearCaptureAnimation();
-      }, 800); // Slightly longer than the animation duration
-      
-      return () => clearTimeout(timer);
-    }
-  }, [isCapturing, clearCaptureAnimation]);
-  
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    console.log(`[GameSquare] Clicked cell at (${position.row}, ${position.col}). isValidMove: ${isValidMove}, isDisabledDueToAI: ${isDisabledDueToAI}`);
+    
+    // イベントのデフォルト動作を防止
+    e.preventDefault();
+    e.stopPropagation();
+    
     // AI操作中はクリック無効化
     if (isDisabledDueToAI) {
-      console.log('AI is currently playing, please wait...');
+      console.log('[GameSquare] AI is currently playing, please wait...');
       return;
     }
+    
+    // セルがすでに使用済みの場合もクリックを無効化
+    if (cell.hasBeenUsed && cell.piece !== PieceType.EMPTY) {
+      console.log(`[GameSquare] Cell (${position.row}, ${position.col}) is already occupied.`);
+      return;
+    }
+    
+    // 有効な手かどうかを含めてクリックイベントを親コンポーネントに伝達
+    console.log(`[GameSquare] Sending click event to parent. selectedPiece: ${selectedPiece}`);
     onClick(position);
   };
 
-  // Variants for the cell animation
-  const cellVariants = {
-    idle: {},
-    capturing: {
-      boxShadow: [
-        '0px 0px 0px rgba(245, 158, 11, 0)', 
-        '0px 0px 30px rgba(245, 158, 11, 0.8)', 
-        '0px 0px 0px rgba(245, 158, 11, 0)'
-      ],
-      scale: [1, 1.1, 1],
-      backgroundColor: [
-        'rgba(255, 255, 255, 0)', 
-        'rgba(245, 158, 11, 0.4)', 
-        'rgba(255, 255, 255, 0)'
-      ],
-      rotateZ: [0, 2, -2, 0],
-      transition: {
-        duration: 0.8,
-        times: [0, 0.3, 0.7, 1],
-        ease: "easeInOut"
-      }
-    }
-  };
-
-  // 所有者の文字列表現を直接取得して使用
-  const ownerAsString = String(cell.owner).toUpperCase();
+  // 型安全なPlayer比較のために normalizePlayer を使用
+  const normalizedOwner = normalizePlayer(cell.owner);
   
-  // 明示的な文字列比較で所有者を判定
-  const isPlayer1 = ownerAsString === 'PLAYER1' || ownerAsString.includes('PLAYER1');
-  const isPlayer2 = ownerAsString === 'PLAYER2' || ownerAsString.includes('PLAYER2');
+  // 明示的なEnum比較で所有者を判定
+  const isPlayer1 = normalizedOwner === Player.PLAYER1;
+  const isPlayer2 = normalizedOwner === Player.PLAYER2;
   
-  // 重要なセルの状態のみのデバッグログ
-  if (cell.hasBeenUsed) {
-    console.log(`[GameSquare] Cell at ${position.row},${position.col} hasBeenUsed=true, piece=${cell.piece}, owner=${cell.owner}`);
-  }
-  
-  // 完全に再実装された背景色選択ロジック
+  // シンプルな背景色選択ロジック
   let bgColorClass = "";
   
-  // 極めて明確な条件分岐で背景色を決定 - 同じ濃さに調整
-  if (isValidMove) {
-    // Valid move highlighting - AIのターンの場合は見た目を変える
-    if (isDisabledDueToAI) {
-      bgColorClass = "bg-gray-300 cursor-not-allowed ring-2 ring-gray-400";
+  if (isWinningCell) {
+    if (isPlayer1) {
+      bgColorClass = "bg-blue-500 border-2 border-yellow-300 animate-pulse";
+    } else if (isPlayer2) {
+      bgColorClass = "bg-red-500 border-2 border-yellow-300 animate-pulse";
     } else {
-      bgColorClass = "bg-green-300 cursor-pointer ring-2 ring-green-500 hover:bg-green-400";
+      bgColorClass = "bg-amber-400 border-2 border-yellow-300 animate-pulse";
     }
+  }
+  else if (isValidMove) {
+    bgColorClass = isDisabledDueToAI
+      ? "bg-gray-300 cursor-not-allowed"
+      : "bg-green-300 cursor-pointer hover:bg-green-400";
   } 
-  // じゃんけんバトルセルを判定（hasBeenUsedのみで判断）
   else if (cell.hasBeenUsed) {
-    // Janken battle cell - amber - より鮮やかな色に
-    bgColorClass = "bg-amber-400 ring-2 ring-amber-600";
+    bgColorClass = "bg-amber-400";
   }
   else if (cell.piece !== PieceType.EMPTY) {
-    // 文字列ベースの単純な比較で背景色を選択 - 同じレベルの濃さに調整
     if (isPlayer1) {
-      bgColorClass = "bg-blue-400 ring-2 ring-blue-600"; // Player 1 - BLUE - 色調整
+      bgColorClass = "bg-blue-400";
     } 
     else if (isPlayer2) {
-      bgColorClass = "bg-red-400 ring-2 ring-red-600";  // Player 2 - RED - 色調整
+      bgColorClass = "bg-red-400";
     }
     else {
-      console.warn("Unknown owner string:", { ownerOriginal: cell.owner, ownerAsString });
-      bgColorClass = "bg-purple-400"; // Error indicator
+      bgColorClass = "bg-gray-400";
     }
-  } 
+  }
   else {
-    // Empty cell - AIプレイ中は少し暗く
-    bgColorClass = isDisabledDueToAI ? "bg-gray-100" : "bg-green-50";
+    // AI操作中は通常のセルもクリックできないようにする
+    bgColorClass = isDisabledDueToAI
+      ? "bg-amber-100 cursor-not-allowed"
+      : "bg-amber-100 hover:bg-amber-200 cursor-pointer";
   }
   
   return (
-    <motion.div 
+    <button 
       className={cn(
-        "w-full h-full min-w-[60px] min-h-[60px] flex items-center justify-center relative",
-        "transition-colors duration-200 ease-in-out",
-        "rounded-md overflow-hidden shadow-inner",
-        bgColorClass,
-        (cell.piece !== PieceType.EMPTY) && "bg-opacity-90"
+        "w-full h-full flex items-center justify-center",
+        isMobile ? "min-w-[35px] min-h-[35px]" : "min-w-[45px] min-h-[45px]",
+        "shadow-inner",
+        bgColorClass
       )}
       onClick={handleClick}
       data-testid={`cell-${position.row}-${position.col}`}
-      variants={cellVariants}
-      animate={isCapturing ? "capturing" : "idle"}
-      whileHover={isValidMove ? { scale: 1.03 } : {}}
-      whileTap={isValidMove ? { scale: 0.98 } : {}}
+      data-position={`${position.row}-${position.col}`}
+      data-valid-move={isValidMove.toString()}
+      data-winning-cell={isWinningCell.toString()}
+      disabled={isDisabledDueToAI}
     >
-      {/* Cell border effects - consistent across all cells */}
-      <div className="absolute inset-0 border-2 border-amber-200 opacity-40 rounded-sm pointer-events-none"></div>
-      
-      {/* Light reflection effect */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white to-transparent opacity-10 pointer-events-none"></div>
-      
       {/* Game piece */}
-      {/* プレイヤーに応じた強調オーバーレイ - 固定の不透明度で鮮明に表示 */}
-      {isPlayer1 && cell.piece !== PieceType.EMPTY && (
-        <div className="absolute inset-0 bg-blue-500 opacity-100 z-5 rounded-md"></div>
+      {cell.piece && cell.piece !== PieceType.EMPTY && (
+        <GamePiece
+          type={cell.piece}
+          owner={normalizedOwner}
+          size="auto"
+        />
       )}
-      {isPlayer2 && cell.piece !== PieceType.EMPTY && (
-        <div className="absolute inset-0 bg-red-500 opacity-100 z-5 rounded-md"></div>
-      )}
-      
-      <div className="relative z-10 flex items-center justify-center h-full w-full p-2">
-        {cell.piece !== PieceType.EMPTY && (
-          <GamePiece type={cell.piece} owner={cell.owner} size="lg" />
-        )}
-      </div>
-    </motion.div>
+    </button>
   );
 };
 
