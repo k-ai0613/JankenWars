@@ -80,23 +80,40 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(__dirname, "..", "dist", "public");
-  const distClientPath = path.resolve(__dirname, "..", "dist", "client");
-  const publicPath = path.resolve(__dirname, "..", "client", "public");
+  // Try multiple possible paths for static files
+  const possiblePaths = [
+    path.resolve(__dirname, "..", "dist", "public"),
+    path.resolve(__dirname, "..", "dist", "client"),
+    path.resolve(process.cwd(), "dist", "public"),
+    path.resolve(process.cwd(), "dist", "client"),
+    path.resolve(__dirname, "..", "client", "public"),
+    path.resolve(process.cwd(), "client", "public"),
+    path.resolve(__dirname, "..", "src", "client", "public"),
+    path.resolve(process.cwd(), "src", "client", "public")
+  ];
 
   let staticPath;
-  if (fs.existsSync(distPath)) {
-    staticPath = distPath;
-    log(`Using production build from ${distPath}`);
-  } else if (fs.existsSync(distClientPath)) {
-    staticPath = distClientPath;
-    log(`Using production build from ${distClientPath}`);
-  } else if (fs.existsSync(publicPath)) {
-    staticPath = publicPath;
-    log(`Using development public folder from ${publicPath}`);
-  } else {
+  let foundPath = false;
+  
+  for (const checkPath of possiblePaths) {
+    log(`Checking for static files at: ${checkPath}`);
+    if (fs.existsSync(checkPath)) {
+      // Check if index.html exists in this path
+      const indexPath = path.join(checkPath, "index.html");
+      if (fs.existsSync(indexPath)) {
+        staticPath = checkPath;
+        foundPath = true;
+        log(`Found static files with index.html at: ${staticPath}`);
+        break;
+      } else {
+        log(`Path exists but no index.html found at: ${indexPath}`);
+      }
+    }
+  }
+  
+  if (!foundPath) {
     const error = new Error(
-      `Could not find static files. Please build the client or ensure the public directory exists.`
+      `Could not find static files with index.html. Checked paths:\n${possiblePaths.join('\n')}`
     );
     console.error(error);
     throw error;
