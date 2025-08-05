@@ -80,13 +80,17 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(__dirname, "..", "dist", "client");
+  const distPath = path.resolve(__dirname, "..", "dist", "public");
+  const distClientPath = path.resolve(__dirname, "..", "dist", "client");
   const publicPath = path.resolve(__dirname, "..", "client", "public");
 
   let staticPath;
   if (fs.existsSync(distPath)) {
     staticPath = distPath;
     log(`Using production build from ${distPath}`);
+  } else if (fs.existsSync(distClientPath)) {
+    staticPath = distClientPath;
+    log(`Using production build from ${distClientPath}`);
   } else if (fs.existsSync(publicPath)) {
     staticPath = publicPath;
     log(`Using development public folder from ${publicPath}`);
