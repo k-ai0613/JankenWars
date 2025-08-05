@@ -14,7 +14,7 @@ import {
   Position,
   Cell,
   WinningLine,
-} from "../client/src/lib/types";
+} from "./types.js";
 import {
   createEmptyBoard,
   createInitialInventory,
@@ -22,7 +22,7 @@ import {
   checkWin,
   checkDraw,
   findWinningLine,
-} from "../client/src/lib/gameUtils";
+} from "./gameUtils.js";
 
 // サーバーの起動時間を記録
 const SERVER_START_TIME = new Date();
