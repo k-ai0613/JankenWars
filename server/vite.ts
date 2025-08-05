@@ -82,12 +82,12 @@ export async function setupVite(app: Express, server: Server) {
 export function serveStatic(app: Express) {
   // Try multiple possible paths for static files
   const possiblePaths = [
-    // Production build paths (when running from dist/)
-    path.resolve(__dirname, "public"), // dist/public when running from dist/
+    // Production build paths (built by vite build)
     path.resolve(process.cwd(), "dist", "public"),
-    // Development paths (when running with tsx from server/)
     path.resolve(__dirname, "..", "dist", "public"),
+    // If running from server/ directory in src/ (Render's structure)
     path.resolve(__dirname, "..", "..", "dist", "public"),
+    // Development fallback paths
     path.resolve(process.cwd(), "client", "public"),
     path.resolve(__dirname, "..", "client", "public")
   ];
