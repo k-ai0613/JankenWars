@@ -1,5 +1,5 @@
 {
-  "include": ["server/**/*"],
+  "include": ["server/**/*", "shared/**/*"],
   "exclude": ["node_modules", "build", "dist", "**/*.test.ts", "client/**/*"],
   "compilerOptions": {
     "incremental": true,
@@ -15,6 +15,9 @@
     "moduleResolution": "node",
     "baseUrl": ".",
     "types": ["node"],
+    "paths": {
+      "@shared/*": ["./shared/*"]
+    },
     "noImplicitAny": false
   }
 }
