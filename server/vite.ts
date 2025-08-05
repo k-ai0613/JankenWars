@@ -82,14 +82,17 @@ export async function setupVite(app: Express, server: Server) {
 export function serveStatic(app: Express) {
   // Try multiple possible paths for static files
   const possiblePaths = [
-    path.resolve(__dirname, "..", "dist", "public"),
-    path.resolve(__dirname, "..", "dist", "client"),
+    // Production build paths (most likely)
     path.resolve(process.cwd(), "dist", "public"),
+    path.resolve(__dirname, "..", "..", "dist", "public"), // Go up from server/ to root
+    path.resolve(__dirname, "..", "dist", "public"),
     path.resolve(process.cwd(), "dist", "client"),
-    path.resolve(__dirname, "..", "client", "public"),
+    path.resolve(__dirname, "..", "..", "dist", "client"),
+    path.resolve(__dirname, "..", "dist", "client"),
+    // Development fallback paths
     path.resolve(process.cwd(), "client", "public"),
-    path.resolve(__dirname, "..", "src", "client", "public"),
-    path.resolve(process.cwd(), "src", "client", "public")
+    path.resolve(__dirname, "..", "..", "client", "public"),
+    path.resolve(__dirname, "..", "client", "public")
   ];
 
   let staticPath;
