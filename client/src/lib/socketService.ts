@@ -79,7 +79,9 @@ class SocketService {
       return;
     }
 
-    const serverUrl = 'http://localhost:5000'; // サーバーのURLを直接指定
+    // 環境変数またはデフォルト値を使用
+    const serverUrl = import.meta.env.VITE_SOCKET_URL || 
+                     (import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin);
 
     // Connect to the server
     this.socket = io(serverUrl, {

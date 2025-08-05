@@ -100,6 +100,43 @@ JankenWars/
 - `npm run lint` - Run ESLint
 - `npm run type-check` - Run TypeScript type checking
 
+## Deployment
+
+### Option 1: Deploy with Backend (Full Online Multiplayer)
+
+To enable online multiplayer, you need to deploy both the backend server and frontend:
+
+#### Backend Deployment Options:
+- **Render**: Free tier available, supports Node.js
+- **Railway**: Simple deployment with GitHub integration
+- **Heroku**: Reliable but requires paid plan
+- **AWS/GCP/Azure**: For production-scale deployment
+
+#### Steps:
+1. Set the `VITE_SOCKET_URL` environment variable to your backend URL
+2. Deploy the backend (Express + Socket.io server)
+3. Build and deploy the frontend with: `npm run build`
+
+### Option 2: Static Deployment (Local Play Only)
+
+For local play only (vs AI), you can deploy as a static site:
+
+- **GitHub Pages**: Free hosting for static sites
+- **Netlify**: Auto-deploy from GitHub
+- **Vercel**: Excellent for React apps
+
+Note: Online multiplayer will NOT work without a backend server.
+
+## Environment Variables
+
+Create a `.env` file for local development:
+
+```bash
+# Socket.io server URL (for online multiplayer)
+VITE_SOCKET_URL=http://localhost:5000  # Development
+# VITE_SOCKET_URL=https://your-backend-url.com  # Production
+```
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
