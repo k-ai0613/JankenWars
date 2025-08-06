@@ -439,7 +439,8 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
           ...resetBoardAndInventories(),
           currentPlayer: Player.PLAYER1, 
           aiSelectedPiece: null, 
-          selectedPiece: null 
+          selectedPiece: null,
+          localPlayerNumber: (me?.playerNumber as 1 | 2) ?? get().localPlayerNumber
         });
         
         console.log('Game started successfully! New game phase:', GamePhase.SELECTING_CELL);

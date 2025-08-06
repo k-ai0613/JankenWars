@@ -725,12 +725,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           players: {
             [player1.socketId]: {
               username: player1.username,
-              ready: false,
+              ready: true,
               playerNumber: 1
             },
             [player2.socketId]: {
               username: player2.username,
-              ready: false,
+              ready: true,
               playerNumber: 2
             }
           },
@@ -751,13 +751,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               id: player1.socketId,
               username: player1.username,
               playerNumber: 1,
-              ready: false
+              ready: true
             },
             {
               id: player2.socketId,
               username: player2.username,
               playerNumber: 2,
-              ready: false
+              ready: true
             }
           ]
         });

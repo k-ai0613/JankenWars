@@ -526,7 +526,7 @@ export function OnlineGamePage() {
               </h3>
               <div className="space-y-3">
                 {players.map((player, index) => {
-                  const playerNumber = (index + 1) as 1 | 2;
+                  const playerNumber = player.playerNumber as 1 | 2;
                   const isLocal = localPlayerNumber === playerNumber;
                   const isCurrent = currentPlayer === (playerNumber === 1 ? Player.PLAYER1 : Player.PLAYER2);
                   const inventory = playerNumber === 1 ? player1Inventory : player2Inventory;
