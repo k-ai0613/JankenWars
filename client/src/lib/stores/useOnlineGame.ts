@@ -279,27 +279,32 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
         ...resetBoardAndInventories()
       });
 
-      // 部屋に参加したら、自動的に準備完了状態に設定
-      setTimeout(() => {
-        const { roomId } = get();
-        if (roomId) {
-          console.log('Auto setting player ready after joining room');
-          socketService.toggleReady(roomId);
-        }
-      }, 500);
-      
-      // すでに2人揃っていて、相手が準備完了している場合は即座にready
-      if (data.players.length === 2) {
-        const opponent = data.players.find(p => p.id !== myId);
-        if (opponent?.ready) {
-          console.log('Opponent is already ready, setting self ready immediately');
+      // 自分がまだ準備未完了の場合のみ自動で準備完了に設定
+      if (me && !me.ready) {
+        // すでに2人揃っていて、相手が準備完了している場合は即座にready
+        if (data.players.length === 2) {
+          const opponent = data.players.find(p => p.id !== myId);
+          if (opponent?.ready) {
+            console.log('Opponent is already ready, setting self ready immediately');
+            setTimeout(() => {
+              const { roomId } = get();
+              if (roomId) {
+                socketService.toggleReady(roomId);
+              }
+            }, 100);
+          }
+        } else {
+          // 1人だけの場合は少し遅延してから準備完了に
           setTimeout(() => {
             const { roomId } = get();
             if (roomId) {
+              console.log('Auto setting player ready after joining room');
               socketService.toggleReady(roomId);
             }
-          }, 100);
+          }, 500);
         }
+      } else if (me?.ready) {
+        console.log('Player is already ready - skipping auto-ready logic');
       }
     });
     console.log('Set phase to READY in handleRoomJoined');
