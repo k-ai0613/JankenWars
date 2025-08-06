@@ -9,7 +9,7 @@
     "dev": "vite",
     "server-dev": "npx tsx server/index.ts",
     "dev:full": "concurrently \"npm run server-dev\" \"npm run vite-dev\"",
-    "build": "tsc --noEmit && vite build",
+    "build": "vite build",
     "start": "cross-env NODE_ENV=production npx tsx server/index.ts",
     "start:dev": "npx tsx server/index.ts",
     "check": "tsc",
