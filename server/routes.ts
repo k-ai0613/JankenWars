@@ -385,6 +385,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         socket.to(roomId).emit("room:player:joined", roomDataForJoiner);
         
         log(`Player joined room: ${username} joined ${roomId}`);
+        
+        // 新規参加後にゲーム開始条件をチェック
+        const allReady = Object.values(room.players).every(p => p.ready);
+        const currentPlayerCount = Object.keys(room.players).length;
+        
+        log(`Room ${roomId}: playerCount=${currentPlayerCount}, allReady=${allReady}, inProgress=${room.inProgress}`);
+        log(`Players ready status: ${JSON.stringify(Object.entries(room.players).map(([id, data]) => ({id: id.substring(0,8), username: data.username, ready: data.ready})))}`);
+        
+        if (allReady && currentPlayerCount === 2 && !room.inProgress) {
+          room.inProgress = true;
+          room.gameState = {
+            currentTurn: 1,
+            player1Pieces: { rock: 5, paper: 5, scissors: 5 },
+            player2Pieces: { rock: 5, paper: 5, scissors: 5 },
+            board: Array(9).fill(null),
+            moveHistory: []
+          };
+          
+          const playersArray = Object.entries(room.players).map(([id, data]) => ({
+            id,
+            username: data.username,
+            playerNumber: data.playerNumber,
+            ready: data.ready
+          }));
+          
+          io.to(roomId).emit("game:start", {
+            roomId,
+            players: playersArray,
+            gameState: room.gameState
+          });
+          
+          log(`Game started in room ${roomId}`);
+        }
       }
     });
     
