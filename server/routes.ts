@@ -275,8 +275,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const playerCount = Object.keys(room.players).length;
       
       // 既存のプレイヤーが再接続しようとしているかチェック
-      const existingPlayerEntry = Object.entries(room.players).find(([_, data]) => 
-        data.username === username
+      // 同じユーザー名で、かつそのソケットが切断されている（存在しない）場合のみ再接続とみなす
+      const existingPlayerEntry = Object.entries(room.players).find(([socketId, data]) => 
+        data.username === username && !io.sockets.sockets.has(socketId)
       );
       
       if (existingPlayerEntry && playerCount <= 2) {
