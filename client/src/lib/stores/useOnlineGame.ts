@@ -287,6 +287,20 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
           socketService.toggleReady(roomId);
         }
       }, 500);
+      
+      // すでに2人揃っていて、相手が準備完了している場合は即座にready
+      if (data.players.length === 2) {
+        const opponent = data.players.find(p => p.id !== myId);
+        if (opponent?.ready) {
+          console.log('Opponent is already ready, setting self ready immediately');
+          setTimeout(() => {
+            const { roomId } = get();
+            if (roomId) {
+              socketService.toggleReady(roomId);
+            }
+          }, 100);
+        }
+      }
     });
     console.log('Set phase to READY in handleRoomJoined');
     

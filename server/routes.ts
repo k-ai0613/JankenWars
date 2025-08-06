@@ -380,6 +380,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allReady = Object.values(room.players).every(p => p.ready);
       const playerCount = Object.keys(room.players).length;
       
+      log(`Room ${roomId}: playerCount=${playerCount}, allReady=${allReady}, inProgress=${room.inProgress}`);
+      log(`Players ready status: ${JSON.stringify(Object.entries(room.players).map(([id, data]) => ({id: id.substring(0,8), username: data.username, ready: data.ready})))}`);
+      
       if (allReady && playerCount === 2 && !room.inProgress) {
         room.inProgress = true;
         room.gameState = {
@@ -403,7 +406,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })),
           gameState: room.gameState
         });
-        log(`Game started in room ${roomId}`);
+        log(`Game started in room ${roomId} with ${playerCount} players`);
       }
     });
     
