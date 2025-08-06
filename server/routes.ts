@@ -482,6 +482,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           gameState: room.gameState
         });
         log(`Game started in room ${roomId} with ${playerCount} players`);
+        log(`Players with numbers: ${JSON.stringify(Object.entries(room.players).map(([id, data]) => ({id: id.substring(0,8), username: data.username, playerNumber: data.playerNumber})))}`);
       }
     });
     

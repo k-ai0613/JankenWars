@@ -424,6 +424,13 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
     console.log('Current game phase before start:', get().gamePhase);
     console.log('Players ready status:', get().players.map(p => `${p.username}: ${p.ready}`));
     
+    const myId = socketService.getSocketId();
+    const me = data.players.find(p => p.id === myId);
+    console.log('My socket ID:', myId);
+    console.log('My player info from game start:', me);
+    console.log('All players from game start:', data.players.map(p => ({id: p.id.substring(0,8), username: p.username, playerNumber: p.playerNumber})));
+    console.log('Current localPlayerNumber in state:', get().localPlayerNumber);
+    
     startTransition(() => {
       try {
         set({
