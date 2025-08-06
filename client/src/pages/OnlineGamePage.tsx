@@ -494,7 +494,22 @@ export function OnlineGamePage() {
                 </div>
                 <button
                   className="px-3 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-r-lg border border-sky-500 transition-colors flex items-center"
-                  onClick={() => navigator.clipboard.writeText(roomId)}
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(roomId);
+                      // コピー成功の通知（オプション）
+                    } catch (err) {
+                      // フォールバック: テキストエリアを使用した古い方式
+                      const textArea = document.createElement('textarea');
+                      textArea.value = roomId;
+                      textArea.style.position = 'fixed';
+                      textArea.style.opacity = '0';
+                      document.body.appendChild(textArea);
+                      textArea.select();
+                      document.execCommand('copy');
+                      document.body.removeChild(textArea);
+                    }
+                  }}
                   aria-label={t('online.copyRoomCode')}
                 >
                   <FaCopy className="text-lg" />

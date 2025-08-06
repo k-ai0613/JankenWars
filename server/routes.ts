@@ -261,12 +261,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ready: data.ready
           }))
         });
+        
+        // 進行中のゲームの状態を送信
+        if (room.gameState) {
+          socket.emit("game:state:update", {
+            gameState: room.gameState,
+            moveDetails: null // 初回同期時は移動詳細なし
+          });
+        }
         return;
       }
       
       const playerCount = Object.keys(room.players).length;
       
-      if (playerCount >= 2) {
+      // 既存のプレイヤーが再接続しようとしているかチェック
+      const existingPlayerEntry = Object.entries(room.players).find(([_, data]) => 
+        data.username === username
+      );
+      
+      if (existingPlayerEntry && playerCount <= 2) {
+        // 既存プレイヤーの再接続 - socket IDを更新
+        const [oldSocketId, playerData] = existingPlayerEntry;
+        delete room.players[oldSocketId];
+        room.players[socket.id] = playerData;
+        
+        socket.join(roomId);
+        
+        const roomDataForRejoining = {
+          roomId,
+          players: Object.entries(room.players).map(([id, data]) => ({
+            id,
+            username: data.username,
+            playerNumber: data.playerNumber as 1 | 2,
+            ready: data.ready
+          }))
+        };
+        
+        socket.emit("room:joined", roomDataForRejoining);
+        socket.to(roomId).emit("room:player:joined", roomDataForRejoining);
+        
+        // 進行中のゲームがあれば状態を同期
+        if (room.inProgress && room.gameState) {
+          socket.emit("game:state:update", {
+            gameState: room.gameState,
+            moveDetails: null
+          });
+        }
+        
+        log(`Player rejoined room: ${username} rejoined ${roomId} with new socket ${socket.id}`);
+      } else if (playerCount >= 2) {
         room.spectators.push(socket.id);
         socket.join(roomId);
         socket.emit("room:joined:spectator", {
@@ -278,6 +321,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ready: data.ready
           }))
         });
+        
+        // 進行中のゲームの状態を観戦者にも送信
+        if (room.inProgress && room.gameState) {
+          socket.emit("game:state:update", {
+            gameState: room.gameState,
+            moveDetails: null
+          });
+        }
       } else {
         room.players[socket.id] = {
           username,
