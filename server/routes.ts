@@ -4,6 +4,12 @@ import { Server as SocketIOServer } from "socket.io";
 import { storage } from "./storage.js";
 import { v4 as uuidv4 } from "uuid";
 import { log } from "./vite.js";
+import { 
+  validateRoomId, 
+  validateUsername, 
+  validateGameMove,
+  rateLimiter
+} from "./security.js";
 import {
   Board,
   Player,
@@ -118,8 +124,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     log(`New client connected: ${socket.id}`);
     
     socket.on("user:join", (username: string) => {
-      log(`User joined: ${username} (${socket.id})`);
+      // ユーザー名の検証
+      if (!username || !validateUsername(username)) {
+        socket.emit("error", { message: "Invalid username. Use 3-20 alphanumeric characters." });
+        return;
+      }
       
+      log(`User joined: ${username} (${socket.id})`);
       socket.data.username = username;
     });
     
@@ -164,6 +175,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     socket.on("room:join", (roomId: string) => {
+      // ルームIDの検証
+      if (!roomId || !validateRoomId(roomId)) {
+        socket.emit("error", { message: "Invalid room ID" });
+        return;
+      }
+      
       log(`Received room:join request for roomId: ${roomId}`);
       log(`Current gameRooms: ${JSON.stringify(Object.keys(gameRooms))}`);
       const room = gameRooms[roomId];
@@ -284,6 +301,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     socket.on("game:move", (data: { roomId: string, position: Position, piece: PieceType }) => {
       const { roomId, position, piece } = data;
+      
+      // 入力検証
+      if (!validateRoomId(roomId)) {
+        socket.emit("error", { message: "Invalid room ID" });
+        return;
+      }
+      
+      if (!validateGameMove(position, piece)) {
+        socket.emit("error", { message: "Invalid move data" });
+        return;
+      }
+      
       const room = gameRooms[roomId];
       
       if (!room) {

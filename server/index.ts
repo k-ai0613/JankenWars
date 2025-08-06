@@ -1,27 +1,48 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes.js";
 import { setupVite, serveStatic, log } from "./vite.js";
+import { rateLimiter, validateInput } from "./security.js";
 
 const app = express();
 
 // セッション安定性のための設定
-app.use(express.json({ limit: '10mb' })); // ペイロードサイズ制限を追加
-app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+app.use(express.json({ limit: '100kb' })); // ペイロードサイズ制限を強化
+app.use(express.urlencoded({ extended: false, limit: '100kb' }));
+
+// レート制限と入力検証
+app.use('/api', rateLimiter(100, 60000)); // 1分間に100リクエストまで
+app.use(validateInput);
 
 // Keep-Alive設定でコネクション安定化
 app.set('trust proxy', 1);
 
-// セッション関連のヘッダー設定
+// セキュリティヘッダーとCORS設定
 app.use((req, res, next) => {
   // Keep-Alive設定
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('Keep-Alive', 'timeout=30, max=1000');
   
-  // CORS設定の改善
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Max-Age', '86400'); // 24時間キャッシュ
+  // CORS設定 - 本番環境では特定のオリジンのみ許可
+  const allowedOrigins = process.env.NODE_ENV === 'production' 
+    ? ['https://jankenwars.onrender.com'] 
+    : ['http://localhost:5173', 'http://localhost:5000'];
+  
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Max-Age', '86400');
+  
+  // セキュリティヘッダー
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws: wss:;");
   
   next();
 });
