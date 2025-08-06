@@ -322,10 +322,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           room.inProgress = true;
           room.gameState = {
             currentTurn: 1,
+            currentPlayer: Player.PLAYER1,
             player1Pieces: { rock: 5, paper: 5, scissors: 5 },
             player2Pieces: { rock: 5, paper: 5, scissors: 5 },
-            board: Array(9).fill(null),
-            moveHistory: []
+            player1Inventory: { rock: 5, paper: 5, scissors: 5 },
+            player2Inventory: { rock: 5, paper: 5, scissors: 5 },
+            board: Array(3).fill(null).map(() => Array(3).fill(null).map(() => ({ piece: PieceType.EMPTY, owner: Player.NONE, hasBeenUsed: false }))),
+            moveHistory: [],
+            gamePhase: GamePhase.PLAYING
           };
           
           const playersArray = Object.entries(room.players).map(([id, data]) => ({
@@ -398,10 +402,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           room.inProgress = true;
           room.gameState = {
             currentTurn: 1,
+            currentPlayer: Player.PLAYER1,
             player1Pieces: { rock: 5, paper: 5, scissors: 5 },
             player2Pieces: { rock: 5, paper: 5, scissors: 5 },
-            board: Array(9).fill(null),
-            moveHistory: []
+            player1Inventory: { rock: 5, paper: 5, scissors: 5 },
+            player2Inventory: { rock: 5, paper: 5, scissors: 5 },
+            board: Array(3).fill(null).map(() => Array(3).fill(null).map(() => ({ piece: PieceType.EMPTY, owner: Player.NONE, hasBeenUsed: false }))),
+            moveHistory: [],
+            gamePhase: GamePhase.PLAYING
           };
           
           const playersArray = Object.entries(room.players).map(([id, data]) => ({
@@ -516,7 +524,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const isPlayer1 = playerInfo.playerNumber === 1;
       const isPlayer2 = playerInfo.playerNumber === 2;
-      const currentPlayer = gameState.currentPlayer;
+      const currentPlayer = gameState.currentPlayer || (gameState.currentTurn === 1 ? Player.PLAYER1 : Player.PLAYER2);
       
       if ((isPlayer1 && currentPlayer !== Player.PLAYER1) || (isPlayer2 && currentPlayer !== Player.PLAYER2)) {
         socket.emit("error", { message: "Not your turn" });
@@ -573,6 +581,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         // Switch turn
         gameState.currentPlayer = currentPlayer === Player.PLAYER1 ? Player.PLAYER2 : Player.PLAYER1;
+        gameState.currentTurn = gameState.currentTurn === 1 ? 2 : 1;
       }
       
       // Update the game state

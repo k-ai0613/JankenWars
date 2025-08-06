@@ -252,7 +252,7 @@ class SocketService {
       return;
     }
     console.log(`Sending game:move event for room ${roomId}`, { position, piece });
-    this.socket.emit('game:move', roomId, { position, piece });
+    this.socket.emit('game:move', { roomId, position, piece });
   }
 
   sendGameResult(roomId: string, result: GameResult): void {
