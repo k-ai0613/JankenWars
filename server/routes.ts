@@ -67,11 +67,60 @@ interface GameRoom {
   gameState: GameState | null;
   inProgress: boolean;
   spectators: string[];
+  createdAt: number;
+  lastActivity: number;
+  pendingDeletion?: number; // タイムスタンプ
 }
 
 const gameRooms: { [roomId: string]: GameRoom } = {};
 
 let waitingUsers: { socketId: string, username: string }[] = [];
+
+// ルーム管理設定
+const ROOM_EMPTY_TIMEOUT = 5 * 60 * 1000; // 5分間空のルームを保持
+const ROOM_CLEANUP_INTERVAL = 60 * 1000; // 1分ごとにクリーンアップチェック
+const ROOM_MAX_LIFETIME = 24 * 60 * 60 * 1000; // 24時間で自動削除
+
+// ルームクリーンアップ処理
+setInterval(() => {
+  const now = Date.now();
+  Object.entries(gameRooms).forEach(([roomId, room]) => {
+    const playerCount = Object.keys(room.players).length;
+    const roomAge = now - room.createdAt;
+    const inactiveTime = now - room.lastActivity;
+    
+    // 24時間経過したルームを削除
+    if (roomAge > ROOM_MAX_LIFETIME) {
+      delete gameRooms[roomId];
+      log(`Room ${roomId} deleted (exceeded max lifetime)`);
+      return;
+    }
+    
+    // 空のルームで削除待ちの処理
+    if (playerCount === 0) {
+      if (!room.pendingDeletion) {
+        room.pendingDeletion = now + ROOM_EMPTY_TIMEOUT;
+        log(`Room ${roomId} marked for deletion in 5 minutes`);
+      } else if (now >= room.pendingDeletion) {
+        delete gameRooms[roomId];
+        log(`Room ${roomId} deleted (empty timeout)`);
+      }
+    } else {
+      // プレイヤーが戻ってきた場合、削除予定をキャンセル
+      if (room.pendingDeletion) {
+        delete room.pendingDeletion;
+        log(`Room ${roomId} deletion cancelled (player returned)`);
+      }
+    }
+  });
+}, ROOM_CLEANUP_INTERVAL);
+
+// ルームの最終活動時間を更新する関数
+function updateRoomActivity(roomId: string) {
+  if (gameRooms[roomId]) {
+    gameRooms[roomId].lastActivity = Date.now();
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // ヘルスチェックエンドポイント
@@ -139,6 +188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const roomId = uuidv4().substring(0, 8);
         const username = socket.data.username || "Anonymous";
         
+        const now = Date.now();
         gameRooms[roomId] = {
           id: roomId,
           players: {
@@ -150,7 +200,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
           gameState: null,
           inProgress: false,
-          spectators: []
+          spectators: [],
+          createdAt: now,
+          lastActivity: now
         };
         
         socket.join(roomId);
@@ -193,6 +245,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         socket.emit("error", { message: "Room not found" });
         return;
       }
+      
+      // ルームの活動時間を更新
+      updateRoomActivity(roomId);
       
       if (room.inProgress) {
         room.spectators.push(socket.id);
@@ -256,6 +311,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return;
       }
       
+      updateRoomActivity(roomId);
+      
       room.players[socket.id].ready = !room.players[socket.id].ready;
       
       io.to(roomId).emit("room:player:ready", {
@@ -307,6 +364,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         socket.emit("error", { message: "Invalid room ID" });
         return;
       }
+      
+      updateRoomActivity(roomId);
       
       if (!validateGameMove(position, piece)) {
         socket.emit("error", { message: "Invalid move data" });
@@ -429,6 +488,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         socket.emit("error", { message: "Room not found for rematch request." });
         return;
       }
+      
+      updateRoomActivity(roomId);
 
       if (!room.players[playerSocketId]) {
         log(`[game:request_rematch] Player ${playerSocketId} not in room ${roomId}.`);
@@ -482,8 +543,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const remainingPlayers = Object.keys(room.players).length;
 
         if (remainingPlayers === 0) {
-          delete gameRooms[roomId];
-          log(`Room ${roomId} deleted because it became empty.`);
+          // 即座に削除せず、タイムアウト設定
+          if (!room.pendingDeletion) {
+            room.pendingDeletion = Date.now() + ROOM_EMPTY_TIMEOUT;
+            log(`Room ${roomId} marked for deletion (became empty)`);
+          }
         } else {
           io.to(roomId).emit("player:left", {
             playerId: playerSocketId,
@@ -524,6 +588,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const roomId = uuidv4().substring(0, 8);
         
+        const now = Date.now();
         gameRooms[roomId] = {
           id: roomId,
           players: {
@@ -540,7 +605,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
           gameState: null,
           inProgress: false,
-          spectators: []
+          spectators: [],
+          createdAt: now,
+          lastActivity: now
         };
         
         io.sockets.sockets.get(player1.socketId)?.join(roomId);
@@ -585,8 +652,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           delete room.players[socket.id];
           
           if (Object.keys(room.players).length === 0) {
-            delete gameRooms[roomId];
-            log(`Room ${roomId} deleted (empty)`);
+            // 即座に削除せず、タイムアウト設定
+            if (!room.pendingDeletion) {
+              room.pendingDeletion = Date.now() + ROOM_EMPTY_TIMEOUT;
+              log(`Room ${roomId} marked for deletion after disconnect`);
+            }
           } else {
             io.to(roomId).emit("player:left", {
               playerId: socket.id,
