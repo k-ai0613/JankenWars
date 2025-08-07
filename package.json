@@ -10,7 +10,7 @@
     "server-dev": "npx tsx server/index.ts",
     "dev:full": "concurrently \"npm run server-dev\" \"npm run vite-dev\"",
     "build": "vite build && tsc",
-    "start": "node dist/server/index.js",
+    "start": "ls -la && ls -la dist && ls -la dist/server && node dist/server/index.js",
     "start:dev": "npx tsx server/index.ts",
     "check": "tsc",
     "db:push": "drizzle-kit push",
