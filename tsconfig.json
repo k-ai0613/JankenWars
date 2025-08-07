@@ -1,18 +1,19 @@
 {
   "include": ["server/**/*", "shared/**/*"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts", "client/**/*"],
+  "exclude": ["node_modules", "build", "**/*.test.ts", "client/**/*"],
   "compilerOptions": {
     "incremental": true,
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
     "noEmit": false,
     "outDir": "./dist",
-    "module": "ESNext",
+    "module": "Node16",
     "target": "ES2022",
     "strict": true,
-    "lib": ["esnext"],
+    "lib": ["ES2022"],
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "skipLibCheck": true,
-    "moduleResolution": "node",
+    "moduleResolution": "node16",
     "baseUrl": ".",
     "types": ["node"],
     "paths": {
