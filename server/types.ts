@@ -1,5 +1,6 @@
 // Server-side type definitions
 export enum Player {
+  NONE = 0,
   PLAYER1 = 1,
   PLAYER2 = 2,
 }
@@ -14,6 +15,7 @@ export enum PieceType {
 
 export enum GamePhase {
   READY = "ready",
+  PLAYING = "playing",
   SELECTING_CELL = "selecting_cell", 
   PLACING_PIECE = "placing_piece",
   GAME_OVER = "game_over",
@@ -46,8 +48,8 @@ export interface WinningLine {
 export type Board = Cell[][];
 
 export interface PlayerInventory {
-  [PieceType.ROCK]: number;
-  [PieceType.PAPER]: number;
-  [PieceType.SCISSORS]: number;
-  [PieceType.FLAG]: number;
+  rock: number;
+  paper: number;
+  scissors: number;
+  flag: number;
 }

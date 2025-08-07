@@ -17,10 +17,10 @@ export function createEmptyBoard(): Board {
 
 export function createInitialInventory(): PlayerInventory {
   return {
-    [PieceType.ROCK]: 2,
-    [PieceType.PAPER]: 2,
-    [PieceType.SCISSORS]: 2,
-    [PieceType.FLAG]: 2,
+    rock: 2,
+    paper: 2,
+    scissors: 2,
+    flag: 2,
   };
 }
 

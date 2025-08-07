@@ -49,6 +49,7 @@ interface GameState {
   player1Inventory: PlayerInventory;
   player2Inventory: PlayerInventory;
   currentPlayer: Player;
+  currentTurn: number;
   gamePhase: GamePhase;
   gameResult: GameResult;
   lastMove?: { player: Player; piece: PieceType; position: Position } | null;
@@ -323,13 +324,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           room.gameState = {
             currentTurn: 1,
             currentPlayer: Player.PLAYER1,
-            player1Pieces: { rock: 5, paper: 5, scissors: 5 },
-            player2Pieces: { rock: 5, paper: 5, scissors: 5 },
-            player1Inventory: { rock: 5, paper: 5, scissors: 5 },
-            player2Inventory: { rock: 5, paper: 5, scissors: 5 },
+            player1Inventory: { rock: 5, paper: 5, scissors: 5, flag: 1 },
+            player2Inventory: { rock: 5, paper: 5, scissors: 5, flag: 1 },
             board: Array(3).fill(null).map(() => Array(3).fill(null).map(() => ({ piece: PieceType.EMPTY, owner: Player.NONE, hasBeenUsed: false }))),
-            moveHistory: [],
-            gamePhase: GamePhase.PLAYING
+            gamePhase: GamePhase.PLAYING,
+            gameResult: GameResult.ONGOING,
+            lastMove: null,
+            winningLine: null
           };
           
           const playersArray = Object.entries(room.players).map(([id, data]) => ({
@@ -403,13 +404,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           room.gameState = {
             currentTurn: 1,
             currentPlayer: Player.PLAYER1,
-            player1Pieces: { rock: 5, paper: 5, scissors: 5 },
-            player2Pieces: { rock: 5, paper: 5, scissors: 5 },
-            player1Inventory: { rock: 5, paper: 5, scissors: 5 },
-            player2Inventory: { rock: 5, paper: 5, scissors: 5 },
+            player1Inventory: { rock: 5, paper: 5, scissors: 5, flag: 1 },
+            player2Inventory: { rock: 5, paper: 5, scissors: 5, flag: 1 },
             board: Array(3).fill(null).map(() => Array(3).fill(null).map(() => ({ piece: PieceType.EMPTY, owner: Player.NONE, hasBeenUsed: false }))),
-            moveHistory: [],
-            gamePhase: GamePhase.PLAYING
+            gamePhase: GamePhase.PLAYING,
+            gameResult: GameResult.ONGOING,
+            lastMove: null,
+            winningLine: null
           };
           
           const playersArray = Object.entries(room.players).map(([id, data]) => ({
@@ -465,6 +466,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           player1Inventory: createInitialInventory(),
           player2Inventory: createInitialInventory(),
           currentPlayer: Player.PLAYER1,
+          currentTurn: 1,
           gamePhase: GamePhase.SELECTING_CELL,
           gameResult: GameResult.ONGOING,
           lastMove: null,
@@ -634,6 +636,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         player1Inventory: createInitialInventory(),
         player2Inventory: createInitialInventory(),
         currentPlayer: Player.PLAYER1,
+        currentTurn: 1,
         gamePhase: GamePhase.READY,
         gameResult: GameResult.ONGOING,
         lastMove: null,
