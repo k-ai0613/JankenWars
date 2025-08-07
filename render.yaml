@@ -3,7 +3,7 @@ services:
     name: jankenwars
     runtime: node
     buildCommand: npm install && npm run build
-    startCommand: npm start
+    startCommand: node dist/server/index.js
     envVars:
       - key: NODE_VERSION
         value: 20.11.1
