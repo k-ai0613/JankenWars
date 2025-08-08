@@ -55,12 +55,12 @@ setInterval(() => {
   });
   
   // マッチメイキングキューもクリーンアップ
-  if (matchmakingQueue.length > 10) {
+  if (waitingUsers.length > 10) {
     console.log(`[CLEANUP] Clearing oversized matchmaking queue`);
-    matchmakingQueue.length = 0;
+    waitingUsers.length = 0;
   }
   
-  console.log(`[CLEANUP] Active rooms: ${Object.keys(gameRooms).length}, Matchmaking queue: ${matchmakingQueue.length}`);
+  console.log(`[CLEANUP] Active rooms: ${Object.keys(gameRooms).length}, Matchmaking queue: ${waitingUsers.length}`);
 }, 5 * 60 * 1000);
 
 // 初期値を設定
