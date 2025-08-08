@@ -81,11 +81,13 @@ class SocketService {
 
     // 環境変数またはデフォルト値を使用
     const serverUrl = import.meta.env.VITE_SOCKET_URL || 
-                     (import.meta.env.DEV ? 'http://localhost:5000' : window.location.origin);
+                     (import.meta.env.DEV ? 'http://localhost:5000' : 'https://jankenwars.onrender.com');
 
     // Connect to the server
     this.socket = io(serverUrl, {
-      transports: ['websocket', 'polling']
+      transports: ['websocket', 'polling'],
+      timeout: 20000,
+      forceNew: true
     });
 
     // Set up event listeners
