@@ -86,14 +86,16 @@ class SocketService {
     // Connect to the server
     this.socket = io(serverUrl, {
       transports: ['polling', 'websocket'],
-      timeout: 30000,
+      timeout: 20000,
       reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 2000,
+      reconnectionDelayMax: 10000,
+      randomizationFactor: 0.5,
       autoConnect: true,
       forceNew: false,
-      upgrade: true
+      upgrade: true,
+      closeOnBeforeunload: false
     });
 
     // Set up event listeners
