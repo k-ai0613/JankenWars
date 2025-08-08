@@ -85,25 +85,45 @@ class SocketService {
 
     // Connect to the server
     this.socket = io(serverUrl, {
-      transports: ['websocket', 'polling'],
-      timeout: 20000,
-      forceNew: true
+      transports: ['polling', 'websocket'],
+      timeout: 30000,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      autoConnect: true,
+      forceNew: false,
+      upgrade: true
     });
 
     // Set up event listeners
     this.socket.on('connect', () => {
-      console.log('Connected to server');
+      console.log('Connected to server successfully');
+      console.log('Socket ID:', this.socket?.id);
       this.handlers.onConnect?.();
     });
 
-    this.socket.on('disconnect', () => {
-      console.log('Disconnected from server');
+    this.socket.on('disconnect', (reason) => {
+      console.log('Disconnected from server, reason:', reason);
       this.handlers.onDisconnect?.();
+    });
+
+    this.socket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+      this.handlers.onError?.(error);
     });
 
     this.socket.on('error', (error) => {
       console.error('Socket error:', error);
       this.handlers.onError?.(error);
+    });
+
+    this.socket.on('reconnect', (attemptNumber) => {
+      console.log('Reconnected after', attemptNumber, 'attempts');
+    });
+
+    this.socket.on('reconnect_error', (error) => {
+      console.error('Reconnection failed:', error);
     });
 
     // Room events
