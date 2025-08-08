@@ -9,7 +9,7 @@
     "dev": "vite",
     "server-dev": "npx tsx server/index.ts",
     "dev:full": "concurrently \"npm run server-dev\" \"npm run vite-dev\"",
-    "build": "vite build && tsc",
+    "build": "vite build && tsc && echo 'Build complete. Directory structure:' && ls -la dist && ls -la dist/server",
     "start": "node dist/server/index.js",
     "start:dev": "npx tsx server/index.ts",
     "check": "tsc",
