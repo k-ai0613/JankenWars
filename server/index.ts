@@ -97,8 +97,8 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // サーバーをポート5000で起動
-  const port = 5000;
+  // サーバーをRenderの提供するポート、または5000で起動
+  const port = process.env.PORT ? parseInt(process.env.PORT) : 5000;
   
   // サーバー設定の改善
   server.timeout = 30000; // 30秒タイムアウト
