@@ -2,6 +2,7 @@
   "name": "rest-express",
   "version": "1.0.1",
   "type": "module",
+  "main": "server/index.ts",
   "license": "MIT",
   "scripts": {
     "clear-console": "cls",

@@ -2,7 +2,7 @@ services:
   - type: web
     name: jankenwars
     runtime: node
-    buildCommand: npm install && npx vite build
+    buildCommand: npm install && npx vite build && echo "Build completed successfully"
     startCommand: npx tsx server/index.ts
     envVars:
       - key: NODE_VERSION
