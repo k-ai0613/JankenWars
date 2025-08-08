@@ -528,11 +528,14 @@ export function OnlineGamePage() {
                 {players.map((player, index) => {
                   // ★ 強制的にプレイヤー番号を正しく使用する
                   const playerNumber = player.playerNumber as 1 | 2;
-                  console.log(`[OnlineGamePage] Player debug:`, { 
+                  console.log(`[OnlineGamePage] Player debug (ROOM PHASE):`, { 
                     player: { id: player.id.substring(0, 8), username: player.username, playerNumber: playerNumber }, 
                     localPlayerNumber, 
+                    socketId: players.length > 0 ? socketId : 'no socketId',
                     index,
-                    isLocal: localPlayerNumber === playerNumber
+                    isLocal: localPlayerNumber === playerNumber,
+                    currentPlayer,
+                    gamePhase
                   });
                   const isLocal = localPlayerNumber === playerNumber;
                   const isCurrent = currentPlayer === (playerNumber === 1 ? Player.PLAYER1 : Player.PLAYER2);
@@ -756,35 +759,55 @@ export function OnlineGamePage() {
             </div>
             
             {/* Player Info を表示する部分 */}
-            {player1 && (
-              <div className="order-2">
-                <OnlinePlayerInfo
-                  key={`p1-${JSON.stringify(player1Inventory)}`}
-                  playerNumber={1}
-                  username={`${player1.username || 'Player 1'} [P1]`}
-                  inventory={player1Inventory}
-                  isCurrentPlayer={currentPlayer === Player.PLAYER1}
-                  isLocalPlayer={localPlayerNumber === 1}
-                  aiSelectedPiece={aiSelectedPiece}
-                  selectedPiece={selectedPiece}
-                />
-              </div>
-            )}
+            {player1 && (() => {
+              console.log(`[OnlineGamePage] Player1 debug (GAME PHASE):`, { 
+                player1: { id: player1.id?.substring(0, 8), username: player1.username, playerNumber: player1.playerNumber },
+                localPlayerNumber, 
+                socketId,
+                isLocalPlayer: localPlayerNumber === 1,
+                currentPlayer,
+                gamePhase
+              });
+              return (
+                <div className="order-2">
+                  <OnlinePlayerInfo
+                    key={`p1-${JSON.stringify(player1Inventory)}`}
+                    playerNumber={1}
+                    username={`${player1.username || 'Player 1'} [P1]`}
+                    inventory={player1Inventory}
+                    isCurrentPlayer={currentPlayer === Player.PLAYER1}
+                    isLocalPlayer={localPlayerNumber === 1}
+                    aiSelectedPiece={aiSelectedPiece}
+                    selectedPiece={selectedPiece}
+                  />
+                </div>
+              );
+            })()}
 
-            {player2 && (
-              <div className="order-3">
-                 <OnlinePlayerInfo
-                   key={`p2-${JSON.stringify(player2Inventory)}`}
-                   playerNumber={2}
-                   username={`${player2.username || 'Player 2'} [P2]`}
-                   inventory={player2Inventory}
-                   isCurrentPlayer={currentPlayer === Player.PLAYER2}
-                   isLocalPlayer={localPlayerNumber === 2}
-                   aiSelectedPiece={aiSelectedPiece}
-                   selectedPiece={selectedPiece}
-                 />
-              </div>
-            )}
+            {player2 && (() => {
+              console.log(`[OnlineGamePage] Player2 debug (GAME PHASE):`, { 
+                player2: { id: player2.id?.substring(0, 8), username: player2.username, playerNumber: player2.playerNumber },
+                localPlayerNumber, 
+                socketId,
+                isLocalPlayer: localPlayerNumber === 2,
+                currentPlayer,
+                gamePhase
+              });
+              return (
+                <div className="order-3">
+                   <OnlinePlayerInfo
+                     key={`p2-${JSON.stringify(player2Inventory)}`}
+                     playerNumber={2}
+                     username={`${player2.username || 'Player 2'} [P2]`}
+                     inventory={player2Inventory}
+                     isCurrentPlayer={currentPlayer === Player.PLAYER2}
+                     isLocalPlayer={localPlayerNumber === 2}
+                     aiSelectedPiece={aiSelectedPiece}
+                     selectedPiece={selectedPiece}
+                   />
+                </div>
+              );
+            })()}
             
             {/* 観戦者表示 (isSpectator は個別に取得したもの) */}
             {isSpectator && (
