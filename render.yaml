@@ -2,7 +2,7 @@ services:
   - type: web
     name: jankenwars
     runtime: node
-    buildCommand: npm install && npx vite build && npx tsc && ls -la dist
+    buildCommand: npm install && echo "Checking TypeScript availability..." && npx tsc --version && echo "Starting Vite build..." && npx vite build && echo "Vite build complete. Starting TypeScript compilation..." && npx tsc --verbose && echo "TypeScript compilation complete. Listing dist directory:" && ls -la dist && ls -la dist/server
     startCommand: npm start
     envVars:
       - key: NODE_VERSION
