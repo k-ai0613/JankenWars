@@ -471,6 +471,9 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
       const { gameState, moveDetails } = data;
       const state = get();
       
+      const localNum = get().localPlayerNumber;
+      const isMyNewTurn = gameState.currentPlayer === (localNum === 1 ? Player.PLAYER1 : Player.PLAYER2);
+      
       const newState: Partial<OnlineGameState> = {
         board: gameState.board,
         currentPlayer: gameState.currentPlayer,
@@ -478,11 +481,12 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
         player2Inventory: gameState.player2Inventory,
         gamePhase: gameState.gamePhase,
         gameResult: gameState.gameResult,
-        message: gameState.currentPlayer === (get().localPlayerNumber === 1 ? Player.PLAYER1 : Player.PLAYER2)
+        message: isMyNewTurn
                   ? t('yourTurn')
                   : t('online.waitingForOpponent'),
-        selectedPiece: null,
-        aiSelectedPiece: null,
+        // 自分のターンでない場合のみ駒選択をリセット
+        selectedPiece: isMyNewTurn ? get().selectedPiece : null,
+        aiSelectedPiece: isMyNewTurn ? get().aiSelectedPiece : null,
         winAnimation: false,
         loseAnimation: false,
         drawAnimation: false,
@@ -499,8 +503,6 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
           winningLine: newState.winningLine
       });
       
-      const localNum = get().localPlayerNumber;
-      const isMyNewTurn = gameState.currentPlayer === (localNum === 1 ? Player.PLAYER1 : Player.PLAYER2);
       console.log(`[handleGameStateUpdate] DEBUG: Local: ${localNum}, Current: ${gameState.currentPlayer}, isMyNewTurn: ${isMyNewTurn}, Phase: ${gameState.gamePhase}`);
       
       set(newState as OnlineGameState);
