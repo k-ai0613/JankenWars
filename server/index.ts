@@ -111,6 +111,18 @@ app.use((req, res, next) => {
   }, () => {
     log(`serving on port ${port}`);
   });
+
+  // Renderのスリープを防ぐためのセルフping（開発環境でのみ）
+  if (process.env.NODE_ENV === 'production') {
+    setInterval(async () => {
+      try {
+        const response = await fetch('https://jankenwars.onrender.com/api/health');
+        log(`Self-ping: ${response.status}`);
+      } catch (error) {
+        log(`Self-ping failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    }, 14 * 60 * 1000); // 14分ごと（15分のスリープタイマーより少し短く）
+  }
   
   // サーバーの優雅な終了処理
   process.on('SIGTERM', () => {
@@ -127,5 +139,17 @@ app.use((req, res, next) => {
       log('Server closed');
       process.exit(0);
     });
+  });
+
+  // 未処理のエラーをキャッチ
+  process.on('uncaughtException', (error) => {
+    log(`Uncaught Exception: ${error.message}`);
+    console.error(error);
+    process.exit(1);
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    log(`Unhandled Rejection at: ${promise}, reason: ${reason}`);
+    console.error(reason);
   });
 })();
