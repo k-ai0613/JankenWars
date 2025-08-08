@@ -114,10 +114,11 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
 
   const _selectRandomPieceForTurn = () => {
     console.log('[_selectRandomPieceForTurn] Function called.');
-    const { currentPlayer, localPlayerNumber, player1Inventory, player2Inventory } = get();
+    const { currentPlayer, localPlayerNumber, player1Inventory, player2Inventory, gamePhase } = get();
     const isMyTurn = localPlayerNumber === (currentPlayer === Player.PLAYER1 ? 1 : 2);
 
-    console.log(`[_selectRandomPieceForTurn] Is it my turn? ${isMyTurn} (local: ${localPlayerNumber}, current: ${currentPlayer})`);
+    console.log(`[_selectRandomPieceForTurn] DEBUG: local=${localPlayerNumber}, current=${currentPlayer}, isMyTurn=${isMyTurn}, phase=${gamePhase}`);
+    console.log(`[_selectRandomPieceForTurn] Inventories: P1=${JSON.stringify(player1Inventory)}, P2=${JSON.stringify(player2Inventory)}`);
 
     if (!isMyTurn) {
       console.log('[_selectRandomPieceForTurn] Not my turn, resetting selections.');
@@ -517,10 +518,20 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
 
       const localNum = get().localPlayerNumber;
       const isMyNewTurn = gameState.currentPlayer === (localNum === 1 ? Player.PLAYER1 : Player.PLAYER2);
-      console.log(`[handleGameStateUpdate] Checking if it's my turn now (Local: ${localNum}, Current: ${gameState.currentPlayer}, isMyNewTurn: ${isMyNewTurn}). Game phase: ${gameState.gamePhase}`);
+      console.log(`[handleGameStateUpdate] DEBUG: Local: ${localNum}, Current: ${gameState.currentPlayer}, isMyNewTurn: ${isMyNewTurn}, Phase: ${gameState.gamePhase}`);
+      console.log(`[handleGameStateUpdate] Current state before update:`, {
+        localPlayerNumber: get().localPlayerNumber,
+        currentPlayer: get().currentPlayer,
+        selectedPiece: get().selectedPiece,
+        aiSelectedPiece: get().aiSelectedPiece
+      });
+      
       if (gameState.gamePhase !== GamePhase.GAME_OVER && isMyNewTurn) {
           console.log('[handleGameStateUpdate] It is my turn now. Calling _selectRandomPieceForTurn.');
-          get()._selectRandomPieceForTurn();
+          setTimeout(() => {
+            console.log('[handleGameStateUpdate] About to call _selectRandomPieceForTurn with delay.');
+            get()._selectRandomPieceForTurn();
+          }, 100); // 少し遅延を入れて確実に状態が更新された後に実行
       } else {
           console.log('[handleGameStateUpdate] Not my turn or game is over, skipping piece selection.');
       }
