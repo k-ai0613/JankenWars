@@ -493,26 +493,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // 入力検証
       if (!validateRoomId(roomId)) {
-        socket.emit("error", { message: "Invalid room ID" });
+        socket.emit("game:error", { message: "Invalid room ID" });
         return;
       }
       
       updateRoomActivity(roomId);
       
       if (!validateGameMove(position, piece)) {
-        socket.emit("error", { message: "Invalid move data" });
+        socket.emit("game:error", { message: "Invalid move data" });
         return;
       }
       
       const room = gameRooms[roomId];
       
       if (!room) {
-        socket.emit("error", { message: "Room not found" });
+        socket.emit("game:error", { message: "Room not found" });
         return;
       }
       
       if (!room.inProgress || !room.gameState) {
-        socket.emit("error", { message: "Game not in progress" });
+        socket.emit("game:error", { message: "Game not in progress" });
         return;
       }
       
@@ -521,7 +521,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const playerInfo = room.players[playerSocketId];
       
       if (!playerInfo) {
-        socket.emit("error", { message: "Player not in room" });
+        socket.emit("game:error", { message: "Player not in room" });
         return;
       }
       
@@ -530,20 +530,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const currentPlayer = gameState.currentPlayer || (gameState.currentTurn === 1 ? Player.PLAYER1 : Player.PLAYER2);
       
       if ((isPlayer1 && currentPlayer !== Player.PLAYER1) || (isPlayer2 && currentPlayer !== Player.PLAYER2)) {
-        socket.emit("error", { message: "Not your turn" });
+        socket.emit("game:error", { message: "Not your turn" });
         return;
       }
 
       // Check if valid move
       if (!isValidMove(gameState.board, position, piece, currentPlayer)) {
-        socket.emit("error", { message: "Invalid move" });
+        socket.emit("game:error", { message: "Invalid move" });
         return;
       }
       
       // Check if piece is in inventory
       const playerInventory = currentPlayer === Player.PLAYER1 ? gameState.player1Inventory : gameState.player2Inventory;
       if (playerInventory[piece] <= 0) {
-        socket.emit("error", { message: "Piece not in inventory" });
+        socket.emit("game:error", { message: "Piece not in inventory" });
         return;
       }
       

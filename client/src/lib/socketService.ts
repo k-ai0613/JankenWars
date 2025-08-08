@@ -126,6 +126,12 @@ class SocketService {
       console.error('Reconnection failed:', error);
     });
 
+    // Game error events
+    this.socket.on('game:error', (data) => {
+      console.error('Game error:', data.message);
+      this.handlers.onError?.(new Error(data.message));
+    });
+
     // Room events
     this.socket.on('room:created', (data) => {
       console.log('Room created:', data);
