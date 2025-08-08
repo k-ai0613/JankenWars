@@ -2,7 +2,7 @@ services:
   - type: web
     name: jankenwars
     runtime: node
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && npx vite build && npx tsc && ls -la dist
     startCommand: npm start
     envVars:
       - key: NODE_VERSION
