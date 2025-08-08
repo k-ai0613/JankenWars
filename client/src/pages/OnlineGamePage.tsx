@@ -526,13 +526,14 @@ export function OnlineGamePage() {
               </h3>
               <div className="space-y-3">
                 {players.map((player, index) => {
+                  // ★ 強制的にプレイヤー番号を正しく使用する
+                  const playerNumber = player.playerNumber as 1 | 2;
                   console.log(`[OnlineGamePage] Player debug:`, { 
-                    player: { id: player.id.substring(0, 8), username: player.username, playerNumber: player.playerNumber }, 
+                    player: { id: player.id.substring(0, 8), username: player.username, playerNumber: playerNumber }, 
                     localPlayerNumber, 
                     index,
-                    isLocal: localPlayerNumber === player.playerNumber
+                    isLocal: localPlayerNumber === playerNumber
                   });
-                  const playerNumber = player.playerNumber as 1 | 2;
                   const isLocal = localPlayerNumber === playerNumber;
                   const isCurrent = currentPlayer === (playerNumber === 1 ? Player.PLAYER1 : Player.PLAYER2);
                   const inventory = playerNumber === 1 ? player1Inventory : player2Inventory;
@@ -552,7 +553,7 @@ export function OnlineGamePage() {
                     <div className="order-2" key={player.id}>
                       <OnlinePlayerInfo
                         playerNumber={playerNumber}
-                        username={player.username}
+                        username={`${player.username} [P${playerNumber}]`}
                         inventory={inventory}
                         isCurrentPlayer={isCurrent} // これは手番表示用なので注意
                         isLocalPlayer={isLocal}
@@ -760,7 +761,7 @@ export function OnlineGamePage() {
                 <OnlinePlayerInfo
                   key={`p1-${JSON.stringify(player1Inventory)}`}
                   playerNumber={1}
-                  username={player1.username || t('player1')}
+                  username={`${player1.username || 'Player 1'} [P1]`}
                   inventory={player1Inventory}
                   isCurrentPlayer={currentPlayer === Player.PLAYER1}
                   isLocalPlayer={localPlayerNumber === 1}
@@ -775,7 +776,7 @@ export function OnlineGamePage() {
                  <OnlinePlayerInfo
                    key={`p2-${JSON.stringify(player2Inventory)}`}
                    playerNumber={2}
-                   username={player2.username || t('player2')}
+                   username={`${player2.username || 'Player 2'} [P2]`}
                    inventory={player2Inventory}
                    isCurrentPlayer={currentPlayer === Player.PLAYER2}
                    isLocalPlayer={localPlayerNumber === 2}
