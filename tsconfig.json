@@ -6,6 +6,7 @@
     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
     "noEmit": false,
     "outDir": "./dist",
+    "rootDir": ".",
     "module": "Node16",
     "target": "ES2022",
     "strict": true,
