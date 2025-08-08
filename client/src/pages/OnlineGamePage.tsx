@@ -526,6 +526,12 @@ export function OnlineGamePage() {
               </h3>
               <div className="space-y-3">
                 {players.map((player, index) => {
+                  console.log(`[OnlineGamePage] Player debug:`, { 
+                    player: { id: player.id.substring(0, 8), username: player.username, playerNumber: player.playerNumber }, 
+                    localPlayerNumber, 
+                    index,
+                    isLocal: localPlayerNumber === player.playerNumber
+                  });
                   const playerNumber = player.playerNumber as 1 | 2;
                   const isLocal = localPlayerNumber === playerNumber;
                   const isCurrent = currentPlayer === (playerNumber === 1 ? Player.PLAYER1 : Player.PLAYER2);
