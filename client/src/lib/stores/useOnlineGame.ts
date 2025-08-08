@@ -499,6 +499,10 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
           winningLine: newState.winningLine
       });
       
+      const localNum = get().localPlayerNumber;
+      const isMyNewTurn = gameState.currentPlayer === (localNum === 1 ? Player.PLAYER1 : Player.PLAYER2);
+      console.log(`[handleGameStateUpdate] DEBUG: Local: ${localNum}, Current: ${gameState.currentPlayer}, isMyNewTurn: ${isMyNewTurn}, Phase: ${gameState.gamePhase}`);
+      
       set(newState as OnlineGameState);
       
       setTimeout(() => {
@@ -515,23 +519,11 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
       } else {
         audioStore.playPlace();
       }
-
-      const localNum = get().localPlayerNumber;
-      const isMyNewTurn = gameState.currentPlayer === (localNum === 1 ? Player.PLAYER1 : Player.PLAYER2);
-      console.log(`[handleGameStateUpdate] DEBUG: Local: ${localNum}, Current: ${gameState.currentPlayer}, isMyNewTurn: ${isMyNewTurn}, Phase: ${gameState.gamePhase}`);
-      console.log(`[handleGameStateUpdate] Current state before update:`, {
-        localPlayerNumber: get().localPlayerNumber,
-        currentPlayer: get().currentPlayer,
-        selectedPiece: get().selectedPiece,
-        aiSelectedPiece: get().aiSelectedPiece
-      });
       
+      // 状態更新後に駒選択を実行
       if (gameState.gamePhase !== GamePhase.GAME_OVER && isMyNewTurn) {
           console.log('[handleGameStateUpdate] It is my turn now. Calling _selectRandomPieceForTurn.');
-          setTimeout(() => {
-            console.log('[handleGameStateUpdate] About to call _selectRandomPieceForTurn with delay.');
-            get()._selectRandomPieceForTurn();
-          }, 100); // 少し遅延を入れて確実に状態が更新された後に実行
+          get()._selectRandomPieceForTurn();
       } else {
           console.log('[handleGameStateUpdate] Not my turn or game is over, skipping piece selection.');
       }
