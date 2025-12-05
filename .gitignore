@@ -43,3 +43,4 @@ summary.txt
 android/
 app/
 public/
+!client/public/ads.txt
