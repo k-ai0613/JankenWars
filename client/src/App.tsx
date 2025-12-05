@@ -4,6 +4,7 @@ import OnlineStatusIndicator from './components/OnlineStatusIndicator';
 import GamePage from './pages/GamePage';
 import { OnlineGamePage } from './pages/OnlineGamePage';
 import { Home } from './pages/home';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import NotFound from './pages/not-found';
 import { TestPage } from './pages/TestPage';
 import '@fontsource/inter';
@@ -61,6 +62,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/game" element={<GamePage />} />
         <Route path="/online" element={<OnlineGamePage />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/test" element={<TestPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

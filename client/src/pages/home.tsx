@@ -383,6 +383,22 @@ export function Home() {
           >
             <AdBanner position="bottom" />
           </motion.div>
+
+          {/* フッター */}
+          <motion.footer
+            className="w-full max-w-2xl mx-auto mt-8 pt-6 border-t border-gray-300"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.7 }}
+          >
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-4 text-sm text-gray-600">
+              <Link to="/privacy" className="hover:text-indigo-600 transition-colors">
+                {getLanguageContent('Privacy Policy', 'プライバシーポリシー')}
+              </Link>
+              <span className="hidden sm:inline text-gray-400">|</span>
+              <span>&copy; 2025 JankenWars</span>
+            </div>
+          </motion.footer>
         </div>
       </div>
     </div>
