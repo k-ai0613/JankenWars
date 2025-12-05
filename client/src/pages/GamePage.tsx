@@ -14,6 +14,8 @@ import { motion } from 'framer-motion';
 import { useLanguage } from '../lib/stores/useLanguage';
 import { Switch } from "../components/ui/switch";
 import { Label } from "../components/ui/label";
+import { AdBanner, InterstitialAd } from '../components/ads';
+import { useAds } from '../hooks/useAds';
 
 // 公開コンポーネント - サーバーコンポーネントとクライアントコンポーネントの橋渡し
 function GamePage() {
@@ -30,7 +32,10 @@ function GamePage() {
 function ClientOnlyGamePage() {
   const navigate = useNavigate();
   const { t, language, setLanguage } = useLanguage();
-  
+
+  // 広告フック
+  const { showInterstitial, closeInterstitial, onGameEnd } = useAds();
+
   const {
     player1Inventory,
     player2Inventory,
@@ -48,6 +53,14 @@ function ClientOnlyGamePage() {
     player2Score,
     placePiece,
   } = useJankenGame();
+
+  // ゲーム終了時に広告を表示
+  React.useEffect(() => {
+    if (phase === GamePhase.GAME_OVER) {
+      // ゲーム結果表示後に広告判定
+      onGameEnd();
+    }
+  }, [phase, onGameEnd]);
 
   // AIモードを有効にする
   React.useEffect(() => {
@@ -305,6 +318,13 @@ function ClientOnlyGamePage() {
 
   return (
     <ErrorBoundary key="game-page-error-boundary">
+      {/* インタースティシャル広告 */}
+      <InterstitialAd
+        isVisible={showInterstitial}
+        onClose={closeInterstitial}
+        autoCloseSeconds={5}
+      />
+
       <div className="flex flex-col h-full md:h-screen py-1 px-0.5 md:py-2 md:px-2">
         <div className="flex flex-col md:flex-row w-full h-full md:space-x-1">
           {/* 左側の情報パネル */}

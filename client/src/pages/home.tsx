@@ -8,6 +8,7 @@ import { FaHandRock, FaHandPaper, FaHandScissors, FaStar, FaBrain } from 'react-
 import { useLanguage } from '../lib/stores/useLanguage';
 import { Switch } from "../components/ui/switch";
 import { Label } from "../components/ui/label";
+import { AdBanner } from '../components/ads';
 
 // AI難易度ボタンのスタイルを統一するためのヘルパー
 const difficultyButtonVariants = {
@@ -371,6 +372,16 @@ export function Home() {
                 )}
               </div>
             </div>
+          </motion.div>
+
+          {/* 広告バナー */}
+          <motion.div
+            className="w-full max-w-2xl mx-auto mt-8"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.6 }}
+          >
+            <AdBanner position="bottom" />
           </motion.div>
         </div>
       </div>
