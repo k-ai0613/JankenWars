@@ -5,6 +5,10 @@ import GamePage from './pages/GamePage';
 import { OnlineGamePage } from './pages/OnlineGamePage';
 import { Home } from './pages/home';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
+import { TermsOfService } from './pages/TermsOfService';
+import { Contact } from './pages/Contact';
+import { About } from './pages/About';
+import { HowToPlay } from './pages/HowToPlay';
 import NotFound from './pages/not-found';
 import { TestPage } from './pages/TestPage';
 import '@fontsource/inter';
@@ -63,6 +67,10 @@ function App() {
         <Route path="/game" element={<GamePage />} />
         <Route path="/online" element={<OnlineGamePage />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/how-to-play" element={<HowToPlay />} />
         <Route path="/test" element={<TestPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

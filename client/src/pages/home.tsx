@@ -391,12 +391,30 @@ export function Home() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.7 }}
           >
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-4 text-sm text-gray-600">
-              <Link to="/privacy" className="hover:text-indigo-600 transition-colors">
-                {getLanguageContent('Privacy Policy', 'プライバシーポリシー')}
-              </Link>
-              <span className="hidden sm:inline text-gray-400">|</span>
-              <span>&copy; 2025 JankenWars</span>
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex flex-wrap justify-center items-center gap-3 text-sm text-gray-600">
+                <Link to="/how-to-play" className="hover:text-indigo-600 transition-colors">
+                  {getLanguageContent('How to Play', '遊び方')}
+                </Link>
+                <span className="text-gray-400">|</span>
+                <Link to="/about" className="hover:text-indigo-600 transition-colors">
+                  {getLanguageContent('About', 'このゲームについて')}
+                </Link>
+                <span className="text-gray-400">|</span>
+                <Link to="/contact" className="hover:text-indigo-600 transition-colors">
+                  {getLanguageContent('Contact', 'お問い合わせ')}
+                </Link>
+              </div>
+              <div className="flex flex-wrap justify-center items-center gap-3 text-sm text-gray-600">
+                <Link to="/privacy" className="hover:text-indigo-600 transition-colors">
+                  {getLanguageContent('Privacy Policy', 'プライバシーポリシー')}
+                </Link>
+                <span className="text-gray-400">|</span>
+                <Link to="/terms" className="hover:text-indigo-600 transition-colors">
+                  {getLanguageContent('Terms of Service', '利用規約')}
+                </Link>
+              </div>
+              <p className="text-sm text-gray-500">&copy; 2025 JankenWars</p>
             </div>
           </motion.footer>
         </div>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { motion } from 'framer-motion';
 import { useLanguage } from '../lib/stores/useLanguage';
+import { Header } from '../components/Header';
 
 export function PrivacyPolicy() {
   const { language } = useLanguage();
@@ -10,6 +11,7 @@ export function PrivacyPolicy() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100">
+      <Header />
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -180,11 +182,16 @@ export function PrivacyPolicy() {
 
           </div>
 
-          {/* Footer Link */}
-          <div className="mt-8 text-center">
+          {/* Footer Links */}
+          <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-4">
             <Link to="/">
               <Button variant="outline">
                 {isJapanese ? 'ホームに戻る' : 'Back to Home'}
+              </Button>
+            </Link>
+            <Link to="/terms">
+              <Button variant="ghost">
+                {isJapanese ? '利用規約' : 'Terms of Service'}
               </Button>
             </Link>
           </div>
