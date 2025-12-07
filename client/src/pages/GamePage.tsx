@@ -318,12 +318,12 @@ function ClientOnlyGamePage() {
 
   return (
     <ErrorBoundary key="game-page-error-boundary">
-      {/* インタースティシャル広告 */}
-      <InterstitialAd
+      {/* インタースティシャル広告 - AdSense審査通過まで一時的に無効化 */}
+      {/* <InterstitialAd
         isVisible={showInterstitial}
         onClose={closeInterstitial}
         autoCloseSeconds={5}
-      />
+      /> */}
 
       <div className="flex flex-col h-full md:h-screen py-1 px-0.5 md:py-2 md:px-2">
         <div className="flex flex-col md:flex-row w-full h-full md:space-x-1">
