@@ -12,13 +12,23 @@ export function Contact() {
 
   const contactMethods = [
     {
+      icon: FaEnvelope,
+      titleEn: 'Email',
+      titleJa: 'メール',
+      descriptionEn: 'For general inquiries, feedback, or support requests, please send us an email.',
+      descriptionJa: 'お問い合わせ、フィードバック、サポートのご依頼はメールでお願いします。',
+      linkText: 'futaai2021com@gmail.com',
+      href: 'mailto:futaai2021com@gmail.com',
+      color: 'from-blue-500 to-blue-700',
+    },
+    {
       icon: FaGithub,
       titleEn: 'GitHub Issues',
       titleJa: 'GitHub Issues',
       descriptionEn: 'Report bugs, request features, or ask questions on our GitHub repository.',
       descriptionJa: 'バグ報告、機能リクエスト、質問はGitHubリポジトリのIssueからお願いします。',
-      linkText: 'GitHub Issues',
-      href: 'https://github.com',
+      linkText: 'GitHub Repository',
+      href: 'https://github.com/k-ai0613/JankenWars/issues',
       color: 'from-gray-700 to-gray-900',
     },
   ];
@@ -69,7 +79,7 @@ export function Contact() {
           </div>
 
           {/* Contact Methods */}
-          <div className="grid md:grid-cols-1 gap-6 mb-12">
+          <div className="grid md:grid-cols-2 gap-6 mb-12">
             {contactMethods.map(({ icon: Icon, titleEn, titleJa, descriptionEn, descriptionJa, linkText, href, color }) => (
               <motion.div
                 key={titleEn}
