@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.onrender.jankenwars.twa",
+        "sha256_cert_fingerprints": ["0B:08:53:9E:90:C2:47:D4:92:D3:87:07:45:47:B8:0D:A5:40:8B:3C:6A:0F:8C:EA:22:F9:96:4B:32:2B:34:79"]
+      }
+    }]
