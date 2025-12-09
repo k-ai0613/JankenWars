@@ -1,114 +1,92 @@
-# JankenWars プロジェクト修正レポート
+# CLAUDE.md
 
-## 概要
-JankenWarsは、じゃんけんベースのオンライン対戦ボードゲームです。Socket.IOを使用したリアルタイム通信により、2人のプレイヤーが6x6の盤面で戦略的にじゃんけんの駒を配置して対戦します。
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## 修正された主要問題
+## Project Overview
 
-### 1. プレイヤー2の表示問題 🔧
-**問題**: プレイヤー2が正しく表示されず、両プレイヤーとも「プレイヤー1」として表示される
+JankenWars is a strategic online multiplayer board game based on rock-paper-scissors. Two players compete on a 6x6 board, placing janken pieces (rock/paper/scissors) with real-time synchronization via Socket.IO.
 
-**原因**: 
-- `OnlineGamePage.tsx`でプレイヤー番号を配列のインデックス（`index + 1`）で計算していた
-- サーバーから送信される実際の`player.playerNumber`を無視していた
+## Development Commands
 
-**修正内容**:
-```typescript
-// 修正前
-const playerNumber = (index + 1) as 1 | 2;
+```bash
+# Start development (frontend only with Vite)
+npm run dev
 
-// 修正後  
-const playerNumber = player.playerNumber as 1 | 2;
+# Start development (frontend + backend concurrently)
+npm run dev:full
+
+# Start backend server only
+npm run server-dev
+
+# Build for production
+npm run build
+
+# Type check
+npm run check
+
+# Lint
+npm run lint
 ```
 
-### 2. クイックマッチ機能の問題 🎮
-**問題**: マッチメイキング後にゲームが自動開始されない
+## Architecture
 
-**原因**:
-- マッチング成功時にプレイヤーの`ready`状態が`false`に設定されていた
-- ゲーム開始条件（両プレイヤーがready）を満たさない
+### Frontend (`client/`)
+- **Framework**: React 18 + TypeScript + Vite
+- **Styling**: Tailwind CSS
+- **State Management**: Zustand with persistence
+- **Routing**: react-router-dom
 
-**修正内容**:
-```typescript
-// server/routes.ts - マッチメイキング時のready状態をtrueに変更
-ready: true  // false -> true に修正
+Key stores in `client/src/lib/stores/`:
+- `useJankenGame.ts` - Local/AI game state (board, pieces, turns, win detection)
+- `useOnlineGame.ts` - Online multiplayer state (Socket.IO, rooms, sync)
+- `useAudio.ts` - Sound management
+- `useLanguage.ts` - i18n (English/Japanese)
+
+Game logic in `client/src/lib/`:
+- `gameUtils.ts` - Core game mechanics (win check, valid moves, board operations)
+- `aiUtils.ts` - AI opponent logic with difficulty levels
+
+### Backend (`server/`)
+- **Framework**: Express.js + Socket.IO
+- **Entry**: `server/index.ts`
+
+Key files:
+- `routes.ts` - REST API endpoints and Socket.IO event handlers
+- `gameUtils.ts` - Server-side game validation
+- `security.ts` - Rate limiting and input validation
+- `storage.ts` - In-memory game room storage
+
+### Socket.IO Events Flow
+1. Room creation/joining with player number assignment
+2. Matchmaking with automatic ready state
+3. Real-time game state synchronization
+4. Turn-based piece placement with battle resolution
+
+## Environment Variables
+
+```bash
+# Client (prefix with VITE_)
+VITE_ADSENSE_CLIENT=ca-pub-xxx          # Google AdSense client ID
+VITE_ADSENSE_SLOT=xxx                   # Banner ad slot
+VITE_ADSENSE_INTERSTITIAL_SLOT=xxx      # Interstitial ad slot
+
+# Server
+NODE_ENV=production
+PORT=5000
+SESSION_SECRET=xxx
+ALLOWED_ORIGINS=https://jankenwars.onrender.com
 ```
 
-### 3. ゲーム状態同期の問題 🔄
-**問題**: ゲーム開始時に`localPlayerNumber`が正しく設定されない
+## Deployment
 
-**原因**:
-- `handleGameStart`で受信したプレイヤー情報から`localPlayerNumber`を更新していなかった
+Deployed on Render with auto-deploy from main branch.
+- Build: `npm install && npx vite build`
+- Start: `npx tsx server/index.ts`
+- Static files served from `dist/public`
 
-**修正内容**:
-```typescript
-// handleGameStart内でlocalPlayerNumberを正しく設定
-localPlayerNumber: (me?.playerNumber as 1 | 2) ?? get().localPlayerNumber
-```
+## Key Patterns
 
-## 技術的改善点
-
-### Socket.IO イベントフロー
-1. **ルーム作成/参加**: 正しいプレイヤー番号の割り当て
-2. **マッチメイキング**: 自動ready設定によるスムーズなゲーム開始  
-3. **ゲーム状態同期**: リアルタイムでの状態共有
-
-### 状態管理の最適化
-- Zustandによる集中状態管理
-- `localPlayerNumber`の一意な設定ポイント確立
-- ゲーム状態の整合性確保
-
-### エラーハンドリング
-- APIヘルスチェック失敗のログレベル調整
-- Socket接続エラーの適切な処理
-
-## 修正されたファイル
-
-| ファイル | 修正内容 | 影響 |
-|---------|----------|------|
-| `client/src/pages/OnlineGamePage.tsx` | プレイヤー番号表示ロジック修正 | UI表示の正確性向上 |
-| `server/routes.ts` | マッチメイキング時の自動ready設定 | クイックマッチ機能復旧 |
-| `client/src/lib/stores/useOnlineGame.ts` | ゲーム開始時のlocalPlayerNumber設定 | 状態同期の安定性向上 |
-| `client/src/App.tsx` | エラーログレベルの調整 | デバッグ体験の改善 |
-
-## 今後の改善提案
-
-### 短期的改善
-- [ ] プレイヤー識別のためのアバター/色分け機能
-- [ ] ゲーム中の接続状態表示
-- [ ] より詳細なエラーメッセージ
-
-### 長期的改善
-- [ ] ランキングシステム
-- [ ] 観戦モードの拡充
-- [ ] カスタムルール設定
-- [ ] ゲームリプレイ機能
-
-## 動作確認
-
-### テスト手順
-1. **基本動作**: 
-   - 2つのブラウザタブでルーム作成/参加
-   - プレイヤー1（青）、プレイヤー2（赤）の正しい表示確認
-
-2. **クイックマッチ**:
-   - マッチメイキングでの自動マッチング
-   - ゲームの自動開始確認
-
-3. **ゲーム進行**:
-   - 交互のターン進行
-   - 駒の配置と状態同期
-   - 勝敗判定
-
-### 期待される動作
-- ✅ プレイヤー2が赤色で正しく表示される
-- ✅ クイックマッチでゲームが自動開始される  
-- ✅ ターンが正しく交互に切り替わる
-- ✅ ゲーム状態がリアルタイムで同期される
-
-## 結論
-主要な3つの問題を修正することで、JankenWarsの基本的なマルチプレイヤー機能が正常に動作するようになりました。プレイヤーの識別、ゲーム開始、状態同期の全てが改善され、安定したオンライン対戦体験を提供できます。
-
----
-*最終更新: 2025年1月8日*
-*修正者: Claude Code Assistant*
+- Player numbers are assigned by server (`playerNumber: 1 | 2`), not array index
+- `localPlayerNumber` in online games must come from server response
+- AI mode uses `isAIEnabled` flag in game store
+- Janken battles lock cells permanently (`jankenBattleCells` array)

@@ -1,0 +1,1443 @@
+From ae26983661546adfdc884377c0bfdac45d1dc95a Mon Sep 17 00:00:00 2001
+From: k-ai0613 <kota.ynwa@gmail.com>
+Date: Fri, 5 Dec 2025 17:29:39 +0900
+Subject: [PATCH] Add security improvements, ads support, and Render deployment
+ config
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Add security headers (CSP, XSS protection, CORS restrictions)
+- Add input validation and rate limiting for Socket.io
+- Add Google AdSense ad components (AdBanner, InterstitialAd)
+- Add useAds hook for ad management
+- Add Render deployment configuration (render.yaml)
+- Add Vercel SPA routing configuration (vercel.json)
+- Fix TypeScript build errors
+- Update environment variable handling for production
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+---
+ .env.example                                  |  29 +++
+ .gitignore                                    |   4 +-
+ client/index.html                             |   6 +-
+ client/src/components/ads/AdBanner.tsx        | 106 +++++++++
+ client/src/components/ads/InterstitialAd.tsx  | 177 +++++++++++++++
+ client/src/components/ads/index.ts            |   3 +
+ .../components/game/SpecialPieceButton.tsx    |  44 ----
+ client/src/components/ui/interface.tsx        |  95 --------
+ client/src/hooks/useAds.ts                    | 102 +++++++++
+ client/src/lib/socketService.ts               |  12 +-
+ client/src/lib/stores/useJankenGame.fixed.ts  | 214 ------------------
+ client/src/pages/GamePage.tsx                 |  22 +-
+ client/src/pages/home.tsx                     |  11 +
+ render.yaml                                   |  14 ++
+ server/index.ts                               |  53 ++++-
+ server/routes.ts                              | 198 ++++++++++++++--
+ tsconfig.json                                 |   8 +-
+ vercel.json                                   |  21 ++
+ 18 files changed, 734 insertions(+), 385 deletions(-)
+ create mode 100644 .env.example
+ create mode 100644 client/src/components/ads/AdBanner.tsx
+ create mode 100644 client/src/components/ads/InterstitialAd.tsx
+ create mode 100644 client/src/components/ads/index.ts
+ delete mode 100644 client/src/components/game/SpecialPieceButton.tsx
+ delete mode 100644 client/src/components/ui/interface.tsx
+ create mode 100644 client/src/hooks/useAds.ts
+ delete mode 100644 client/src/lib/stores/useJankenGame.fixed.ts
+ create mode 100644 render.yaml
+ create mode 100644 vercel.json
+
+diff --git a/.env.example b/.env.example
+new file mode 100644
+index 0000000..013784a
+--- /dev/null
++++ b/.env.example
+@@ -0,0 +1,29 @@
++# JankenWars 環境変数設定例
++# このファイルをコピーして .env として保存してください
++
++# ===== サーバー設定 =====
++NODE_ENV=development
++PORT=5000
++
++# CORS許可オリジン（カンマ区切り）
++# 本番環境では実際のドメインを設定してください
++ALLOWED_ORIGINS=http://localhost:5000,http://localhost:3000
++
++# ===== クライアント設定（VITE_プレフィックス必須） =====
++# バックエンドサーバーURL（Render等でホスティング）
++# Vercelの環境変数に設定してください
++VITE_SERVER_URL=https://janken-wars-api.onrender.com
++
++# ===== Google AdSense 設定 =====
++# AdSense パブリッシャーID（ca-pub-XXXXXXXXXXXXXXXX形式）
++VITE_ADSENSE_CLIENT=
++
++# バナー広告スロットID
++VITE_ADSENSE_SLOT=
++
++# インタースティシャル広告スロットID
++VITE_ADSENSE_INTERSTITIAL_SLOT=
++
++# ===== セキュリティ設定 =====
++# セッションシークレット（本番環境では必ず変更してください）
++# SESSION_SECRET=your-super-secret-key-here
+diff --git a/.gitignore b/.gitignore
+index ef048fd..67e6d17 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -42,4 +42,6 @@ summary.txt
+ # Android/Mobile
+ android/
+ app/
+-public/
+\ No newline at end of file
++public/
++.vercel
++.env*.local
+diff --git a/client/index.html b/client/index.html
+index 27796f5..466572b 100644
+--- a/client/index.html
++++ b/client/index.html
+@@ -1,5 +1,5 @@
+ <!DOCTYPE html>
+-<html lang="en">
++<html lang="ja">
+   <head>
+     <meta charset="UTF-8" />
+     <link rel="icon" type="image/png" href="/icons/favicon.png" />
+@@ -9,6 +9,10 @@
+     <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+     <link rel="manifest" href="/manifest.json" />
+     <title>JankenWars</title>
++
++    <!-- Google AdSense -->
++    <!-- 本番環境では以下のコメントを解除し、ca-pub-XXXXXXXXXXXXXXXX を実際のパブリッシャーIDに置き換えてください -->
++    <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
+   </head>
+   <body>
+     <div id="root"></div>
+diff --git a/client/src/components/ads/AdBanner.tsx b/client/src/components/ads/AdBanner.tsx
+new file mode 100644
+index 0000000..945e503
+--- /dev/null
++++ b/client/src/components/ads/AdBanner.tsx
+@@ -0,0 +1,106 @@
++import React, { useEffect, useRef } from 'react';
++
++// Google AdSense 広告バナーコンポーネント
++// 使用前に index.html に AdSense スクリプトを追加してください
++
++interface AdBannerProps {
++  // AdSense 広告ユニットID（pub-XXXXXXXXXXXXXXXX形式）
++  adClient?: string;
++  // 広告スロットID
++  adSlot?: string;
++  // 広告フォーマット: 'auto', 'horizontal', 'vertical', 'rectangle'
++  adFormat?: 'auto' | 'horizontal' | 'vertical' | 'rectangle';
++  // レスポンシブ広告かどうか
++  fullWidthResponsive?: boolean;
++  // 広告の位置: 'top', 'bottom', 'sidebar'
++  position?: 'top' | 'bottom' | 'sidebar';
++  // カスタムクラス
++  className?: string;
++}
++
++declare global {
++  interface Window {
++    adsbygoogle: any[];
++  }
++}
++
++export const AdBanner: React.FC<AdBannerProps> = ({
++  adClient = import.meta.env.VITE_ADSENSE_CLIENT || '',
++  adSlot = import.meta.env.VITE_ADSENSE_SLOT || '',
++  adFormat = 'auto',
++  fullWidthResponsive = true,
++  position = 'bottom',
++  className = '',
++}) => {
++  const adRef = useRef<HTMLModElement>(null);
++  const isAdLoaded = useRef(false);
++
++  useEffect(() => {
++    // 開発環境または AdSense 設定がない場合はスキップ
++    if (!adClient || !adSlot) {
++      console.log('[AdBanner] AdSense credentials not configured. Showing placeholder.');
++      return;
++    }
++
++    // 既に広告がロードされている場合はスキップ
++    if (isAdLoaded.current) {
++      return;
++    }
++
++    try {
++      // AdSense スクリプトがロードされているか確認
++      if (typeof window !== 'undefined' && window.adsbygoogle) {
++        window.adsbygoogle.push({});
++        isAdLoaded.current = true;
++      }
++    } catch (error) {
++      console.error('[AdBanner] Error loading ad:', error);
++    }
++
++    return () => {
++      isAdLoaded.current = false;
++    };
++  }, [adClient, adSlot]);
++
++  // 位置に応じたスタイル
++  const positionStyles: Record<string, string> = {
++    top: 'w-full min-h-[90px] mb-4',
++    bottom: 'w-full min-h-[90px] mt-4',
++    sidebar: 'w-full min-h-[250px]',
++  };
++
++  // AdSense が設定されていない場合はプレースホルダーを表示
++  if (!adClient || !adSlot) {
++    return (
++      <div
++        className={`flex items-center justify-center bg-gray-100 dark:bg-gray-800 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg ${positionStyles[position]} ${className}`}
++      >
++        <div className="text-center text-gray-500 dark:text-gray-400 p-4">
++          <p className="text-sm font-medium">広告スペース</p>
++          <p className="text-xs mt-1">
++            AdSense を設定するには環境変数を設定してください
++          </p>
++          <p className="text-xs mt-1 font-mono">
++            VITE_ADSENSE_CLIENT, VITE_ADSENSE_SLOT
++          </p>
++        </div>
++      </div>
++    );
++  }
++
++  return (
++    <div className={`ad-container ${positionStyles[position]} ${className}`}>
++      <ins
++        ref={adRef}
++        className="adsbygoogle"
++        style={{ display: 'block' }}
++        data-ad-client={adClient}
++        data-ad-slot={adSlot}
++        data-ad-format={adFormat}
++        data-full-width-responsive={fullWidthResponsive ? 'true' : 'false'}
++      />
++    </div>
++  );
++};
++
++export default AdBanner;
+diff --git a/client/src/components/ads/InterstitialAd.tsx b/client/src/components/ads/InterstitialAd.tsx
+new file mode 100644
+index 0000000..a696fbe
+--- /dev/null
++++ b/client/src/components/ads/InterstitialAd.tsx
+@@ -0,0 +1,177 @@
++import React, { useEffect, useState, useCallback } from 'react';
++import { motion, AnimatePresence } from 'framer-motion';
++
++// インタースティシャル広告コンポーネント
++// ゲーム終了時やシーン切り替え時に表示される全画面広告
++
++interface InterstitialAdProps {
++  // 広告を表示するかどうか
++  isVisible: boolean;
++  // 広告を閉じたときのコールバック
++  onClose: () => void;
++  // 自動で閉じるまでの時間（秒）
++  autoCloseSeconds?: number;
++  // AdSense クライアントID
++  adClient?: string;
++  // AdSense 広告スロットID
++  adSlot?: string;
++}
++
++declare global {
++  interface Window {
++    adsbygoogle: any[];
++  }
++}
++
++export const InterstitialAd: React.FC<InterstitialAdProps> = ({
++  isVisible,
++  onClose,
++  autoCloseSeconds = 5,
++  adClient = import.meta.env.VITE_ADSENSE_CLIENT || '',
++  adSlot = import.meta.env.VITE_ADSENSE_INTERSTITIAL_SLOT || '',
++}) => {
++  const [countdown, setCountdown] = useState(autoCloseSeconds);
++  const [canClose, setCanClose] = useState(false);
++
++  // カウントダウン処理
++  useEffect(() => {
++    if (!isVisible) {
++      setCountdown(autoCloseSeconds);
++      setCanClose(false);
++      return;
++    }
++
++    const timer = setInterval(() => {
++      setCountdown((prev) => {
++        if (prev <= 1) {
++          setCanClose(true);
++          clearInterval(timer);
++          return 0;
++        }
++        return prev - 1;
++      });
++    }, 1000);
++
++    return () => clearInterval(timer);
++  }, [isVisible, autoCloseSeconds]);
++
++  // 広告のロード
++  useEffect(() => {
++    if (!isVisible || !adClient || !adSlot) return;
++
++    try {
++      if (typeof window !== 'undefined' && window.adsbygoogle) {
++        window.adsbygoogle.push({});
++      }
++    } catch (error) {
++      console.error('[InterstitialAd] Error loading ad:', error);
++    }
++  }, [isVisible, adClient, adSlot]);
++
++  const handleClose = useCallback(() => {
++    if (canClose) {
++      onClose();
++    }
++  }, [canClose, onClose]);
++
++  // ESCキーで閉じる
++  useEffect(() => {
++    const handleKeyDown = (e: KeyboardEvent) => {
++      if (e.key === 'Escape' && canClose) {
++        handleClose();
++      }
++    };
++
++    if (isVisible) {
++      document.addEventListener('keydown', handleKeyDown);
++    }
++
++    return () => {
++      document.removeEventListener('keydown', handleKeyDown);
++    };
++  }, [isVisible, canClose, handleClose]);
++
++  return (
++    <AnimatePresence>
++      {isVisible && (
++        <motion.div
++          initial={{ opacity: 0 }}
++          animate={{ opacity: 1 }}
++          exit={{ opacity: 0 }}
++          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
++          onClick={handleClose}
++        >
++          <motion.div
++            initial={{ scale: 0.9, opacity: 0 }}
++            animate={{ scale: 1, opacity: 1 }}
++            exit={{ scale: 0.9, opacity: 0 }}
++            className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full mx-4 overflow-hidden"
++            onClick={(e) => e.stopPropagation()}
++          >
++            {/* ヘッダー */}
++            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
++              <span className="text-sm text-gray-500 dark:text-gray-400">
++                スポンサー広告
++              </span>
++              <button
++                onClick={handleClose}
++                disabled={!canClose}
++                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
++                  canClose
++                    ? 'bg-blue-500 hover:bg-blue-600 text-white cursor-pointer'
++                    : 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
++                }`}
++              >
++                {canClose ? '閉じる' : `${countdown}秒後に閉じる`}
++              </button>
++            </div>
++
++            {/* 広告コンテンツ */}
++            <div className="p-4 min-h-[300px] flex items-center justify-center">
++              {adClient && adSlot ? (
++                <ins
++                  className="adsbygoogle"
++                  style={{ display: 'block', width: '100%', height: '280px' }}
++                  data-ad-client={adClient}
++                  data-ad-slot={adSlot}
++                  data-ad-format="rectangle"
++                />
++              ) : (
++                <div className="text-center text-gray-500 dark:text-gray-400 p-8">
++                  <div className="w-16 h-16 mx-auto mb-4 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
++                    <svg
++                      className="w-8 h-8"
++                      fill="none"
++                      stroke="currentColor"
++                      viewBox="0 0 24 24"
++                    >
++                      <path
++                        strokeLinecap="round"
++                        strokeLinejoin="round"
++                        strokeWidth={2}
++                        d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
++                      />
++                    </svg>
++                  </div>
++                  <p className="text-lg font-medium mb-2">広告プレースホルダー</p>
++                  <p className="text-sm">
++                    本番環境では AdSense 広告が表示されます
++                  </p>
++                </div>
++              )}
++            </div>
++
++            {/* フッター */}
++            <div className="p-4 bg-gray-50 dark:bg-gray-900 text-center">
++              <p className="text-xs text-gray-400">
++                広告をサポートいただきありがとうございます
++              </p>
++            </div>
++          </motion.div>
++        </motion.div>
++      )}
++    </AnimatePresence>
++  );
++};
++
++export default InterstitialAd;
+diff --git a/client/src/components/ads/index.ts b/client/src/components/ads/index.ts
+new file mode 100644
+index 0000000..cfb78db
+--- /dev/null
++++ b/client/src/components/ads/index.ts
+@@ -0,0 +1,3 @@
++// 広告コンポーネントのエクスポート
++export { AdBanner } from './AdBanner';
++export { InterstitialAd } from './InterstitialAd';
+diff --git a/client/src/components/game/SpecialPieceButton.tsx b/client/src/components/game/SpecialPieceButton.tsx
+deleted file mode 100644
+index 0017dff..0000000
+--- a/client/src/components/game/SpecialPieceButton.tsx
++++ /dev/null
+@@ -1,44 +0,0 @@
+-import React from 'react';
+-import { Button } from '../ui/button';
+-import { FaStar } from 'react-icons/fa';
+-import { GamePhase, Player, PieceType } from '../../lib/types';
+-import { useJankenGame } from '../../lib/stores/useJankenGame';
+-
+-interface SpecialPieceButtonProps {
+-  disabled?: boolean;
+-}
+-
+-const SpecialPieceButton: React.FC<SpecialPieceButtonProps> = ({ 
+-  disabled = false 
+-}) => {
+-  const { 
+-    selectSpecialPiece, 
+-    currentPlayer, 
+-    phase,
+-    player1Inventory,
+-    player2Inventory
+-  } = useJankenGame();
+-
+-  const inventory = currentPlayer === Player.PLAYER1 
+-    ? player1Inventory 
+-    : player2Inventory;
+-
+-  const hasSpecialPiece = inventory[PieceType.SPECIAL] > 0;
+-  const isGameActive = phase === GamePhase.SELECTING_CELL;
+-  const isButtonDisabled = disabled || !hasSpecialPiece || !isGameActive;
+-
+-  return (
+-    <Button 
+-      variant="outline" 
+-      size="sm"
+-      className="flex items-center gap-2"
+-      onClick={selectSpecialPiece}
+-      disabled={isButtonDisabled}
+-    >
+-      <FaStar className="text-yellow-500" />
+-      <span>Use Special Piece</span>
+-    </Button>
+-  );
+-};
+-
+-export default SpecialPieceButton;
+diff --git a/client/src/components/ui/interface.tsx b/client/src/components/ui/interface.tsx
+deleted file mode 100644
+index 225fac2..0000000
+--- a/client/src/components/ui/interface.tsx
++++ /dev/null
+@@ -1,95 +0,0 @@
+-import { useEffect } from "react";
+-import { useGame } from "@/lib/stores/useGame";
+-import { useAudio } from "@/lib/stores/useAudio";
+-import { Button } from "./button";
+-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "./card";
+-import { Confetti } from "../game/Confetti";
+-import { VolumeX, Volume2, RotateCw, Trophy } from "lucide-react";
+-
+-export function Interface() {
+-  const restart = useGame((state) => state.restart);
+-  const phase = useGame((state) => state.phase);
+-  const { isMuted, toggleMute } = useAudio();
+-
+-  // Handle clicks on the interface in the ready phase to start the game
+-  useEffect(() => {
+-    if (phase === "ready") {
+-      const handleClick = () => {
+-        document.activeElement?.blur(); // Remove focus from any button
+-        const event = new KeyboardEvent("keydown", { code: "Space" });
+-        window.dispatchEvent(event);
+-      };
+-
+-      window.addEventListener("click", handleClick);
+-      return () => window.removeEventListener("click", handleClick);
+-    }
+-  }, [phase]);
+-
+-  return (
+-    <>
+-      <Confetti />
+-      
+-      {/* Top-right corner UI controls */}
+-      <div className="fixed top-4 right-4 flex gap-2 z-10">
+-        <Button
+-          variant="outline"
+-          size="icon"
+-          onClick={toggleMute}
+-          title={isMuted ? "Unmute" : "Mute"}
+-        >
+-          {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
+-        </Button>
+-        
+-        <Button
+-          variant="outline"
+-          size="icon"
+-          onClick={restart}
+-          title="Restart Game"
+-        >
+-          <RotateCw size={18} />
+-        </Button>
+-      </div>
+-      
+-      {/* Game completion overlay */}
+-      {phase === "ended" && (
+-        <div className="fixed inset-0 flex items-center justify-center z-20 bg-black/30">
+-          <Card className="w-full max-w-md mx-4 shadow-lg">
+-            <CardHeader>
+-              <CardTitle className="flex items-center justify-center gap-2">
+-                <Trophy className="text-yellow-500" />
+-                Level Complete!
+-              </CardTitle>
+-            </CardHeader>
+-            
+-            <CardContent>
+-              <p className="text-center text-muted-foreground">
+-                Congratulations! You successfully navigated the course.
+-              </p>
+-            </CardContent>
+-            
+-            <CardFooter className="flex justify-center">
+-              <Button onClick={restart} className="w-full">
+-                Play Again
+-              </Button>
+-            </CardFooter>
+-          </Card>
+-        </div>
+-      )}
+-      
+-      {/* Instructions panel */}
+-      <div className="fixed bottom-4 left-4 z-10">
+-        <Card className="w-auto max-w-xs bg-background/80 backdrop-blur-sm">
+-          <CardContent className="p-4">
+-            <h3 className="font-medium mb-2">Controls:</h3>
+-            <ul className="text-sm space-y-1 text-muted-foreground">
+-              <li>WASD or Arrow Keys: Move the ball</li>
+-              <li>Space: Jump</li>
+-              <li>R: Restart game</li>
+-              <li>M: Toggle sound</li>
+-            </ul>
+-          </CardContent>
+-        </Card>
+-      </div>
+-    </>
+-  );
+-}
+diff --git a/client/src/hooks/useAds.ts b/client/src/hooks/useAds.ts
+new file mode 100644
+index 0000000..176e70a
+--- /dev/null
++++ b/client/src/hooks/useAds.ts
+@@ -0,0 +1,102 @@
++import { useState, useCallback, useEffect } from 'react';
++
++// 広告表示の頻度管理
++const AD_FREQUENCY = {
++  // インタースティシャル広告を表示する間隔（ゲーム数）
++  INTERSTITIAL_INTERVAL: 3,
++  // 最後に広告を表示した時刻を保存するキー
++  LAST_AD_KEY: 'janken_last_ad_time',
++  // 広告表示の最小間隔（ミリ秒）
++  MIN_AD_INTERVAL: 60000, // 1分
++};
++
++interface UseAdsReturn {
++  // インタースティシャル広告の表示状態
++  showInterstitial: boolean;
++  // インタースティシャル広告を表示
++  triggerInterstitial: () => void;
++  // インタースティシャル広告を閉じる
++  closeInterstitial: () => void;
++  // ゲーム終了時に呼び出す（広告表示判定）
++  onGameEnd: () => void;
++  // 広告が設定されているかどうか
++  isAdsConfigured: boolean;
++}
++
++export const useAds = (): UseAdsReturn => {
++  const [showInterstitial, setShowInterstitial] = useState(false);
++  const [gameCount, setGameCount] = useState(0);
++
++  // AdSense が設定されているか確認
++  const isAdsConfigured = Boolean(
++    import.meta.env.VITE_ADSENSE_CLIENT &&
++    import.meta.env.VITE_ADSENSE_SLOT
++  );
++
++  // 最後の広告表示からの経過時間を確認
++  const canShowAd = useCallback((): boolean => {
++    const lastAdTime = localStorage.getItem(AD_FREQUENCY.LAST_AD_KEY);
++    if (!lastAdTime) return true;
++
++    const elapsed = Date.now() - parseInt(lastAdTime, 10);
++    return elapsed >= AD_FREQUENCY.MIN_AD_INTERVAL;
++  }, []);
++
++  // 広告表示時刻を記録
++  const recordAdShown = useCallback(() => {
++    localStorage.setItem(AD_FREQUENCY.LAST_AD_KEY, Date.now().toString());
++  }, []);
++
++  // インタースティシャル広告を表示
++  const triggerInterstitial = useCallback(() => {
++    if (!canShowAd()) {
++      console.log('[useAds] Ad shown too recently, skipping');
++      return;
++    }
++    setShowInterstitial(true);
++    recordAdShown();
++  }, [canShowAd, recordAdShown]);
++
++  // インタースティシャル広告を閉じる
++  const closeInterstitial = useCallback(() => {
++    setShowInterstitial(false);
++  }, []);
++
++  // ゲーム終了時の処理
++  const onGameEnd = useCallback(() => {
++    setGameCount((prev) => {
++      const newCount = prev + 1;
++      // 一定回数ごとに広告を表示
++      if (newCount >= AD_FREQUENCY.INTERSTITIAL_INTERVAL) {
++        setTimeout(() => {
++          triggerInterstitial();
++        }, 1500); // 結果表示後に少し遅延
++        return 0; // カウントリセット
++      }
++      return newCount;
++    });
++  }, [triggerInterstitial]);
++
++  // コンポーネントマウント時にゲームカウントを復元
++  useEffect(() => {
++    const savedCount = sessionStorage.getItem('janken_game_count');
++    if (savedCount) {
++      setGameCount(parseInt(savedCount, 10));
++    }
++  }, []);
++
++  // ゲームカウントを保存
++  useEffect(() => {
++    sessionStorage.setItem('janken_game_count', gameCount.toString());
++  }, [gameCount]);
++
++  return {
++    showInterstitial,
++    triggerInterstitial,
++    closeInterstitial,
++    onGameEnd,
++    isAdsConfigured,
++  };
++};
++
++export default useAds;
+diff --git a/client/src/lib/socketService.ts b/client/src/lib/socketService.ts
+index c24be3b..15dc7ad 100644
+--- a/client/src/lib/socketService.ts
++++ b/client/src/lib/socketService.ts
+@@ -57,6 +57,7 @@ export interface GameState {
+   gamePhase: GamePhase;
+   gameResult: GameResult;
+   lastMove?: { player: Player; piece: PieceType; position: Position } | null;
++  winningLine?: { positions: Position[]; player: Player } | null;
+ }
+ 
+ // ★ 追加: MoveDetails 型 (サーバーから送られてくる手の詳細)
+@@ -79,11 +80,18 @@ class SocketService {
+       return;
+     }
+ 
+-    const serverUrl = 'http://localhost:5000'; // サーバーのURLを直接指定
++    // 環境変数からサーバーURLを取得（本番環境対応）
++    const serverUrl = import.meta.env.VITE_SERVER_URL ||
++                      (import.meta.env.PROD ? window.location.origin : 'http://localhost:5000');
+ 
+     // Connect to the server
+     this.socket = io(serverUrl, {
+-      transports: ['websocket', 'polling']
++      transports: ['websocket', 'polling'],
++      withCredentials: true,
++      timeout: 20000,
++      reconnection: true,
++      reconnectionAttempts: 5,
++      reconnectionDelay: 1000
+     });
+ 
+     // Set up event listeners
+diff --git a/client/src/lib/stores/useJankenGame.fixed.ts b/client/src/lib/stores/useJankenGame.fixed.ts
+deleted file mode 100644
+index a10c9c8..0000000
+--- a/client/src/lib/stores/useJankenGame.fixed.ts
++++ /dev/null
+@@ -1,214 +0,0 @@
+-// テスト用の新しい関数定義 - 後でメインファイルに統合
+-
+-// selectCellForPlayer関数の修正版 - おーなー文字列ベースの実装
+-
+-export const selectCellForPlayer = (position: Position, player: Player | string, piece: PieceType) => {
+-  const { 
+-    board, 
+-    player1Inventory, 
+-    player2Inventory 
+-  } = get();
+-  
+-  // プレイヤー値を文字列として直接扱う
+-  const playerString = String(player).toUpperCase();
+-  console.log('🔎 DIRECT STRING selectCellForPlayer:', { 
+-    position, 
+-    originalPlayer: player, 
+-    playerString, 
+-    piece,
+-    playerType: typeof player,
+-    stringType: typeof playerString,
+-    isPlayer2ByString: playerString === 'PLAYER2' || playerString.includes('PLAYER2')
+-  });
+-  
+-  // プレイヤー認識を文字列ベースで行う
+-  const isPlayer1 = playerString === 'PLAYER1' || playerString.includes('PLAYER1');
+-  const isPlayer2 = playerString === 'PLAYER2' || playerString.includes('PLAYER2');
+-  
+-  // Player型としてキャストするのはインターフェース上の邪魔なためのみ
+-  const playerForMove = isPlayer2 ? Player.PLAYER2 : (isPlayer1 ? Player.PLAYER1 : Player.NONE);
+-  
+-  // Check if move is valid - 文字列認識結果に基づく値を使用
+-  if (!isValidMove(board, position, piece, playerForMove)) {
+-    console.warn('Invalid AI move');
+-    set({ message: 'message.invalidMove', isAIThinking: false });
+-    return;
+-  }
+-  
+-  // Clone the board
+-  const newBoard = [...board.map(row => [...row])];
+-  
+-  // Create a new inventory - 文字列判定に基づく
+-  const currentInventory = isPlayer1 
+-    ? { ...player1Inventory }
+-    : { ...player2Inventory };
+-  
+-  // Reduce the count of the selected piece
+-  if (piece && piece !== PieceType.EMPTY && 
+-      (piece === PieceType.ROCK || 
+-       piece === PieceType.PAPER || 
+-       piece === PieceType.SCISSORS || 
+-       piece === PieceType.SPECIAL)) {
+-    currentInventory[piece]--;
+-  }
+-  
+-  // Update the cell
+-  const targetCell = newBoard[position.row][position.col];
+-  
+-  // Play sound effect
+-  const audioStore = useAudio.getState();
+-  
+-  // 文字列による所有者判定結果を使用
+-  console.log(`Using direct string player id: ${playerString} (original: ${player})`);
+-  
+-  // If the cell is empty
+-  if (targetCell.piece === PieceType.EMPTY) {
+-    // 文字列判定結果を基にプレイヤーを特定
+-    let ownerString: string;
+-    
+-    // 特に重要なのはPLAYER2のケース - 文字列で判断
+-    if (isPlayer2) {
+-      ownerString = 'PLAYER2'; // 完全に確実な文字列
+-      console.log('Direct PLAYER2 string assignment in cell update!');
+-    } else if (isPlayer1) {
+-      ownerString = 'PLAYER1'; // 完全に確実な文字列
+-    } else {
+-      ownerString = 'NONE'; // デフォルト値
+-    }
+-    
+-    // 新しいセルを作成 - 明示的に文字列を使用
+-    const newCell: Cell = {
+-      piece: piece,
+-      owner: ownerString as Player, // キャストして型を合わせる
+-      hasBeenUsed: false // Not locked yet, can be captured with janken rules
+-    };
+-    
+-    // 適切な色が適用されるよう詳細なデバッグ情報を出力
+-    console.log('📦 NEW CELL CREATION:', {
+-      position,
+-      originalPlayer: player,
+-      playerString,
+-      ownerString,
+-      cell: newCell,
+-      ownerType: typeof newCell.owner,
+-      ownerValue: String(newCell.owner),
+-      isPlayer2: ownerString === 'PLAYER2',
+-      // Debug ID for tracking the update
+-      updateId: Math.random().toString(36).substring(2, 9)
+-    });
+-    
+-    // 新しいセルをボードに配置
+-    newBoard[position.row][position.col] = newCell;
+-    
+-    // Play success sound
+-    audioStore.playSuccess();
+-  } else {
+-    // Janken battle - replace opponent's piece and lock this cell
+-    const defendingPiece = targetCell.piece;
+-    
+-    // ジャンケンバトルの場合も文字列を明示的に使用
+-    let battleOwnerString: string;
+-    
+-    // 文字列判定結果に基づいてオーナーを決定
+-    if (isPlayer2) {
+-      battleOwnerString = 'PLAYER2'; // 完全に確実な文字列
+-      console.log('Direct PLAYER2 string in Janken battle!');
+-    } else if (isPlayer1) {
+-      battleOwnerString = 'PLAYER1'; // 完全に確実な文字列
+-    } else {
+-      battleOwnerString = 'NONE'; // デフォルト値
+-    }
+-    
+-    // 新しいセルを作成 - 明示的に文字列を使用
+-    const battleCell: Cell = {
+-      piece: piece,
+-      owner: battleOwnerString as Player, // キャストして型を合わせる
+-      hasBeenUsed: true // Lock this cell after janken battle
+-    };
+-    
+-    console.log('⚔️ JANKEN_BATTLE_UPDATE:', {
+-      position,
+-      originalPlayer: player,
+-      playerString,
+-      battleOwnerString,
+-      cell: battleCell,
+-      ownerType: typeof battleCell.owner,
+-      ownerValue: String(battleCell.owner),
+-      isPlayer2: battleOwnerString === 'PLAYER2',
+-      battleId: Math.random().toString(36).substring(2, 9)
+-    });
+-    
+-    newBoard[position.row][position.col] = battleCell;
+-    
+-    // Play hit sound
+-    audioStore.playHit();
+-    
+-    // Trigger capture animation
+-    set({ captureAnimation: position });
+-    
+-    // Display a message about the janken battle result
+-    let jankenResultMessage = '';
+-    
+-    // Create a specific message based on what pieces were involved
+-    // In Japanese Janken Rules:
+-    // - Rock (グー) beats Scissors (チョキ)
+-    // - Scissors (チョキ) beats Paper (パー)
+-    // - Paper (パー) beats Rock (グー)
+-    if (piece === PieceType.ROCK && defendingPiece === PieceType.SCISSORS) {
+-      jankenResultMessage = 'message.rockVsScissors';
+-    } else if (piece === PieceType.SCISSORS && defendingPiece === PieceType.PAPER) {
+-      jankenResultMessage = 'message.scissorsVsPaper';
+-    } else if (piece === PieceType.PAPER && defendingPiece === PieceType.ROCK) {
+-      jankenResultMessage = 'message.paperVsRock';
+-    }
+-    
+-    // Set the message key for translation
+-    set({ message: jankenResultMessage });
+-  }
+-  
+-  // Update inventories
+-  const newState = {
+-    board: newBoard,
+-    selectedPiece: null,
+-    player2Inventory: currentInventory
+-  };
+-  
+-  // Check for win condition
+-  if (checkWin(newBoard, Player.PLAYER2)) {  // AI playerのwin条件
+-    // The AI won!
+-    set({
+-      ...newState,
+-      result: GameResult.PLAYER2_WIN,
+-      phase: GamePhase.GAME_OVER,
+-      message: 'message.player2Win',
+-      winAnimation: true
+-    });
+-    
+-    return;
+-  }
+-  
+-  // Check for draw condition
+-  if (checkDraw(newBoard, player1Inventory, currentInventory)) {
+-    set({
+-      ...newState,
+-      result: GameResult.DRAW,
+-      phase: GamePhase.GAME_OVER,
+-      message: 'message.draw',
+-      drawAnimation: true
+-    });
+-    
+-    return;
+-  }
+-  
+-  // Switch player to Player 1
+-  set({
+-    ...newState,
+-    currentPlayer: Player.PLAYER1,
+-    message: 'message.player1Turn'
+-  });
+-  
+-  // Get random piece for Player 1's next turn
+-  setTimeout(() => {
+-    get().getRandomPieceForCurrentPlayer();
+-  }, 100);
+-};
+\ No newline at end of file
+diff --git a/client/src/pages/GamePage.tsx b/client/src/pages/GamePage.tsx
+index 58c500e..b98db12 100644
+--- a/client/src/pages/GamePage.tsx
++++ b/client/src/pages/GamePage.tsx
+@@ -14,6 +14,8 @@ import { motion } from 'framer-motion';
+ import { useLanguage } from '../lib/stores/useLanguage';
+ import { Switch } from "../components/ui/switch";
+ import { Label } from "../components/ui/label";
++import { AdBanner, InterstitialAd } from '../components/ads';
++import { useAds } from '../hooks/useAds';
+ 
+ // 公開コンポーネント - サーバーコンポーネントとクライアントコンポーネントの橋渡し
+ function GamePage() {
+@@ -30,7 +32,10 @@ function GamePage() {
+ function ClientOnlyGamePage() {
+   const navigate = useNavigate();
+   const { t, language, setLanguage } = useLanguage();
+-  
++
++  // 広告フック
++  const { showInterstitial, closeInterstitial, onGameEnd } = useAds();
++
+   const {
+     player1Inventory,
+     player2Inventory,
+@@ -49,6 +54,14 @@ function ClientOnlyGamePage() {
+     placePiece,
+   } = useJankenGame();
+ 
++  // ゲーム終了時に広告を表示
++  React.useEffect(() => {
++    if (phase === GamePhase.GAME_OVER) {
++      // ゲーム結果表示後に広告判定
++      onGameEnd();
++    }
++  }, [phase, onGameEnd]);
++
+   // AIモードを有効にする
+   React.useEffect(() => {
+     // ローカルストレージからAIモード設定を読み込む
+@@ -305,6 +318,13 @@ function ClientOnlyGamePage() {
+ 
+   return (
+     <ErrorBoundary key="game-page-error-boundary">
++      {/* インタースティシャル広告 */}
++      <InterstitialAd
++        isVisible={showInterstitial}
++        onClose={closeInterstitial}
++        autoCloseSeconds={5}
++      />
++
+       <div className="flex flex-col h-full md:h-screen py-1 px-0.5 md:py-2 md:px-2">
+         <div className="flex flex-col md:flex-row w-full h-full md:space-x-1">
+           {/* 左側の情報パネル */}
+diff --git a/client/src/pages/home.tsx b/client/src/pages/home.tsx
+index b3591b6..877119a 100644
+--- a/client/src/pages/home.tsx
++++ b/client/src/pages/home.tsx
+@@ -8,6 +8,7 @@ import { FaHandRock, FaHandPaper, FaHandScissors, FaStar, FaBrain } from 'react-
+ import { useLanguage } from '../lib/stores/useLanguage';
+ import { Switch } from "../components/ui/switch";
+ import { Label } from "../components/ui/label";
++import { AdBanner } from '../components/ads';
+ 
+ // AI難易度ボタンのスタイルを統一するためのヘルパー
+ const difficultyButtonVariants = {
+@@ -372,6 +373,16 @@ export function Home() {
+               </div>
+             </div>
+           </motion.div>
++
++          {/* 広告バナー */}
++          <motion.div
++            className="w-full max-w-2xl mx-auto mt-8"
++            initial={{ opacity: 0 }}
++            animate={{ opacity: 1 }}
++            transition={{ duration: 0.5, delay: 0.6 }}
++          >
++            <AdBanner position="bottom" />
++          </motion.div>
+         </div>
+       </div>
+     </div>
+diff --git a/render.yaml b/render.yaml
+new file mode 100644
+index 0000000..d1260f7
+--- /dev/null
++++ b/render.yaml
+@@ -0,0 +1,14 @@
++services:
++  - type: web
++    name: janken-wars-api
++    env: node
++    plan: free
++    buildCommand: npm install && npm run build
++    startCommand: npm run start
++    envVars:
++      - key: NODE_ENV
++        value: production
++      - key: PORT
++        value: 10000
++      - key: ALLOWED_ORIGINS
++        value: https://janken-wars.vercel.app,https://janken-wars-api.onrender.com
+diff --git a/server/index.ts b/server/index.ts
+index da2d962..503ac90 100644
+--- a/server/index.ts
++++ b/server/index.ts
+@@ -11,18 +11,55 @@ app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+ // Keep-Alive設定でコネクション安定化
+ app.set('trust proxy', 1);
+ 
+-// セッション関連のヘッダー設定
++// 許可するオリジンのリスト（本番環境では適切なドメインに変更）
++const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
++  ? process.env.ALLOWED_ORIGINS.split(',')
++  : ['http://localhost:5000', 'http://localhost:3000', 'http://127.0.0.1:5000'];
++
++// セキュリティヘッダー設定
+ app.use((req, res, next) => {
+   // Keep-Alive設定
+   res.setHeader('Connection', 'keep-alive');
+   res.setHeader('Keep-Alive', 'timeout=30, max=1000');
+-  
+-  // CORS設定の改善
+-  res.setHeader('Access-Control-Allow-Origin', '*');
++
++  // CORS設定（オリジンを制限）
++  const origin = req.headers.origin;
++  if (origin && ALLOWED_ORIGINS.includes(origin)) {
++    res.setHeader('Access-Control-Allow-Origin', origin);
++  }
+   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+-  res.setHeader('Access-Control-Max-Age', '86400'); // 24時間キャッシュ
+-  
++  res.setHeader('Access-Control-Allow-Credentials', 'true');
++  res.setHeader('Access-Control-Max-Age', '86400');
++
++  // セキュリティヘッダー
++  res.setHeader('X-Content-Type-Options', 'nosniff');
++  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
++  res.setHeader('X-XSS-Protection', '1; mode=block');
++  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
++
++  // Content Security Policy（広告対応）
++  res.setHeader('Content-Security-Policy',
++    "default-src 'self'; " +
++    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://www.googletagservices.com https://adservice.google.com; " +
++    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
++    "font-src 'self' https://fonts.gstatic.com; " +
++    "img-src 'self' data: https: blob:; " +
++    "connect-src 'self' ws: wss: https://pagead2.googlesyndication.com; " +
++    "frame-src 'self' https://googleads.g.doubleclick.net https://www.google.com https://tpc.googlesyndication.com;"
++  );
++
++  // HTTPS強制（本番環境用）
++  if (process.env.NODE_ENV === 'production') {
++    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
++  }
++
++  // OPTIONSリクエストへの対応
++  if (req.method === 'OPTIONS') {
++    res.status(204).end();
++    return;
++  }
++
+   next();
+ });
+ 
+@@ -76,8 +113,8 @@ app.use((req, res, next) => {
+     serveStatic(app);
+   }
+ 
+-  // サーバーをポート5000で起動
+-  const port = 5000;
++  // サーバーをポートで起動（環境変数またはデフォルト5000）
++  const port = parseInt(process.env.PORT || '5000', 10);
+   
+   // サーバー設定の改善
+   server.timeout = 30000; // 30秒タイムアウト
+diff --git a/server/routes.ts b/server/routes.ts
+index a6b2ded..02fbf64 100644
+--- a/server/routes.ts
++++ b/server/routes.ts
+@@ -24,6 +24,90 @@ import {
+   findWinningLine,
+ } from "../client/src/lib/gameUtils";
+ 
++// ===== セキュリティ: 入力バリデーション関数 =====
++
++// ユーザー名のバリデーション
++function validateUsername(username: unknown): string {
++  if (typeof username !== 'string') {
++    return 'Anonymous';
++  }
++  // XSS対策: HTMLタグを除去し、長さを制限
++  const sanitized = username
++    .replace(/<[^>]*>/g, '')
++    .replace(/[<>\"'&]/g, '')
++    .trim()
++    .substring(0, 20);
++  return sanitized || 'Anonymous';
++}
++
++// ルームIDのバリデーション
++function validateRoomId(roomId: unknown): string | null {
++  if (typeof roomId !== 'string') {
++    return null;
++  }
++  // ルームIDは8文字の英数字のみ許可
++  const sanitized = roomId.replace(/[^a-zA-Z0-9-]/g, '').substring(0, 8);
++  return sanitized.length >= 6 ? sanitized : null;
++}
++
++// Position のバリデーション
++function validatePosition(position: unknown): Position | null {
++  if (!position || typeof position !== 'object') {
++    return null;
++  }
++  const pos = position as { row?: unknown; col?: unknown };
++  if (typeof pos.row !== 'number' || typeof pos.col !== 'number') {
++    return null;
++  }
++  if (pos.row < 0 || pos.row > 5 || pos.col < 0 || pos.col > 5) {
++    return null;
++  }
++  return { row: pos.row, col: pos.col };
++}
++
++// PieceType のバリデーション
++function validatePieceType(piece: unknown): PieceType | null {
++  const validPieces = [PieceType.ROCK, PieceType.PAPER, PieceType.SCISSORS, PieceType.SPECIAL];
++  if (typeof piece === 'string' && validPieces.includes(piece as PieceType)) {
++    return piece as PieceType;
++  }
++  return null;
++}
++
++// レート制限用のトラッカー
++const rateLimitTracker: Map<string, { count: number; resetTime: number }> = new Map();
++const RATE_LIMIT_MAX = 100; // 1分あたりの最大リクエスト数
++const RATE_LIMIT_WINDOW = 60000; // 1分
++
++function checkRateLimit(socketId: string): boolean {
++  const now = Date.now();
++  const tracker = rateLimitTracker.get(socketId);
++
++  if (!tracker || now > tracker.resetTime) {
++    rateLimitTracker.set(socketId, { count: 1, resetTime: now + RATE_LIMIT_WINDOW });
++    return true;
++  }
++
++  if (tracker.count >= RATE_LIMIT_MAX) {
++    return false;
++  }
++
++  tracker.count++;
++  return true;
++}
++
++// 定期的に古いエントリをクリーンアップ
++setInterval(() => {
++  const now = Date.now();
++  for (const [key, value] of rateLimitTracker.entries()) {
++    if (now > value.resetTime) {
++      rateLimitTracker.delete(key);
++    }
++  }
++}, 60000);
++
++// ===== セキュリティ: バリデーション関数 ここまで =====
++
+ // サーバーの起動時間を記録
+ const SERVER_START_TIME = new Date();
+ const SERVER_VERSION = '1.0.1';
+@@ -107,20 +191,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
+ 
+   const httpServer = createServer(app);
+   
++  // 許可するオリジンのリスト
++  const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
++    ? process.env.ALLOWED_ORIGINS.split(',')
++    : ['http://localhost:5000', 'http://localhost:3000', 'http://127.0.0.1:5000'];
++
+   const io = new SocketIOServer(httpServer, {
+     cors: {
+-      origin: "*",
+-      methods: ["GET", "POST"]
+-    }
++      origin: (origin, callback) => {
++        // オリジンがない場合（同一オリジン）または許可リストに含まれる場合は許可
++        if (!origin || ALLOWED_ORIGINS.includes(origin)) {
++          callback(null, true);
++        } else {
++          log(`Blocked CORS request from: ${origin}`);
++          callback(new Error('Not allowed by CORS'));
++        }
++      },
++      methods: ["GET", "POST"],
++      credentials: true
++    },
++    // 接続数制限
++    maxHttpBufferSize: 1e6, // 1MB
++    pingTimeout: 20000,
++    pingInterval: 25000
+   });
+ 
+   io.on("connection", (socket) => {
+     log(`New client connected: ${socket.id}`);
+-    
+-    socket.on("user:join", (username: string) => {
+-      log(`User joined: ${username} (${socket.id})`);
+-      
+-      socket.data.username = username;
++
++    // レート制限チェック用ミドルウェア
++    socket.use((packet, next) => {
++      if (!checkRateLimit(socket.id)) {
++        log(`Rate limit exceeded for socket: ${socket.id}`);
++        next(new Error('Rate limit exceeded'));
++        return;
++      }
++      next();
++    });
++
++    socket.on("user:join", (username: unknown) => {
++      const validUsername = validateUsername(username);
++      log(`User joined: ${validUsername} (${socket.id})`);
++
++      socket.data.username = validUsername;
+     });
+     
+     socket.on("room:create", () => {
+@@ -163,13 +276,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
+       }
+     });
+     
+-    socket.on("room:join", (roomId: string) => {
++    socket.on("room:join", (roomIdInput: unknown) => {
++      const roomId = validateRoomId(roomIdInput);
++      if (!roomId) {
++        socket.emit("error", { message: "Invalid room ID format" });
++        return;
++      }
++
+       log(`Received room:join request for roomId: ${roomId}`);
+       log(`Current gameRooms: ${JSON.stringify(Object.keys(gameRooms))}`);
+       const room = gameRooms[roomId];
+       log(`Found room? ${!!room}`);
+ 
+-      const username = socket.data.username || "Anonymous";
++      const username = validateUsername(socket.data.username);
+       
+       if (!room) {
+         log(`Room ${roomId} not found.`);
+@@ -232,10 +351,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
+       }
+     });
+     
+-    socket.on("player:ready", (roomId: string) => {
++    socket.on("player:ready", (roomIdInput: unknown) => {
++      const roomId = validateRoomId(roomIdInput);
++      if (!roomId) {
++        socket.emit("error", { message: "Invalid room ID" });
++        return;
++      }
++
+       const room = gameRooms[roomId];
+-      
++
+       if (!room || !room.players[socket.id]) {
++        socket.emit("error", { message: "Room not found or you are not in this room" });
+         return;
+       }
+       
+@@ -282,8 +408,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
+       }
+     });
+     
+-    socket.on("game:move", (data: { roomId: string, position: Position, piece: PieceType }) => {
+-      const { roomId, position, piece } = data;
++    socket.on("game:move", (data: unknown) => {
++      // データの型チェック
++      if (!data || typeof data !== 'object') {
++        socket.emit("error", { message: "Invalid move data" });
++        return;
++      }
++
++      const moveData = data as { roomId?: unknown; position?: unknown; piece?: unknown };
++
++      // roomId のバリデーション
++      const roomId = validateRoomId(moveData.roomId);
++      if (!roomId) {
++        socket.emit("error", { message: "Invalid room ID" });
++        return;
++      }
++
++      // position のバリデーション
++      const position = validatePosition(moveData.position);
++      if (!position) {
++        socket.emit("error", { message: "Invalid position" });
++        return;
++      }
++
++      // piece のバリデーション
++      const piece = validatePieceType(moveData.piece);
++      if (!piece) {
++        socket.emit("error", { message: "Invalid piece type" });
++        return;
++      }
++
+       const room = gameRooms[roomId];
+       
+       if (!room) {
+@@ -389,7 +543,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
+       log(`Game state updated for room ${roomId}. Turn: ${gameState.currentPlayer}`);
+     });
+     
+-    socket.on("game:request_rematch", (roomId: string) => {
++    socket.on("game:request_rematch", (roomIdInput: unknown) => {
++      const roomId = validateRoomId(roomIdInput);
++      if (!roomId) {
++        socket.emit("error", { message: "Invalid room ID" });
++        return;
++      }
++
+       const room = gameRooms[roomId];
+       const playerSocketId = socket.id;
+ 
+@@ -437,7 +597,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
+       });
+     });
+     
+-    socket.on("room:leave", (roomId: string) => {
++    socket.on("room:leave", (roomIdInput: unknown) => {
++      const roomId = validateRoomId(roomIdInput);
++      if (!roomId) {
++        socket.emit("error", { message: "Invalid room ID" });
++        return;
++      }
++
+       const room = gameRooms[roomId];
+       const playerSocketId = socket.id;
+ 
+diff --git a/tsconfig.json b/tsconfig.json
+index 12fa45f..1cfaf5d 100644
+--- a/tsconfig.json
++++ b/tsconfig.json
+@@ -1,13 +1,14 @@
+ {
+   "include": ["client/src/**/*", "shared/**/*", "server/**/*"],
+-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
++  "exclude": ["node_modules", "build", "dist", "**/*.test.ts", "client/src/service-worker.ts"],
+   "compilerOptions": {
+     "incremental": true,
+     "tsBuildInfoFile": "./node_modules/typescript/tsbuildinfo",
+     "noEmit": true,
++    "target": "ES2020",
+     "module": "ESNext",
+     "strict": true,
+-    "lib": ["esnext", "dom", "dom.iterable"],
++    "lib": ["ES2020", "dom", "dom.iterable", "webworker"],
+     "jsx": "preserve",
+     "esModuleInterop": true,
+     "skipLibCheck": true,
+@@ -19,6 +20,7 @@
+       "@/*": ["./client/src/*"],
+       "@shared/*": ["./shared/*"]
+     },
+-    "noImplicitAny": false
++    "noImplicitAny": false,
++    "downlevelIteration": true
+   }
+ }
+diff --git a/vercel.json b/vercel.json
+new file mode 100644
+index 0000000..9f3fc91
+--- /dev/null
++++ b/vercel.json
+@@ -0,0 +1,21 @@
++{
++  "buildCommand": "npm run build",
++  "outputDirectory": "dist/client",
++  "framework": "vite",
++  "rewrites": [
++    {
++      "source": "/(.*)",
++      "destination": "/index.html"
++    }
++  ],
++  "headers": [
++    {
++      "source": "/(.*)",
++      "headers": [
++        { "key": "X-Content-Type-Options", "value": "nosniff" },
++        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
++        { "key": "X-XSS-Protection", "value": "1; mode=block" }
++      ]
++    }
++  ]
++}
+-- 
+2.51.0.windows.2
+
