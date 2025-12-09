@@ -140,11 +140,14 @@ export function serveStatic(app: Express) {
   });
 
   app.use(express.static(staticPath, {
-    setHeaders: (res, path) => {
-      if (path.endsWith('.js')) {
+    dotfiles: 'allow',
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.js')) {
         res.setHeader('Content-Type', 'application/javascript');
-      } else if (path.endsWith('.css')) {
+      } else if (filePath.endsWith('.css')) {
         res.setHeader('Content-Type', 'text/css');
+      } else if (filePath.endsWith('.json')) {
+        res.setHeader('Content-Type', 'application/json');
       }
     }
   }));
