@@ -397,6 +397,19 @@ export function Home() {
                   {getLanguageContent('How to Play', '遊び方')}
                 </Link>
                 <span className="text-gray-400">|</span>
+                <Link to="/strategy" className="hover:text-indigo-600 transition-colors">
+                  {getLanguageContent('Strategy Guide', '戦略ガイド')}
+                </Link>
+                <span className="text-gray-400">|</span>
+                <Link to="/faq" className="hover:text-indigo-600 transition-colors">
+                  {getLanguageContent('FAQ', 'よくある質問')}
+                </Link>
+                <span className="text-gray-400">|</span>
+                <Link to="/blog" className="hover:text-indigo-600 transition-colors">
+                  {getLanguageContent('News', 'ニュース')}
+                </Link>
+              </div>
+              <div className="flex flex-wrap justify-center items-center gap-3 text-sm text-gray-600">
                 <Link to="/about" className="hover:text-indigo-600 transition-colors">
                   {getLanguageContent('About', 'このゲームについて')}
                 </Link>
@@ -404,8 +417,7 @@ export function Home() {
                 <Link to="/contact" className="hover:text-indigo-600 transition-colors">
                   {getLanguageContent('Contact', 'お問い合わせ')}
                 </Link>
-              </div>
-              <div className="flex flex-wrap justify-center items-center gap-3 text-sm text-gray-600">
+                <span className="text-gray-400">|</span>
                 <Link to="/privacy" className="hover:text-indigo-600 transition-colors">
                   {getLanguageContent('Privacy Policy', 'プライバシーポリシー')}
                 </Link>

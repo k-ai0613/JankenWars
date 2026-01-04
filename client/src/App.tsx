@@ -9,6 +9,9 @@ import { TermsOfService } from './pages/TermsOfService';
 import { Contact } from './pages/Contact';
 import { About } from './pages/About';
 import { HowToPlay } from './pages/HowToPlay';
+import { FAQ } from './pages/FAQ';
+import { Strategy } from './pages/Strategy';
+import { Blog } from './pages/Blog';
 import NotFound from './pages/not-found';
 import { TestPage } from './pages/TestPage';
 import '@fontsource/inter';
@@ -71,6 +74,11 @@ function App() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/about" element={<About />} />
         <Route path="/how-to-play" element={<HowToPlay />} />
+        <Route path="/faq" element={<FAQ />} />
+        <Route path="/strategy" element={<Strategy />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/news" element={<Blog />} />
+        <Route path="/updates" element={<Blog />} />
         <Route path="/test" element={<TestPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
