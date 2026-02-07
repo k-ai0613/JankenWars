@@ -4,13 +4,23 @@ import crypto from 'crypto';
 // レート制限のための簡易実装
 const requestCounts = new Map<string, { count: number; resetTime: number }>();
 
+// 定期的に期限切れエントリを削除（メモリリーク防止）
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of requestCounts) {
+    if (now > value.resetTime) {
+      requestCounts.delete(key);
+    }
+  }
+}, 60000);
+
 export function rateLimiter(maxRequests: number = 100, windowMs: number = 60000) {
   return (req: Request, res: Response, next: NextFunction) => {
     const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
     const now = Date.now();
-    
+
     const clientData = requestCounts.get(clientIp);
-    
+
     if (!clientData || now > clientData.resetTime) {
       requestCounts.set(clientIp, {
         count: 1,
@@ -18,14 +28,14 @@ export function rateLimiter(maxRequests: number = 100, windowMs: number = 60000)
       });
       return next();
     }
-    
+
     if (clientData.count >= maxRequests) {
-      res.status(429).json({ 
-        error: 'Too many requests. Please try again later.' 
+      res.status(429).json({
+        error: 'Too many requests. Please try again later.'
       });
       return;
     }
-    
+
     clientData.count++;
     next();
   };
@@ -91,10 +101,10 @@ export function validateRoomId(roomId: string): boolean {
   return roomIdPattern.test(roomId);
 }
 
-// ユーザー名の検証
+// ユーザー名の検証（日本語文字も許可）
 export function validateUsername(username: string): boolean {
-  // 3-20文字、英数字とアンダースコアのみ
-  const usernamePattern = /^[a-zA-Z0-9_]{3,20}$/;
+  // 1-20文字、英数字・アンダースコア・日本語文字を許可
+  const usernamePattern = /^[\w\u3000-\u303F\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\u{20000}-\u{2A6DF}]{1,20}$/u;
   return usernamePattern.test(username);
 }
 
@@ -103,12 +113,13 @@ export function validateGameMove(position: any, piece: any): boolean {
   // positionが適切な形式か確認
   if (!position || typeof position !== 'object') return false;
   if (typeof position.row !== 'number' || typeof position.col !== 'number') return false;
-  if (position.row < 0 || position.row > 2 || position.col < 0 || position.col > 2) return false;
-  
-  // pieceが有効な値か確認
-  const validPieces = ['ROCK', 'PAPER', 'SCISSORS'];
+  if (!Number.isInteger(position.row) || !Number.isInteger(position.col)) return false;
+  if (position.row < 0 || position.row >= 6 || position.col < 0 || position.col >= 6) return false;
+
+  // pieceが有効な値か確認（文字列enum）
+  const validPieces = ['ROCK', 'PAPER', 'SCISSORS', 'SPECIAL'];
   if (!validPieces.includes(piece)) return false;
-  
+
   return true;
 }
 

@@ -68,31 +68,25 @@ export const useAudio = create<AudioState>((set, get) => ({
 
   playDraw: () => {
     if (!get().muted) {
-      // soundService.play('drawSound'); // SoundTypeエラーのため一時コメントアウト
-      console.log('Audio: Play Draw Sound (TODO: Uncomment and fix SoundType)');
+      soundService.play('draw');
     }
   },
 
   playWin: () => {
     if (!get().muted) {
-      // soundService.play('winSound'); // SoundTypeエラーのため一時コメントアウト
-      console.log('Audio: Play Win Sound (TODO: Uncomment and fix SoundType)');
+      soundService.play('win');
     }
   },
 
   playLose: () => {
     if (!get().muted) {
-      // soundService.play('loseSound'); // SoundTypeエラーのため一時コメントアウト
-      console.log('Audio: Play Lose Sound (TODO: Uncomment and fix SoundType)');
+      soundService.play('lose');
     }
   },
-  
+
   playClick: () => {
     if (!get().muted) {
-      // soundService.play('click'); // SoundTypeエラーのため代替処理
-      console.log('Audio: Play Click Sound');
-      // クリック音の代わりに既存の音を使用
-      soundService.play('place');
+      soundService.play('click');
     }
   },
 }));

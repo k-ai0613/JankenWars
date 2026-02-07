@@ -1,4 +1,4 @@
-type SoundType = 'battle' | 'place' | 'victory' | 'background' | 'success' | 'hit';
+type SoundType = 'battle' | 'place' | 'victory' | 'background' | 'success' | 'hit' | 'draw' | 'win' | 'lose' | 'click';
 
 class SoundService {
   private sounds: Record<SoundType, HTMLAudioElement>;
@@ -24,7 +24,13 @@ class SoundService {
       hit: new Audio('/sounds/battle.mp3'),
       
       // バックグラウンドミュージック（未使用）(victory.mp3 を再利用)
-      background: new Audio('/sounds/victory.mp3')
+      background: new Audio('/sounds/victory.mp3'),
+
+      // 追加サウンド（既存音源を再利用マッピング）
+      draw: new Audio('/sounds/battle.mp3'),
+      win: new Audio('/sounds/victory.mp3'),
+      lose: new Audio('/sounds/battle.mp3'),
+      click: new Audio('/sounds/place.mp3'),
     };
     
     // 全てのサウンドのボリュームを設定

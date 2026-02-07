@@ -1,5 +1,5 @@
 import { io, Socket } from 'socket.io-client';
-import { Position, PieceType, Player, Board, GameResult, GamePhase, PlayerInventory } from './types';
+import { Position, PieceType, Player, Board, GameResult, GamePhase, PlayerInventory, WinningLine } from './types';
 
 // Event handlers type definitions
 export interface GameMoveData {
@@ -57,6 +57,7 @@ export interface GameState {
   gamePhase: GamePhase;
   gameResult: GameResult;
   lastMove?: { player: Player; piece: PieceType; position: Position } | null;
+  winningLine?: WinningLine | null;
 }
 
 // ★ 追加: MoveDetails 型 (サーバーから送られてくる手の詳細)

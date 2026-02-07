@@ -42,5 +42,8 @@ summary.txt
 # Android/Mobile
 android/
 app/
-public/
-!client/public/ads.txt
+/public/
+.gradle/
+
+# Windows artifacts
+nul

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-JankenWars is a strategic online multiplayer board game based on rock-paper-scissors. Two players compete on a 6x6 board, placing janken pieces (rock/paper/scissors) with real-time synchronization via Socket.IO.
+JankenWars is a strategic online multiplayer board game based on rock-paper-scissors. Two players compete on a 6x6 board, placing janken pieces (rock/paper/scissors) with real-time synchronization via Socket.IO. Win by aligning 5 pieces in a row (vertical, horizontal, or diagonal).
 
 ## Development Commands
 
@@ -44,17 +44,25 @@ Key stores in `client/src/lib/stores/`:
 
 Game logic in `client/src/lib/`:
 - `gameUtils.ts` - Core game mechanics (win check, valid moves, board operations)
-- `aiUtils.ts` - AI opponent logic with difficulty levels
+- `aiUtils.ts` - AI opponent logic with 6 difficulty levels (BEGINNER to EXPERT)
 
 ### Backend (`server/`)
 - **Framework**: Express.js + Socket.IO
 - **Entry**: `server/index.ts`
+- **Types**: `server/types.ts` defines shared enums (Player, PieceType, GamePhase, GameResult)
 
 Key files:
 - `routes.ts` - REST API endpoints and Socket.IO event handlers
-- `gameUtils.ts` - Server-side game validation
+- `gameUtils.ts` - Server-side game validation (mirrors client logic)
 - `security.ts` - Rate limiting and input validation
 - `storage.ts` - In-memory game room storage
+
+### Shared Types (`server/types.ts`)
+Both client and server use these core types:
+- `Player`: NONE(0), PLAYER1(1), PLAYER2(2)
+- `PieceType`: EMPTY(0), ROCK(1), PAPER(2), SCISSORS(3), FLAG(4)
+- `GamePhase`: ready, playing, selecting_cell, placing_piece, game_over
+- `Board`: 2D array of `Cell` objects
 
 ### Socket.IO Events Flow
 1. Room creation/joining with player number assignment
@@ -90,3 +98,5 @@ Deployed on Render with auto-deploy from main branch.
 - `localPlayerNumber` in online games must come from server response
 - AI mode uses `isAIEnabled` flag in game store
 - Janken battles lock cells permanently (`jankenBattleCells` array)
+- Game rooms auto-cleanup after 30 minutes of inactivity
+- Special piece (FLAG) cannot be captured and cannot capture others

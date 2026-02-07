@@ -198,7 +198,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     socket.on("user:join", (username: string) => {
       // ユーザー名の検証
       if (!username || !validateUsername(username)) {
-        socket.emit("error", { message: "Invalid username. Use 3-20 alphanumeric characters." });
+        socket.emit("game:error", { message: "Invalid username." });
         return;
       }
       
@@ -245,14 +245,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const errorMessage = error instanceof Error ? error.message : String(error);
         log(`Error creating room for socket ${socket.id}: ${errorMessage}`);
         console.error("Full error details:", error);
-        socket.emit("error", { message: "Failed to create room due to server error." });
+        socket.emit("game:error", { message: "Failed to create room due to server error." });
       }
     });
     
     socket.on("room:join", (roomId: string) => {
       // ルームIDの検証
       if (!roomId || !validateRoomId(roomId)) {
-        socket.emit("error", { message: "Invalid room ID" });
+        socket.emit("game:error", { message: "Invalid room ID" });
         return;
       }
       
@@ -265,7 +265,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!room) {
         log(`Room ${roomId} not found.`);
-        socket.emit("error", { message: "Room not found" });
+        socket.emit("game:error", { message: "Room not found" });
         return;
       }
       
@@ -333,43 +333,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         log(`Player rejoined room: ${username} rejoined ${roomId} with new socket ${socket.id}`);
-        
-        // 再参加後にゲーム開始条件をチェック
-        const allReady = Object.values(room.players).every(p => p.ready);
-        const currentPlayerCount = Object.keys(room.players).length;
-        
-        log(`Room ${roomId}: playerCount=${currentPlayerCount}, allReady=${allReady}, inProgress=${room.inProgress}`);
-        log(`Players ready status: ${JSON.stringify(Object.entries(room.players).map(([id, data]) => ({id: id.substring(0,8), username: data.username, ready: data.ready})))}`);
-        
-        if (allReady && currentPlayerCount === 2 && !room.inProgress) {
-          room.inProgress = true;
-          room.gameState = {
-            currentTurn: 1,
-            currentPlayer: Player.PLAYER1,
-            player1Inventory: { rock: 5, paper: 5, scissors: 5, flag: 1 },
-            player2Inventory: { rock: 5, paper: 5, scissors: 5, flag: 1 },
-            board: Array(3).fill(null).map(() => Array(3).fill(null).map(() => ({ piece: PieceType.EMPTY, owner: Player.NONE, hasBeenUsed: false }))),
-            gamePhase: GamePhase.PLAYING,
-            gameResult: GameResult.ONGOING,
-            lastMove: null,
-            winningLine: null
-          };
-          
-          const playersArray = Object.entries(room.players).map(([id, data]) => ({
-            id,
-            username: data.username,
-            playerNumber: data.playerNumber,
-            ready: data.ready
-          }));
-          
-          io.to(roomId).emit("game:start", {
-            roomId,
-            players: playersArray,
-            gameState: room.gameState
-          });
-          
-          log(`Game started in room ${roomId}`);
-        }
       } else if (playerCount >= 2) {
         room.spectators.push(socket.id);
         socket.join(roomId);
@@ -413,43 +376,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         socket.to(roomId).emit("room:player:joined", roomDataForJoiner);
         
         log(`Player joined room: ${username} joined ${roomId}`);
-        
-        // 新規参加後にゲーム開始条件をチェック
-        const allReady = Object.values(room.players).every(p => p.ready);
-        const currentPlayerCount = Object.keys(room.players).length;
-        
-        log(`Room ${roomId}: playerCount=${currentPlayerCount}, allReady=${allReady}, inProgress=${room.inProgress}`);
-        log(`Players ready status: ${JSON.stringify(Object.entries(room.players).map(([id, data]) => ({id: id.substring(0,8), username: data.username, ready: data.ready})))}`);
-        
-        if (allReady && currentPlayerCount === 2 && !room.inProgress) {
-          room.inProgress = true;
-          room.gameState = {
-            currentTurn: 1,
-            currentPlayer: Player.PLAYER1,
-            player1Inventory: { rock: 5, paper: 5, scissors: 5, flag: 1 },
-            player2Inventory: { rock: 5, paper: 5, scissors: 5, flag: 1 },
-            board: Array(3).fill(null).map(() => Array(3).fill(null).map(() => ({ piece: PieceType.EMPTY, owner: Player.NONE, hasBeenUsed: false }))),
-            gamePhase: GamePhase.PLAYING,
-            gameResult: GameResult.ONGOING,
-            lastMove: null,
-            winningLine: null
-          };
-          
-          const playersArray = Object.entries(room.players).map(([id, data]) => ({
-            id,
-            username: data.username,
-            playerNumber: data.playerNumber,
-            ready: data.ready
-          }));
-          
-          io.to(roomId).emit("game:start", {
-            roomId,
-            players: playersArray,
-            gameState: room.gameState
-          });
-          
-          log(`Game started in room ${roomId}`);
-        }
       }
     });
     
@@ -640,7 +566,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!room) {
         log(`[game:request_rematch] Room ${roomId} not found.`);
-        socket.emit("error", { message: "Room not found for rematch request." });
+        socket.emit("game:error", { message: "Room not found for rematch request." });
         return;
       }
       
@@ -648,7 +574,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!room.players[playerSocketId]) {
         log(`[game:request_rematch] Player ${playerSocketId} not in room ${roomId}.`);
-        socket.emit("error", { message: "You are not in this room." });
+        socket.emit("game:error", { message: "You are not in this room." });
         return;
       }
       
