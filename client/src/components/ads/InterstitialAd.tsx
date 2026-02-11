@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getConsentStatus } from '../CookieConsent';
 
 // インタースティシャル広告コンポーネント
 // ゲーム終了時やシーン切り替え時に表示される全画面広告
@@ -58,6 +59,7 @@ export const InterstitialAd: React.FC<InterstitialAdProps> = ({
   // 広告のロード
   useEffect(() => {
     if (!isVisible || !adClient || !adSlot) return;
+    if (getConsentStatus() !== 'accepted') return;
 
     try {
       if (typeof window !== 'undefined' && window.adsbygoogle) {

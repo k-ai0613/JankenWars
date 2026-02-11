@@ -13,7 +13,7 @@ import { FAQ } from './pages/FAQ';
 import { Strategy } from './pages/Strategy';
 import { Blog } from './pages/Blog';
 import NotFound from './pages/not-found';
-import { TestPage } from './pages/TestPage';
+import { CookieConsent } from './components/CookieConsent';
 import '@fontsource/inter';
 import './index.css';
 
@@ -79,11 +79,11 @@ function App() {
         <Route path="/blog" element={<Blog />} />
         <Route path="/news" element={<Blog />} />
         <Route path="/updates" element={<Blog />} />
-        <Route path="/test" element={<TestPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       
       <OnlineStatusIndicator />
+      <CookieConsent />
       
       {/* サーバー接続状態表示 */}
       {serverConnected === false && (

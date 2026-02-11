@@ -1,20 +1,74 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/icons/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#3b82f6" />
-    <meta name="description" content="じゃんけんを使った戦略的なボードゲーム" />
+    <meta name="description" content="JankenWars - じゃんけんを使った戦略的オンライン対戦ボードゲーム。6x6のボードで相手と知恵を競い、5つ並べて勝利を目指そう。AI対戦・オンライン対戦対応。" />
+    <meta name="keywords" content="じゃんけん,ボードゲーム,オンラインゲーム,戦略ゲーム,対戦ゲーム,無料ゲーム,JankenWars,rock paper scissors,board game" />
+    <meta name="author" content="JankenWars" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://jankenwars.onrender.com/" />
     <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
     <link rel="manifest" href="/manifest.json" />
-    <title>JankenWars</title>
-    <!-- Google AdSense -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4697036546722306" crossorigin="anonymous"></script>
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="JankenWars - 戦略じゃんけんボードゲーム" />
+    <meta property="og:description" content="じゃんけんを使った戦略的オンライン対戦ボードゲーム。AI対戦・オンライン対戦対応。" />
+    <meta property="og:url" content="https://jankenwars.onrender.com/" />
+    <meta property="og:image" content="https://jankenwars.onrender.com/icons/icon-512x512.png" />
+    <meta property="og:site_name" content="JankenWars" />
+    <meta property="og:locale" content="ja_JP" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="JankenWars - 戦略じゃんけんボードゲーム" />
+    <meta name="twitter:description" content="じゃんけんを使った戦略的オンライン対戦ボードゲーム。" />
+    <meta name="twitter:image" content="https://jankenwars.onrender.com/icons/icon-512x512.png" />
+
+    <title>JankenWars - 戦略じゃんけんボードゲーム</title>
+
+    <!-- Google AdSense: loaded dynamically after cookie consent -->
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "JankenWars",
+      "url": "https://jankenwars.onrender.com",
+      "description": "じゃんけんを使った戦略的オンライン対戦ボードゲーム。6x6のボードで相手と知恵を競い、5つ並べて勝利を目指そう。",
+      "applicationCategory": "GameApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "JPY"
+      },
+      "inLanguage": ["ja", "en"],
+      "author": {
+        "@type": "Organization",
+        "name": "JankenWars"
+      }
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <noscript>
+      <h1>JankenWars - 戦略じゃんけんボードゲーム</h1>
+      <p>じゃんけんを使った戦略的オンライン対戦ボードゲーム。このアプリケーションを利用するにはJavaScriptを有効にしてください。</p>
+      <nav>
+        <a href="/about">このゲームについて</a> |
+        <a href="/how-to-play">遊び方</a> |
+        <a href="/faq">よくある質問</a> |
+        <a href="/privacy">プライバシーポリシー</a> |
+        <a href="/terms">利用規約</a> |
+        <a href="/contact">お問い合わせ</a>
+      </nav>
+    </noscript>
   </body>
 </html>

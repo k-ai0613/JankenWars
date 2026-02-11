@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
+import { getConsentStatus } from '../CookieConsent';
 
 // Google AdSense 広告バナーコンポーネント
-// 使用前に index.html に AdSense スクリプトを追加してください
 
 interface AdBannerProps {
   // AdSense 広告ユニットID（pub-XXXXXXXXXXXXXXXX形式）
@@ -36,6 +36,11 @@ export const AdBanner: React.FC<AdBannerProps> = ({
   const isAdLoaded = useRef(false);
 
   useEffect(() => {
+    // Cookie同意がない場合はスキップ
+    if (getConsentStatus() !== 'accepted') {
+      return;
+    }
+
     // 開発環境または AdSense 設定がない場合はスキップ
     if (!adClient || !adSlot) {
       console.log('[AdBanner] AdSense credentials not configured. Showing placeholder.');
