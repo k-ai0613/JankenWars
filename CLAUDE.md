@@ -105,7 +105,9 @@ Deployed on Render with auto-deploy from main branch.
   array in `useJankenGame.ts`; online mode uses `Cell.hasBeenUsed` instead (no `jankenBattleCells`
   on the server or in `useOnlineGame.ts`) — these are two separate mechanisms, not one
 - Game rooms not in progress auto-delete after 30 minutes of inactivity. Rooms with a game in
-  progress are never deleted on inactivity alone; a disconnected player instead gets a 60s
-  reconnect grace period (`DISCONNECT_GRACE_PERIOD` in `server/routes.ts`) before being removed
-  and the remaining player awarded the win
+  progress are never deleted on inactivity alone; a disconnected player instead gets a short
+  (15s) reconnect grace period (`DISCONNECT_GRACE_PERIOD` in `server/routes.ts`) before being
+  removed and the remaining player awarded the win. There is currently no client-side auto-rejoin
+  after reconnecting — a disconnected player must manually re-enter the room code via `room:join`
+  within the grace period, so this mainly helps brief network blips, not intentional navigation away
 - Special piece (SPECIAL) cannot be captured and cannot capture others

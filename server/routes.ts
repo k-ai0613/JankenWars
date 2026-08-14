@@ -83,7 +83,12 @@ let waitingUsers: { socketId: string, username: string }[] = [];
 const ROOM_EMPTY_TIMEOUT = 5 * 60 * 1000; // 5分間空のルームを保持
 const ROOM_CLEANUP_INTERVAL = 60 * 1000; // 1分ごとにクリーンアップチェック
 const ROOM_MAX_LIFETIME = 24 * 60 * 60 * 1000; // 24時間で自動削除
-const DISCONNECT_GRACE_PERIOD = 60 * 1000; // 対局中に切断してから再接続できる猶予
+// 対局中に切断してから再接続できる猶予。
+// クライアントには切断→自動再接続後にルームへ自動再参加する仕組みがまだ無く、
+// 再接続には手動でのroom:join(同じルームコード)が必要になる。そのため長い猶予は
+// 「相手を待たせるだけで復帰されない」UX悪化になりやすく、瞬断からの手動復帰が
+// 間に合う程度の短い時間にとどめる。自動再参加の実装は別対応（未着手）。
+const DISCONNECT_GRACE_PERIOD = 15 * 1000;
 const ROOM_INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 進行中でないルームの非アクティブ削除まで
 
 // ルームの最終活動時間を更新する関数
@@ -178,6 +183,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           const remainingEntries = Object.entries(room.players);
           if (remainingEntries.length === 1 && room.gameState && room.gameState.gameResult === GameResult.ONGOING) {
+            // 勝者が確定する場合はgame:state:updateのみ送る。ここでplayer:leftも送ると、
+            // クライアントのhandlePlayerLeftがgamePhase===GAME_OVER後のelse-if分岐で
+            // gamePhaseをREADYに巻き戻してしまい、gameResult(勝利)と矛盾した状態になる。
             const [, winnerData] = remainingEntries[0];
             room.gameState.gamePhase = GamePhase.GAME_OVER;
             room.gameState.gameResult = winnerData.playerNumber === 1 ? GameResult.PLAYER1_WIN : GameResult.PLAYER2_WIN;
@@ -187,17 +195,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
               gameState: room.gameState,
               moveDetails: null
             });
+          } else {
+            io.to(roomId).emit("player:left", {
+              playerId: expiredSocketIds[0],
+              players: Object.entries(room.players).map(([id, data]) => ({
+                id,
+                username: data.username,
+                playerNumber: data.playerNumber,
+                ready: data.ready
+              }))
+            });
           }
-
-          io.to(roomId).emit("player:left", {
-            playerId: expiredSocketIds[0],
-            players: Object.entries(room.players).map(([id, data]) => ({
-              id,
-              username: data.username,
-              playerNumber: data.playerNumber,
-              ready: data.ready
-            }))
-          });
         }
       }
 
