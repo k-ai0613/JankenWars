@@ -3,6 +3,51 @@ import { Board, Cell, Player, PieceType, PlayerInventory, Position, WinningLine 
 const BOARD_SIZE = 6;
 const WIN_LENGTH = 4;
 
+// Type guard to check if a piece is a combat piece (Rock, Paper, or Scissors)
+function isCombatPiece(piece: PieceType | null): piece is PieceType.ROCK | PieceType.PAPER | PieceType.SCISSORS {
+  return piece === PieceType.ROCK || piece === PieceType.PAPER || piece === PieceType.SCISSORS;
+}
+
+// Determine the winner based on Rock-Paper-Scissors rules (Japanese Janken rules)
+// Ported character-exact from client/src/lib/gameUtils.ts to keep client/server logic identical.
+// IMPORTANT: This function always returns Player.PLAYER1 when the attacker wins
+// and Player.PLAYER2 when the defender wins, regardless of which actual player is attacking/defending
+export function determineWinner(
+  attackingPiece: PieceType | null,
+  defendingPiece: PieceType | null
+): Player {
+  if (!isCombatPiece(attackingPiece)) {
+    return Player.NONE;
+  }
+
+  if (!isCombatPiece(defendingPiece)) {
+    return Player.NONE;
+  }
+
+  if (attackingPiece === defendingPiece) {
+    // 同じ駒同士は引き分け (攻撃側の負け扱い)
+    return Player.PLAYER2;
+  }
+
+  // Rock (グー) beats Scissors (チョキ)
+  if (attackingPiece === PieceType.ROCK && defendingPiece === PieceType.SCISSORS) {
+    return Player.PLAYER1;
+  }
+
+  // Scissors (チョキ) beats Paper (パー)
+  if (attackingPiece === PieceType.SCISSORS && defendingPiece === PieceType.PAPER) {
+    return Player.PLAYER1;
+  }
+
+  // Paper (パー) beats Rock (グー)
+  if (attackingPiece === PieceType.PAPER && defendingPiece === PieceType.ROCK) {
+    return Player.PLAYER1;
+  }
+
+  // All other combinations result in the defender winning
+  return Player.PLAYER2;
+}
+
 export function createEmptyBoard(): Board {
   const board: Board = [];
   for (let row = 0; row < BOARD_SIZE; row++) {
@@ -67,8 +112,9 @@ export function isValidMove(
     return false;
   }
 
-  // Can capture opponent's piece (janken battle resolved by client/server logic)
-  return true;
+  // Can capture opponent's piece only if the attacking piece wins the janken battle
+  const attackingResult = determineWinner(piece, cell.piece);
+  return attackingResult === Player.PLAYER1;
 }
 
 export function checkWin(board: Board, player: Player): boolean {
