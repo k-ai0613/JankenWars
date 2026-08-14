@@ -75,10 +75,10 @@ const faqData: FAQItem[] = [
   },
   {
     category: 'online',
-    questionEn: 'Can I play with friends in a private room?',
-    questionJa: '友達とプライベートルームで対戦できますか？',
-    answerEn: 'Yes! When you create a room, you will receive a unique room code. Share this code with your friend, and they can join your room by entering the code. This ensures only invited players can join your game.',
-    answerJa: 'はい！部屋を作成すると、ユニークなルームコードが発行されます。このコードを友達に共有すると、友達はコードを入力して部屋に参加できます。これにより、招待されたプレイヤーだけがゲームに参加できます。',
+    questionEn: 'Can I play with friends using a room code?',
+    questionJa: '友達とルームコードで対戦できますか？',
+    answerEn: 'Yes! When you create a room, you will receive a unique room code. Share this code with your friend, and they can join your room by entering the code. Note that until the game starts, your room may also show up in the public room list, so someone else could join first — for a guaranteed match with your friend, have them join right after you share the code.',
+    answerJa: 'はい！部屋を作成すると、ユニークなルームコードが発行されます。このコードを友達に共有すると、友達はコードを入力して部屋に参加できます。ただし、対局が始まるまでの間はロビーの部屋一覧にも表示されるため、他のプレイヤーが先に参加してしまう可能性があります。友達と確実に対戦したい場合は、コードを共有したらすぐに参加してもらってください。',
   },
   // AI Questions
   {

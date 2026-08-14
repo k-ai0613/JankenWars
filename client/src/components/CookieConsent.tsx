@@ -14,11 +14,12 @@ export function getConsentStatus(): ConsentStatus {
 
 export function loadAdSenseScript() {
   if (document.getElementById('adsense-script')) return;
+  // AdBanner/InterstitialAdと同じ環境変数を参照し、クライアントIDの二重管理を避ける
+  const adClient = import.meta.env.VITE_ADSENSE_CLIENT || 'ca-pub-4697036546722306';
   const script = document.createElement('script');
   script.id = 'adsense-script';
   script.async = true;
-  script.src =
-    'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4697036546722306';
+  script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adClient}`;
   script.crossOrigin = 'anonymous';
   document.head.appendChild(script);
 }
