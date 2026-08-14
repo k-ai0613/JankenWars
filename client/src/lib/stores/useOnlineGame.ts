@@ -34,6 +34,9 @@ interface OnlineGameState {
   message: string;
   isConnecting: boolean;
   pendingUsername: string | null;
+  // 再接続時(socket.ioのconnectイベント再発火時)にpendingUsernameが既にnull化されていても
+  // user:joinを再送信できるよう、接続確立に使ったユーザー名を保持し続ける
+  currentUsername: string | null;
   
   // ★ アニメーション状態を追加 ★
   winAnimation: boolean;
@@ -72,10 +75,10 @@ interface OnlineGameState {
   handleRoomJoinedAsSpectator: (data: RoomData) => void;
   handlePlayerJoined: (data: RoomData) => void;
   handlePlayerLeft: (data: { playerId: string, players: RoomPlayerData[] }) => void;
+  handlePlayerDisconnected: (data: { playerId: string, players: RoomPlayerData[] }) => void;
   handlePlayerReady: (data: { playerId: string, ready: boolean, players: RoomPlayerData[] }) => void;
   handleGameStart: (data: RoomData) => void;
   handleGameStateUpdate: (data: { gameState: ServerGameState, moveDetails: MoveDetails }) => void;
-  handleGameResult: (result: any) => void;
   handleMatchmakingWaiting: () => void;
   handleMatchmakingMatched: (data: RoomData) => void;
   handleMatchmakingCancelled: () => void;
@@ -172,32 +175,36 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
   const handleConnect = () => {
     console.log("handleConnect called");
     const pendingUsername = get().pendingUsername;
-    console.log("Pending username in handleConnect:", pendingUsername);
-    
-    if (!pendingUsername) {
-      console.error("Connected but no pending username found.");
-      socketService.disconnect(); 
+    // socket.ioの自動再接続時はpendingUsernameが既にnull化されているため、
+    // 接続確立済みのユーザー名(currentUsername)にフォールバックする
+    const usernameToJoin = pendingUsername || get().currentUsername;
+    console.log("Username to join with in handleConnect:", usernameToJoin);
+
+    if (!usernameToJoin) {
+      console.error("Connected but no username available to join with.");
+      socketService.disconnect();
       startTransition(() => {
-        set({ isConnected: false, pendingUsername: null, isConnecting: false, message: t('online.connectionError') }); 
+        set({ isConnected: false, pendingUsername: null, isConnecting: false, message: t('online.connectionError') });
       });
       return;
     }
 
     startTransition(() => {
-      set({ 
-        isConnected: true, 
+      set({
+        isConnected: true,
         socketId: socketService.getSocketId(),
         isOnline: true,
         message: t('online.connected'),
         pendingUsername: null,
-        aiSelectedPiece: null, 
+        currentUsername: usernameToJoin,
+        aiSelectedPiece: null,
         selectedPiece: null,
         isConnecting: false
       });
     });
-    
-    console.log("Calling joinWithUsername with:", pendingUsername);
-    socketService.joinWithUsername(pendingUsername); 
+
+    console.log("Calling joinWithUsername with:", usernameToJoin);
+    socketService.joinWithUsername(usernameToJoin);
   };
   const handleDisconnect = () => {
     set(state => ({
@@ -374,14 +381,14 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
         get().gamePhase !== GamePhase.GAME_OVER &&
         !get().isSpectator
       ) {
+        // 対局中に相手が抜けた場合は勝利確定として扱い、以下のREADYへの巻き戻しは行わない
         nextPhase = GamePhase.GAME_OVER;
         nextResult =
           get().localPlayerNumber === 1
             ? GameResult.PLAYER1_WIN // Opponent left
             : GameResult.PLAYER2_WIN;
         nextMessage = t('online.opponentLeft');
-      }
-      if (players.length < 2) {
+      } else if (players.length < 2) {
         nextPhase = GamePhase.READY;
         players.forEach((p) => (p.ready = false)); // Ensure ready state is reset
       }
@@ -394,6 +401,15 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
       });
     });
     console.log('Set players and message in handlePlayerLeft');
+  };
+  const handlePlayerDisconnected = (data: { playerId: string, players: RoomPlayerData[] }) => {
+    // 対局中の一時切断。ゲーム状態は変えず、再接続を待っていることだけを伝える
+    startTransition(() => {
+      const player = get().players.find((p) => p.id === data.playerId);
+      set({
+        message: `${player?.username ?? t('online.aPlayer')} ${t('online.playerDisconnectedWaiting')}`
+      });
+    });
   };
   const handlePlayerReady = (data: { playerId: string, ready: boolean, players: RoomPlayerData[] }) => {
     console.log('handlePlayerReady called with data:', data);
@@ -573,9 +589,6 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
       }
     });
   };
-  const handleGameResult = (result: any) => {
-    console.log('handleGameResult called with result (potentially redundant):', result);
-  };
   const handleMatchmakingWaiting = () => {
     console.log('handleMatchmakingWaiting called');
     startTransition(() => {
@@ -696,6 +709,7 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
     gameResult: GameResult.ONGOING,
     message: t('online.connectPrompt'),
     pendingUsername: null,
+    currentUsername: null,
     isConnecting: false,
     winAnimation: false,
     loseAnimation: false,
@@ -748,7 +762,7 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
          return;
       }
 
-      set({ pendingUsername: username, isConnecting: true, message: t('online.connecting') }); 
+      set({ pendingUsername: username, currentUsername: username, isConnecting: true, message: t('online.connecting') });
       
       socketService.registerHandlers({
         onConnect: handleConnect,
@@ -759,10 +773,10 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
         onRoomJoinedAsSpectator: handleRoomJoinedAsSpectator,
         onPlayerJoined: handlePlayerJoined,
         onPlayerLeft: handlePlayerLeft,
+        onPlayerDisconnected: handlePlayerDisconnected,
         onPlayerReady: handlePlayerReady,
         onGameStart: handleGameStart,
         onGameStateUpdate: handleGameStateUpdate,
-        onGameResult: handleGameResult,
         onMatchmakingWaiting: handleMatchmakingWaiting,
         onMatchmakingMatched: handleMatchmakingMatched,
         onMatchmakingCancelled: handleMatchmakingCancelled,
@@ -772,6 +786,8 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
       socketService.connect(); 
     },
     disconnect: () => {
+      // ユーザーの意図的な切断。以後の自動再接続でuser:joinを再送信させないためcurrentUsernameも消す
+      set({ currentUsername: null });
       socketService.disconnect();
     },
     createRoom: () => {
@@ -918,12 +934,10 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
             nextPhase = GamePhase.GAME_OVER;
             nextMessage = t('online.youWin');
             audioStore.playVictory();
-            socketService.sendGameResult(roomId, nextResult);
         } else if (checkDraw(nextBoard, state.player1Inventory, state.player2Inventory)) {
             nextResult = GameResult.DRAW;
             nextPhase = GamePhase.GAME_OVER;
             nextMessage = t('online.draw');
-            socketService.sendGameResult(roomId, nextResult);
         }
         
         return {
@@ -959,10 +973,10 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
     handleRoomJoinedAsSpectator,
     handlePlayerJoined,
     handlePlayerLeft,
+    handlePlayerDisconnected,
     handlePlayerReady,
     handleGameStart,
     handleGameStateUpdate,
-    handleGameResult,
     handleMatchmakingWaiting,
     handleMatchmakingMatched,
     handleMatchmakingCancelled,

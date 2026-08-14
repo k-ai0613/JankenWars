@@ -35,10 +35,10 @@ export interface SocketHandlers {
   onRoomJoinedAsSpectator?: (data: RoomData) => void;
   onPlayerJoined?: (data: RoomData) => void;
   onPlayerLeft?: (data: { playerId: string, players: RoomPlayerData[] }) => void;
+  onPlayerDisconnected?: (data: { playerId: string, players: RoomPlayerData[] }) => void;
   onPlayerReady?: (data: { playerId: string, ready: boolean, players: RoomPlayerData[] }) => void;
   onGameStart?: (data: RoomData & { gameState?: GameState }) => void;
   onGameMove?: (data: GameMoveEvent) => void;
-  onGameResult?: (result: any) => void;
   onMatchmakingWaiting?: () => void;
   onMatchmakingMatched?: (data: RoomData) => void;
   onMatchmakingCancelled?: () => void;
@@ -161,6 +161,11 @@ class SocketService {
       this.handlers.onPlayerLeft?.(data);
     });
 
+    this.socket.on('player:disconnected', (data) => {
+      console.log('Player disconnected (reconnection grace period):', data);
+      this.handlers.onPlayerDisconnected?.(data);
+    });
+
     this.socket.on('room:player:ready', (data) => {
       console.log('Player ready status changed:', data);
       this.handlers.onPlayerReady?.(data);
@@ -175,11 +180,6 @@ class SocketService {
     this.socket.on('game:move', (data) => {
       console.log('Game move received:', data);
       this.handlers.onGameMove?.(data);
-    });
-
-    this.socket.on('game:result', (data) => {
-      console.log('Game result:', data);
-      this.handlers.onGameResult?.(data);
     });
 
     // Matchmaking events
@@ -284,15 +284,6 @@ class SocketService {
     }
     console.log(`Sending game:move event for room ${roomId}`, { position, piece });
     this.socket.emit('game:move', { roomId, position, piece });
-  }
-
-  sendGameResult(roomId: string, result: GameResult): void {
-    if (!this.socket) {
-      console.error("Cannot send game result: Socket not connected");
-      return;
-    }
-    console.log(`Sending game:result event for room ${roomId}`, { result });
-    this.socket.emit('game:result', roomId, result);
   }
 
   // ★★★ 追加: ゲームリセット/再戦要求を送信する関数 ★★★

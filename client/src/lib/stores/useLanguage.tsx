@@ -347,6 +347,10 @@ const defaultTranslations: Record<string, Record<Language, string>> = {
     en: 'You are spectating this game',
     ja: 'あなたは観戦者です'
   },
+  'online.playerDisconnectedWaiting': {
+    en: 'disconnected. Waiting for reconnection...',
+    ja: 'が切断しました。再接続を待っています...'
+  },
   'online.findingOpponent': {
     en: 'Finding Opponent',
     ja: '対戦相手を探しています'
