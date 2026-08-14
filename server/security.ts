@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import crypto from 'crypto';
 
 // レート制限のための簡易実装
 const requestCounts = new Map<string, { count: number; resetTime: number }>();
@@ -39,6 +38,35 @@ export function rateLimiter(maxRequests: number = 100, windowMs: number = 60000)
     clientData.count++;
     next();
   };
+}
+
+// Socket.IO イベント用のレート制限（ソケット単位）
+const socketEventCounts = new Map<string, { count: number; resetTime: number }>();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of socketEventCounts) {
+    if (now > value.resetTime) {
+      socketEventCounts.delete(key);
+    }
+  }
+}, 60000);
+
+export function checkSocketRateLimit(key: string, maxEvents: number = 60, windowMs: number = 60000): boolean {
+  const now = Date.now();
+  const data = socketEventCounts.get(key);
+
+  if (!data || now > data.resetTime) {
+    socketEventCounts.set(key, { count: 1, resetTime: now + windowMs });
+    return true;
+  }
+
+  if (data.count >= maxEvents) {
+    return false;
+  }
+
+  data.count++;
+  return true;
 }
 
 // 入力サニタイゼーション
@@ -121,31 +149,4 @@ export function validateGameMove(position: any, piece: any): boolean {
   if (!validPieces.includes(piece)) return false;
 
   return true;
-}
-
-// CSRFトークンの生成
-export function generateCSRFToken(): string {
-  return crypto.randomBytes(32).toString('hex');
-}
-
-// CSRFトークンの検証
-export function validateCSRFToken(req: Request, res: Response, next: NextFunction) {
-  // WebSocketの場合はスキップ
-  if (req.path.startsWith('/socket.io')) {
-    return next();
-  }
-  
-  // GETリクエストはスキップ
-  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') {
-    return next();
-  }
-  
-  const token = req.headers['x-csrf-token'] || req.body?.csrfToken;
-  const sessionToken = (req as any).session?.csrfToken;
-  
-  if (!token || !sessionToken || token !== sessionToken) {
-    return res.status(403).json({ error: 'Invalid CSRF token' });
-  }
-  
-  next();
 }
