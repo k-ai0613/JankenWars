@@ -69,6 +69,7 @@ export function createInitialInventory(): PlayerInventory {
     [PieceType.PAPER]: 7,
     [PieceType.SCISSORS]: 7,
     [PieceType.SPECIAL]: 1,
+    [PieceType.EMPTY]: 0,
   };
 }
 

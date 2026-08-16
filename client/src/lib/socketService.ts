@@ -16,6 +16,9 @@ export interface RoomPlayerData {
 
 export interface RoomData {
   roomId: string;
+  // 対局中の再接続の本人確認に使うトークン。room:create/room:joinで新規に
+  // プレイヤー枠へ入った時だけ発行される（観戦者・既存プレイヤーの再送では無い）
+  sessionToken?: string;
   players: RoomPlayerData[];
 }
 
@@ -42,7 +45,7 @@ export interface SocketHandlers {
   onMatchmakingWaiting?: () => void;
   onMatchmakingMatched?: (data: RoomData) => void;
   onMatchmakingCancelled?: () => void;
-  onGameStateUpdate?: (data: { gameState: GameState, moveDetails: MoveDetails }) => void;
+  onGameStateUpdate?: (data: { gameState: GameState, moveDetails: MoveDetails | null }) => void;
   onRoomLeftSuccess?: () => void;
   onGameRematchInitiated?: (data: RoomData & { gameState: GameState }) => void;
 }
@@ -130,9 +133,13 @@ class SocketService {
     });
 
     // Game error events
-    this.socket.on('game:error', (data) => {
+    this.socket.on('game:error', (data: { message: string, gameState?: GameState }) => {
       console.error('Game error:', data.message);
-      this.handlers.onError?.(new Error(data.message));
+      const err = new Error(data.message) as Error & { gameState?: GameState };
+      // サーバーが権威的なgameStateを添えてくることがある(手の拒否など)。
+      // クライアントが楽観的更新済みのボードをこれで巻き戻せるようにする。
+      err.gameState = data.gameState;
+      this.handlers.onError?.(err);
     });
 
     // Room events
@@ -199,7 +206,7 @@ class SocketService {
     });
 
     // ★ 追加: ゲーム状態更新イベントリスナー
-    this.socket.on('game:state:update', (data: { gameState: GameState, moveDetails: MoveDetails }) => {
+    this.socket.on('game:state:update', (data: { gameState: GameState, moveDetails: MoveDetails | null }) => {
       console.log('Game state update received:', data);
       this.handlers.onGameStateUpdate?.(data);
     });
@@ -250,11 +257,11 @@ class SocketService {
     this.socket.emit('room:create');
   }
 
-  joinRoom(roomId: string): void {
+  joinRoom(roomId: string, sessionToken?: string): void {
     if (!this.socket) {
       return;
     }
-    this.socket.emit('room:join', roomId);
+    this.socket.emit('room:join', roomId, sessionToken);
   }
 
   toggleReady(roomId: string): void {

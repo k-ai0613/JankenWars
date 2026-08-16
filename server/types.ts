@@ -54,4 +54,5 @@ export interface PlayerInventory {
   [PieceType.PAPER]: number;
   [PieceType.SCISSORS]: number;
   [PieceType.SPECIAL]: number;
+  [PieceType.EMPTY]: number;
 }

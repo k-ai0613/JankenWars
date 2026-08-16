@@ -61,8 +61,8 @@ Key files:
 
 ### Shared Types (`server/types.ts`)
 Both client and server use these core types:
-- `Player`: NONE(0), PLAYER1(1), PLAYER2(2)
-- `PieceType`: EMPTY(0), ROCK(1), PAPER(2), SCISSORS(3), SPECIAL(4)
+- `Player`: string enum — `NONE`, `PLAYER1`, `PLAYER2`
+- `PieceType`: string enum — `ROCK`, `PAPER`, `SCISSORS`, `SPECIAL`, `EMPTY`
 - `GamePhase`: NOT_CONNECTED, READY, SELECTING_CELL, GAME_OVER, SHOWDOWN, ENDED
 - `Board`: 2D array of `Cell` objects
 
@@ -101,9 +101,10 @@ Deployed on Render with auto-deploy from main branch.
 - Player numbers are assigned by server (`playerNumber: 1 | 2`), not array index
 - `localPlayerNumber` in online games must come from server response
 - AI mode uses `isAIEnabled` flag in game store
-- Janken battles lock cells permanently. Local/AI mode tracks this via the `jankenBattleCells`
-  array in `useJankenGame.ts`; online mode uses `Cell.hasBeenUsed` instead (no `jankenBattleCells`
-  on the server or in `useOnlineGame.ts`) — these are two separate mechanisms, not one
+- Janken battles lock cells permanently via `Cell.hasBeenUsed`, set in `selectCellForPlayer`
+  (`client/src/lib/gameUtils.ts`) and used by both local/AI and online mode. `jankenBattleCells`
+  in `useJankenGame.ts` is declared/initialized/reset only — it is never written to or read from,
+  so it has no effect on gameplay; do not treat it as a second locking mechanism
 - Game rooms not in progress auto-delete after 30 minutes of inactivity. Rooms with a game in
   progress are never deleted on inactivity alone; a disconnected player instead gets a short
   (15s) reconnect grace period (`DISCONNECT_GRACE_PERIOD` in `server/routes.ts`) before being

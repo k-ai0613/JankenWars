@@ -9,7 +9,8 @@ import {
   validateUsername,
   validateGameMove,
   rateLimiter,
-  checkSocketRateLimit
+  checkSocketRateLimit,
+  getAllowedOrigins
 } from "./security.js";
 import {
   Board,
@@ -65,6 +66,7 @@ interface GameRoom {
       ready: boolean;
       playerNumber: 1 | 2 | null;
       disconnectedAt?: number; // 対局中に切断された場合のタイムスタンプ（再接続猶予中）
+      sessionToken: string; // 再接続時の本人確認用。ユーザー名の自己申告だけでは他人の座席を奪えてしまうため必須
     }
   };
   gameState: GameState | null;
@@ -83,18 +85,63 @@ let waitingUsers: { socketId: string, username: string }[] = [];
 const ROOM_EMPTY_TIMEOUT = 5 * 60 * 1000; // 5分間空のルームを保持
 const ROOM_CLEANUP_INTERVAL = 60 * 1000; // 1分ごとにクリーンアップチェック
 const ROOM_MAX_LIFETIME = 24 * 60 * 60 * 1000; // 24時間で自動削除
-// 対局中に切断してから再接続できる猶予。
-// クライアントには切断→自動再接続後にルームへ自動再参加する仕組みがまだ無く、
-// 再接続には手動でのroom:join(同じルームコード)が必要になる。そのため長い猶予は
-// 「相手を待たせるだけで復帰されない」UX悪化になりやすく、瞬断からの手動復帰が
-// 間に合う程度の短い時間にとどめる。自動再参加の実装は別対応（未着手）。
+// 対局中に切断してから再接続できる猶予。瞬断からの復帰が間に合う程度の短い時間にとどめる。
 const DISCONNECT_GRACE_PERIOD = 15 * 1000;
+// 上記猶予の判定専用インターバル。ROOM_CLEANUP_INTERVAL任せにすると実効レイテンシが
+// 猶予の5倍近くまで伸びてしまうため、短い周期で独立してチェックする。
+const DISCONNECT_SWEEP_INTERVAL = 3 * 1000;
 const ROOM_INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 進行中でないルームの非アクティブ削除まで
 
 // ルームの最終活動時間を更新する関数
 function updateRoomActivity(roomId: string) {
   if (gameRooms[roomId]) {
     gameRooms[roomId].lastActivity = Date.now();
+  }
+}
+
+// 24時間経過したルームを無条件で削除する。削除した場合true（このルームへの以降のチェックは不要）
+function deleteIfExceededMaxLifetime(roomId: string, room: GameRoom, now: number): boolean {
+  if (now - room.createdAt > ROOM_MAX_LIFETIME) {
+    delete gameRooms[roomId];
+    log(`Room ${roomId} deleted (exceeded max lifetime)`);
+    return true;
+  }
+  return false;
+}
+
+// 空室の削除待ちタイマーを管理する。空室ならtrue（以降の非アクティブチェックは対象外）
+function manageEmptyRoomPendingDeletion(roomId: string, room: GameRoom, now: number): boolean {
+  if (Object.keys(room.players).length === 0) {
+    if (!room.pendingDeletion) {
+      room.pendingDeletion = now + ROOM_EMPTY_TIMEOUT;
+      log(`Room ${roomId} marked for deletion in 5 minutes`);
+    } else if (now >= room.pendingDeletion) {
+      delete gameRooms[roomId];
+      log(`Room ${roomId} deleted (empty timeout)`);
+    }
+    return true;
+  }
+  if (room.pendingDeletion) {
+    delete room.pendingDeletion;
+    log(`Room ${roomId} deletion cancelled (player returned)`);
+  }
+  return false;
+}
+
+// 進行中でないルームのみ、非アクティブ時間で削除する（対局中は削除しない）
+function deleteIfInactiveRoom(roomId: string, room: GameRoom, now: number) {
+  if (room.inProgress) return;
+  if (now - room.lastActivity > ROOM_INACTIVITY_TIMEOUT) {
+    delete gameRooms[roomId];
+    log(`Room ${roomId} deleted (inactive timeout)`);
+  }
+}
+
+// マッチメイキングキューの異常な滞留をクリーンアップ
+function clearStaleMatchmakingQueue() {
+  if (waitingUsers.length > 10) {
+    log(`Clearing oversized matchmaking queue`);
+    waitingUsers.length = 0;
   }
 }
 
@@ -124,134 +171,104 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/game-rooms', (req, res) => {
-    const availableRooms = Object.entries(gameRooms)
-      .filter(([_, room]) => !room.inProgress)
-      .map(([id, room]) => ({
-        id,
-        playerCount: Object.keys(room.players).length,
-        players: Object.values(room.players).map(p => p.username)
-      }));
-    
-    res.json({ rooms: availableRooms });
-  });
-
   const httpServer = createServer(app);
-
-  // Express層(index.ts)と同じオリジン許可リストをSocket.IO層にも適用する
-  const socketAllowedOrigins = process.env.NODE_ENV === 'production'
-    ? ['https://jankenwars.onrender.com']
-    : ['http://localhost:5173', 'http://localhost:5000'];
 
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: socketAllowedOrigins,
+      // Express層(index.ts)と同じ許可オリジン定義(server/security.ts)をSocket.IO層にも適用する
+      origin: getAllowedOrigins(),
       methods: ["GET", "POST"]
     }
   });
 
-  // ルームクリーンアップ処理（1分ごと）。
-  // 進行中のルームは非アクティブ時間だけでは削除しない。切断猶予(DISCONNECT_GRACE_PERIOD)を
-  // 過ぎたプレイヤーのみここで退室させ、残り1人になった場合はその人を勝者として対局を終了する。
+  // 対局中に切断されたまま猶予期間(DISCONNECT_GRACE_PERIOD)を超えたプレイヤーを退室させ、
+  // 残り1人になった場合はその人を勝者として対局を終了する。
+  // ROOM_CLEANUP_INTERVAL(1分)の周期任せにすると、猶予15秒に対して実効レイテンシが
+  // 最大75秒近くまで伸びてしまう(仕様上の意図と乖離する)ため、この関心事だけは
+  // 短い専用インターバル(DISCONNECT_SWEEP_INTERVAL)で独立してチェックする。
+  function evictExpiredDisconnectedPlayers() {
+    const now = Date.now();
+
+    Object.entries(gameRooms).forEach(([roomId, room]) => {
+      if (!room.inProgress) return;
+
+      // 期限切れのプレイヤーを先に全員洗い出してから一括削除する（両者が同時に
+      // 期限切れになった場合に、直後に削除されるはずの相手を勝者にしてしまう
+      // 状態不整合を避けるため、削除を1件ずつ行いながら判定してはならない）。
+      const expiredSocketIds = Object.entries(room.players)
+        .filter(([, data]) => data.disconnectedAt !== undefined && now - data.disconnectedAt! > DISCONNECT_GRACE_PERIOD)
+        .map(([socketId]) => socketId);
+
+      if (expiredSocketIds.length === 0) return;
+
+      for (const socketId of expiredSocketIds) {
+        delete room.players[socketId];
+        log(`Room ${roomId}: player ${socketId} removed after disconnect grace period`);
+      }
+
+      const remainingEntries = Object.entries(room.players);
+      if (remainingEntries.length === 1 && room.gameState && room.gameState.gameResult === GameResult.ONGOING) {
+        // 勝者が確定する場合はgame:state:updateのみ送る。ここでplayer:leftも送ると、
+        // クライアントのhandlePlayerLeftがgamePhase===GAME_OVER後のelse-if分岐で
+        // gamePhaseをREADYに巻き戻してしまい、gameResult(勝利)と矛盾した状態になる。
+        const [, winnerData] = remainingEntries[0];
+        room.gameState.gamePhase = GamePhase.GAME_OVER;
+        room.gameState.gameResult = winnerData.playerNumber === 1 ? GameResult.PLAYER1_WIN : GameResult.PLAYER2_WIN;
+        room.inProgress = false;
+        // 勝者のreadyを残したままにすると、公開ロビー経由で入室してきた第三者の
+        // auto-ready(client側)に相乗りされ、勝者が同意なく新しい対局に組み込まれる
+        winnerData.ready = false;
+
+        io.to(roomId).emit("game:state:update", {
+          gameState: room.gameState,
+          moveDetails: null
+        });
+      } else if (remainingEntries.length === 0) {
+        // 両者とも猶予切れで退室済み。inProgressをtrueのまま・gameStateをONGOINGのまま
+        // 放置すると、後から同じルームコードに参加した第三者が幽霊対局を掴んでしまう
+        room.inProgress = false;
+        room.gameState = null;
+      } else {
+        io.to(roomId).emit("player:left", {
+          playerId: expiredSocketIds[0],
+          players: Object.entries(room.players).map(([id, data]) => ({
+            id,
+            username: data.username,
+            playerNumber: data.playerNumber,
+            ready: data.ready
+          }))
+        });
+      }
+    });
+  }
+  setInterval(evictExpiredDisconnectedPlayers, DISCONNECT_SWEEP_INTERVAL);
+
+  // ルームクリーンアップ処理（1分ごと）。切断猶予の判定は上のevictExpiredDisconnectedPlayersが
+  // 別インターバルで担当するため、ここでは寿命・空室・非アクティブの管理のみを行う。
   setInterval(() => {
     const now = Date.now();
 
     Object.entries(gameRooms).forEach(([roomId, room]) => {
-      const roomAge = now - room.createdAt;
-
-      // 24時間経過したルームは無条件で削除
-      if (roomAge > ROOM_MAX_LIFETIME) {
-        delete gameRooms[roomId];
-        log(`Room ${roomId} deleted (exceeded max lifetime)`);
-        return;
-      }
-
-      // 対局中に切断されたまま猶予期間を超えたプレイヤーを退室させる。
-      // 期限切れのプレイヤーを先に全員洗い出してから一括削除する（両者が同時に
-      // 期限切れになった場合に、直後に削除されるはずの相手を勝者にしてしまう
-      // 状態不整合を避けるため、削除を1件ずつ行いながら判定してはならない）。
-      if (room.inProgress) {
-        const expiredSocketIds = Object.entries(room.players)
-          .filter(([, data]) => data.disconnectedAt !== undefined && now - data.disconnectedAt! > DISCONNECT_GRACE_PERIOD)
-          .map(([socketId]) => socketId);
-
-        if (expiredSocketIds.length > 0) {
-          for (const socketId of expiredSocketIds) {
-            delete room.players[socketId];
-            log(`Room ${roomId}: player ${socketId} removed after disconnect grace period`);
-          }
-
-          const remainingEntries = Object.entries(room.players);
-          if (remainingEntries.length === 1 && room.gameState && room.gameState.gameResult === GameResult.ONGOING) {
-            // 勝者が確定する場合はgame:state:updateのみ送る。ここでplayer:leftも送ると、
-            // クライアントのhandlePlayerLeftがgamePhase===GAME_OVER後のelse-if分岐で
-            // gamePhaseをREADYに巻き戻してしまい、gameResult(勝利)と矛盾した状態になる。
-            const [, winnerData] = remainingEntries[0];
-            room.gameState.gamePhase = GamePhase.GAME_OVER;
-            room.gameState.gameResult = winnerData.playerNumber === 1 ? GameResult.PLAYER1_WIN : GameResult.PLAYER2_WIN;
-            room.inProgress = false;
-
-            io.to(roomId).emit("game:state:update", {
-              gameState: room.gameState,
-              moveDetails: null
-            });
-          } else {
-            io.to(roomId).emit("player:left", {
-              playerId: expiredSocketIds[0],
-              players: Object.entries(room.players).map(([id, data]) => ({
-                id,
-                username: data.username,
-                playerNumber: data.playerNumber,
-                ready: data.ready
-              }))
-            });
-          }
-        }
-      }
-
-      const playerCount = Object.keys(room.players).length;
-
-      // 空のルームで削除待ちの処理
-      if (playerCount === 0) {
-        if (!room.pendingDeletion) {
-          room.pendingDeletion = now + ROOM_EMPTY_TIMEOUT;
-          log(`Room ${roomId} marked for deletion in 5 minutes`);
-        } else if (now >= room.pendingDeletion) {
-          delete gameRooms[roomId];
-          log(`Room ${roomId} deleted (empty timeout)`);
-        }
-        return;
-      } else if (room.pendingDeletion) {
-        // プレイヤーが戻ってきた場合、削除予定をキャンセル
-        delete room.pendingDeletion;
-        log(`Room ${roomId} deletion cancelled (player returned)`);
-      }
-
-      // 進行中でないルームのみ、非アクティブ時間で削除する（対局中は削除しない）
-      if (!room.inProgress) {
-        const inactiveTime = now - room.lastActivity;
-        if (inactiveTime > ROOM_INACTIVITY_TIMEOUT) {
-          delete gameRooms[roomId];
-          log(`Room ${roomId} deleted (inactive timeout)`);
-        }
-      }
+      if (deleteIfExceededMaxLifetime(roomId, room, now)) return;
+      if (manageEmptyRoomPendingDeletion(roomId, room, now)) return;
+      deleteIfInactiveRoom(roomId, room, now);
     });
 
-    // マッチメイキングキューの異常な滞留をクリーンアップ
-    if (waitingUsers.length > 10) {
-      log(`Clearing oversized matchmaking queue`);
-      waitingUsers.length = 0;
-    }
+    clearStaleMatchmakingQueue();
   }, ROOM_CLEANUP_INTERVAL);
 
   io.on("connection", (socket) => {
     log(`New client connected: ${socket.id}`);
 
-    // 全イベント共通のレート制限（ソケット単位、1分間60イベントまで）
+    // 全イベント共通のレート制限（ソケット単位、1分間60イベントまで）。
+    // socket.handshake.address はリバースプロキシ配下では全接続で同一になりうる
+    // (engine.ioはExpressのtrust proxy設定を継承しない)ため、キーは必ずsocket.idを使う。
     socket.use((_packet, next) => {
-      const key = socket.handshake.address || socket.id;
-      if (!checkSocketRateLimit(key)) {
+      const result = checkSocketRateLimit(socket.id);
+      if (result === 'limited-first') {
         socket.emit("game:error", { message: "Too many requests. Please slow down." });
+      }
+      if (result !== 'ok') {
         return;
       }
       next();
@@ -272,7 +289,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         const roomId = uuidv4().substring(0, 8);
         const username = socket.data.username || "Anonymous";
-        
+        const sessionToken = uuidv4();
+
         const now = Date.now();
         gameRooms[roomId] = {
           id: roomId,
@@ -280,7 +298,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             [socket.id]: {
               username,
               ready: false,
-              playerNumber: 1
+              playerNumber: 1,
+              sessionToken
             }
           },
           gameState: null,
@@ -289,11 +308,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           createdAt: now,
           lastActivity: now
         };
-        
+
         socket.join(roomId);
-        
+
         socket.emit("room:created", {
           roomId,
+          sessionToken,
           players: [{
             id: socket.id,
             username,
@@ -311,43 +331,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     });
     
-    socket.on("room:join", (roomId: string) => {
+    socket.on("room:join", (roomId: string, sessionToken?: string) => {
       // ルームIDの検証
       if (!roomId || !validateRoomId(roomId)) {
         socket.emit("game:error", { message: "Invalid room ID" });
         return;
       }
-      
+
       log(`Received room:join request for roomId: ${roomId}`);
       log(`Current gameRooms: ${JSON.stringify(Object.keys(gameRooms))}`);
       const room = gameRooms[roomId];
       log(`Found room? ${!!room}`);
 
       const username = socket.data.username || "Anonymous";
-      
+
       if (!room) {
         log(`Room ${roomId} not found.`);
         socket.emit("game:error", { message: "Room not found" });
         return;
       }
-      
+
       // ルームの活動時間を更新
       updateRoomActivity(roomId);
 
-      // 対局中に切断していた同一ユーザー名のプレイヤーがいれば、観戦者化する前に再接続として扱う
-      const disconnectedPlayerEntry = Object.entries(room.players).find(([, data]) =>
-        data.username === username && data.disconnectedAt !== undefined
-      );
-
-      if (disconnectedPlayerEntry) {
-        const [oldSocketId, playerData] = disconnectedPlayerEntry;
-        delete room.players[oldSocketId];
-        delete playerData.disconnectedAt;
-        room.players[socket.id] = playerData;
-
-        socket.join(roomId);
-
-        const roomDataForReconnecting = {
+      // このソケットが既にこの部屋のプレイヤーとして登録済み（二重room:join、再送、多重クリック）
+      // なら、参加処理をやり直さず現在の状態を再送するだけにする
+      if (room.players[socket.id]) {
+        const roomDataForCurrentPlayer = {
           roomId,
           players: Object.entries(room.players).map(([id, data]) => ({
             id,
@@ -356,22 +366,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ready: data.ready
           }))
         };
-
-        socket.emit("room:joined", roomDataForReconnecting);
-        socket.to(roomId).emit("room:player:joined", roomDataForReconnecting);
-
+        socket.emit("room:joined", roomDataForCurrentPlayer);
         if (room.inProgress && room.gameState) {
           socket.emit("game:state:update", {
             gameState: room.gameState,
             moveDetails: null
           });
         }
-
-        log(`Player reconnected during game: ${username} rejoined ${roomId} with new socket ${socket.id}`);
         return;
       }
 
+      // 対局中の再接続は sessionToken の一致でのみ本人確認する。ユーザー名の自己申告
+      // だけで一致させると、ロビー一覧や観戦で相手のユーザー名を知った第三者が
+      // 切断猶予中の座席を乗っ取れてしまう。トークンが無い/一致しない場合は
+      // （たとえユーザー名が一致していても）通常の観戦者経路に進める。
       if (room.inProgress) {
+        const disconnectedPlayerEntry = sessionToken
+          ? Object.entries(room.players).find(([, data]) =>
+              data.sessionToken === sessionToken && data.disconnectedAt !== undefined
+            )
+          : undefined;
+
+        if (disconnectedPlayerEntry) {
+          const [oldSocketId, playerData] = disconnectedPlayerEntry;
+          delete room.players[oldSocketId];
+          delete playerData.disconnectedAt;
+          room.players[socket.id] = playerData;
+
+          socket.join(roomId);
+
+          // sessionTokenは本人確認用の秘密情報。ルーム内の他プレイヤーへの
+          // room:player:joined放送には絶対に含めず、本人へのroom:joinedにのみ載せる。
+          const reconnectedPlayers = Object.entries(room.players).map(([id, data]) => ({
+            id,
+            username: data.username,
+            playerNumber: data.playerNumber as 1 | 2,
+            ready: data.ready
+          }));
+
+          socket.emit("room:joined", { roomId, sessionToken: playerData.sessionToken, players: reconnectedPlayers });
+          socket.to(roomId).emit("room:player:joined", { roomId, players: reconnectedPlayers });
+
+          if (room.gameState) {
+            socket.emit("game:state:update", {
+              gameState: room.gameState,
+              moveDetails: null
+            });
+          }
+
+          log(`Player reconnected during game: ${playerData.username} rejoined ${roomId} with new socket ${socket.id}`);
+          return;
+        }
+
         room.spectators.push(socket.id);
         socket.join(roomId);
         socket.emit("room:joined:spectator", {
@@ -407,21 +453,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const [oldSocketId, playerData] = existingPlayerEntry;
         delete room.players[oldSocketId];
         room.players[socket.id] = playerData;
-        
+
         socket.join(roomId);
-        
-        const roomDataForRejoining = {
-          roomId,
-          players: Object.entries(room.players).map(([id, data]) => ({
-            id,
-            username: data.username,
-            playerNumber: data.playerNumber as 1 | 2,
-            ready: data.ready
-          }))
-        };
-        
-        socket.emit("room:joined", roomDataForRejoining);
-        socket.to(roomId).emit("room:player:joined", roomDataForRejoining);
+
+        // sessionTokenは本人確認用の秘密情報。ルーム内の他プレイヤーへの
+        // room:player:joined放送には絶対に含めず、本人へのroom:joinedにのみ載せる。
+        const rejoiningPlayers = Object.entries(room.players).map(([id, data]) => ({
+          id,
+          username: data.username,
+          playerNumber: data.playerNumber as 1 | 2,
+          ready: data.ready
+        }));
+
+        socket.emit("room:joined", { roomId, sessionToken: playerData.sessionToken, players: rejoiningPlayers });
+        socket.to(roomId).emit("room:player:joined", { roomId, players: rejoiningPlayers });
         
         // 進行中のゲームがあれば状態を同期
         if (room.inProgress && room.gameState) {
@@ -453,27 +498,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
       } else {
+        const newPlayerToken = uuidv4();
         room.players[socket.id] = {
           username,
           ready: false,
-          playerNumber: 2
+          playerNumber: 2,
+          sessionToken: newPlayerToken
         };
-        
+
         socket.join(roomId);
-        
-        const roomDataForJoiner = {
-          roomId,
-          players: Object.entries(room.players).map(([id, data]) => ({
-            id,
-            username: data.username,
-            playerNumber: data.playerNumber as 1 | 2,
-            ready: data.ready
-          }))
-        };
-        socket.emit("room:joined", roomDataForJoiner);
-        
-        socket.to(roomId).emit("room:player:joined", roomDataForJoiner);
-        
+
+        // sessionTokenは本人確認用の秘密情報。ルーム内の他プレイヤーへの
+        // room:player:joined放送には絶対に含めず、本人へのroom:joinedにのみ載せる。
+        const joinerPlayers = Object.entries(room.players).map(([id, data]) => ({
+          id,
+          username: data.username,
+          playerNumber: data.playerNumber as 1 | 2,
+          ready: data.ready
+        }));
+        socket.emit("room:joined", { roomId, sessionToken: newPlayerToken, players: joinerPlayers });
+
+        socket.to(roomId).emit("room:player:joined", { roomId, players: joinerPlayers });
+
         log(`Player joined room: ${username} joined ${roomId}`);
       }
     });
@@ -541,8 +587,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     socket.on("game:move", (data: { roomId: string, position: Position, piece: PieceType }) => {
+      // dataがnull/undefined/非オブジェクトで送られてくると分割代入自体が同期的にthrowし、
+      // Socket.IOのディスパッチはこれを捕捉しないため、uncaughtExceptionでプロセス全体が
+      // 落ちてインメモリの全対局が消える。検証より前に必ずガードする。
+      if (!data || typeof data !== 'object') {
+        socket.emit("game:error", { message: "Invalid move data" });
+        return;
+      }
       const { roomId, position, piece } = data;
-      
+
       // 入力検証
       if (!validateRoomId(roomId)) {
         socket.emit("game:error", { message: "Invalid room ID" });
@@ -569,38 +622,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       if (room.gameState.gamePhase === GamePhase.GAME_OVER || room.gameState.gameResult !== GameResult.ONGOING) {
-        socket.emit("game:error", { message: "Game has already ended" });
+        socket.emit("game:error", { message: "Game has already ended", gameState: room.gameState });
         return;
       }
 
       const gameState = room.gameState;
       const playerSocketId = socket.id;
       const playerInfo = room.players[playerSocketId];
-      
+
       if (!playerInfo) {
         socket.emit("game:error", { message: "Player not in room" });
         return;
       }
-      
+
       const isPlayer1 = playerInfo.playerNumber === 1;
       const isPlayer2 = playerInfo.playerNumber === 2;
       const currentPlayer = gameState.currentPlayer || (gameState.currentTurn === 1 ? Player.PLAYER1 : Player.PLAYER2);
-      
+
       if ((isPlayer1 && currentPlayer !== Player.PLAYER1) || (isPlayer2 && currentPlayer !== Player.PLAYER2)) {
-        socket.emit("game:error", { message: "Not your turn" });
+        // クライアントは楽観的にボードを更新済みの場合があるため、権威的な状態を返して
+        // 復元させる。move側でスナップショットを取ってエラー時に巻き戻す方式は、
+        // 無関係なエラー（他の理由のgame:error）到着時に正常な手まで巻き戻す危険があるため避ける。
+        socket.emit("game:error", { message: "Not your turn", gameState });
         return;
       }
 
       // Check if valid move
       if (!isValidMove(gameState.board, position, piece, currentPlayer)) {
-        socket.emit("game:error", { message: "Invalid move" });
+        socket.emit("game:error", { message: "Invalid move", gameState });
         return;
       }
-      
+
       // Check if piece is in inventory
       const playerInventory = currentPlayer === Player.PLAYER1 ? gameState.player1Inventory : gameState.player2Inventory;
       if (playerInventory[piece] <= 0) {
-        socket.emit("game:error", { message: "Piece not in inventory" });
+        socket.emit("game:error", { message: "Piece not in inventory", gameState });
         return;
       }
       
@@ -643,7 +699,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         gameState.currentPlayer = currentPlayer === Player.PLAYER1 ? Player.PLAYER2 : Player.PLAYER1;
         gameState.currentTurn = gameState.currentTurn === 1 ? 2 : 1;
       }
-      
+
+      // 対局が決着した場合は room.inProgress を戻す。これを怠ると room:leave/切断猶予/
+      // 30分非アクティブ削除など inProgress を見て分岐する処理が「対局中」のまま扱い続け、
+      // ロビーへの再表示・ready状態の残留といった不整合につながる。
+      if (gameState.gamePhase === GamePhase.GAME_OVER) {
+        room.inProgress = false;
+        for (const id in room.players) {
+          room.players[id].ready = false;
+        }
+      }
+
       // Update the game state
       gameState.board = newBoard;
       gameState.lastMove = {
@@ -748,6 +814,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         socket.emit("room:left:success");
 
+        const wasInProgress = room.inProgress;
+        if (wasInProgress) {
+          room.inProgress = false;
+          room.gameState = null;
+          // 対局を終了させるので、切断猶予中のまま残っている幽霊プレイヤーも一緒に退室させる。
+          // 放置すると誰にも回収されないまま部屋に居座り続け、次に同じルームコードへ
+          // 入室した第三者が幽霊を相手にした対局を掴んでしまう。
+          for (const [ghostSocketId, ghostData] of Object.entries(room.players)) {
+            if (ghostData.disconnectedAt !== undefined) {
+              delete room.players[ghostSocketId];
+            }
+          }
+        }
+
         const remainingPlayers = Object.keys(room.players).length;
 
         if (remainingPlayers === 0) {
@@ -767,13 +847,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }))
           });
           log(`Notified remaining players in room ${roomId} about ${username} leaving.`);
-          
-          if (room.inProgress) {
-             log(`Player left during an ongoing game in room ${roomId}. Game state might need reset.`);
-             room.inProgress = false;
-             room.gameState = null;
-             io.to(roomId).emit("game:force:end", { message: "Opponent left the game." }); 
-          }
+        }
+
+        if (wasInProgress) {
+          log(`Player left during an ongoing game in room ${roomId}. Game state was reset.`);
+          io.to(roomId).emit("game:force:end", { message: "Opponent left the game." });
         }
       } else {
         log(`Player ${playerSocketId} attempted to leave room ${roomId}, but was not found in the room.`);
@@ -801,7 +879,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const player2 = waitingUsers.shift()!;
         
         const roomId = uuidv4().substring(0, 8);
-        
+        const player1Token = uuidv4();
+        const player2Token = uuidv4();
+
         const now = Date.now();
         gameRooms[roomId] = {
           id: roomId,
@@ -809,12 +889,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             [player1.socketId]: {
               username: player1.username,
               ready: true,
-              playerNumber: 1
+              playerNumber: 1,
+              sessionToken: player1Token
             },
             [player2.socketId]: {
               username: player2.username,
               ready: true,
-              playerNumber: 2
+              playerNumber: 2,
+              sessionToken: player2Token
             }
           },
           gameState: null,
@@ -823,26 +905,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
           createdAt: now,
           lastActivity: now
         };
-        
+
         io.sockets.sockets.get(player1.socketId)?.join(roomId);
         io.sockets.sockets.get(player2.socketId)?.join(roomId);
-        
-        io.to(roomId).emit("matchmaking:matched", {
+
+        // トークンは本人のソケットにのみ届ける必要があるため、
+        // io.to(roomId)の一斉送信ではなく個別に emit する
+        const matchedPlayers = [
+          {
+            id: player1.socketId,
+            username: player1.username,
+            playerNumber: 1 as const,
+            ready: true
+          },
+          {
+            id: player2.socketId,
+            username: player2.username,
+            playerNumber: 2 as const,
+            ready: true
+          }
+        ];
+        io.sockets.sockets.get(player1.socketId)?.emit("matchmaking:matched", {
           roomId,
-          players: [
-            {
-              id: player1.socketId,
-              username: player1.username,
-              playerNumber: 1,
-              ready: true
-            },
-            {
-              id: player2.socketId,
-              username: player2.username,
-              playerNumber: 2,
-              ready: true
-            }
-          ]
+          sessionToken: player1Token,
+          players: matchedPlayers
+        });
+        io.sockets.sockets.get(player2.socketId)?.emit("matchmaking:matched", {
+          roomId,
+          sessionToken: player2Token,
+          players: matchedPlayers
         });
         
         log(`Matched players: ${player1.username} and ${player2.username} in room ${roomId}`);

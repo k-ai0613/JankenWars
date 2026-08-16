@@ -90,6 +90,7 @@ export const createInitialInventory = (): PlayerInventory => {
     [PieceType.PAPER]: 7,
     [PieceType.SCISSORS]: 7,
     [PieceType.SPECIAL]: 1,
+    [PieceType.EMPTY]: 0,
   };
 };
 
@@ -152,7 +153,7 @@ export const findWinningLine = (board: Board, player: Player): WinningLine | nul
       
       // 4つの連続をチェック
       for (let i = 0; i < 4; i++) {
-        if (board[row][col + i].owner === player) {
+        if (board[row][col + i].owner === player && board[row][col + i].piece !== PieceType.EMPTY) {
           consecutive++;
           positions.push({ row, col: col + i });
         } else {
@@ -177,7 +178,7 @@ export const findWinningLine = (board: Board, player: Player): WinningLine | nul
       
       // 4つの連続をチェック
       for (let i = 0; i < 4; i++) {
-        if (board[row + i][col].owner === player) {
+        if (board[row + i][col].owner === player && board[row + i][col].piece !== PieceType.EMPTY) {
           consecutive++;
           positions.push({ row: row + i, col });
         } else {
@@ -202,7 +203,7 @@ export const findWinningLine = (board: Board, player: Player): WinningLine | nul
       
       // 4つの連続をチェック
       for (let i = 0; i < 4; i++) {
-        if (row + i < 6 && col + i < 6 && board[row + i][col + i].owner === player) {
+        if (row + i < 6 && col + i < 6 && board[row + i][col + i].owner === player && board[row + i][col + i].piece !== PieceType.EMPTY) {
           consecutive++;
           positions.push({ row: row + i, col: col + i });
         } else {
@@ -227,7 +228,7 @@ export const findWinningLine = (board: Board, player: Player): WinningLine | nul
       
       // 4つの連続をチェック
       for (let i = 0; i < 4; i++) {
-        if (row + i < 6 && col - i >= 0 && board[row + i][col - i].owner === player) {
+        if (row + i < 6 && col - i >= 0 && board[row + i][col - i].owner === player && board[row + i][col - i].piece !== PieceType.EMPTY) {
           consecutive++;
           positions.push({ row: row + i, col: col - i });
         } else {

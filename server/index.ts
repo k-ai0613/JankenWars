@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes.js";
 import { setupVite, serveStatic, log } from "./vite.js";
-import { rateLimiter, validateInput } from "./security.js";
+import { rateLimiter, validateInput, getAllowedOrigins } from "./security.js";
 
 const app = express();
 
@@ -23,10 +23,8 @@ app.use((req, res, next) => {
   res.setHeader('Keep-Alive', 'timeout=30, max=1000');
   
   // CORS設定 - 本番環境では特定のオリジンのみ許可
-  const allowedOrigins = process.env.NODE_ENV === 'production' 
-    ? ['https://jankenwars.onrender.com'] 
-    : ['http://localhost:5173', 'http://localhost:5000'];
-  
+  const allowedOrigins = getAllowedOrigins();
+
   const origin = req.headers.origin;
   if (origin && allowedOrigins.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);

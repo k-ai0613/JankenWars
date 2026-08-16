@@ -6,6 +6,43 @@ import { createEmptyBoard, selectCellForPlayer, createInitialInventory, checkWin
 import { useAudio } from './useAudio';
 import { useLanguage } from './useLanguage';
 
+// 対局中の再接続に使うセッション情報の永続化。TWA(Android)ではWiFi瞬断より
+// WebViewのバックグラウンド破棄からの復帰の方が起きやすく、その場合ページが
+// 再読み込みされてZustandのメモリ上state(pendingUsername等)は失われる。
+// localStorageに逃がしておくことで、再読み込み後もroom:joinを自動的にやり直せる。
+const RECONNECT_SESSION_KEY = 'jankenwars:reconnectSession';
+
+interface ReconnectSession {
+  roomId: string;
+  sessionToken: string;
+}
+
+function saveReconnectSession(session: ReconnectSession) {
+  try {
+    localStorage.setItem(RECONNECT_SESSION_KEY, JSON.stringify(session));
+  } catch (e) {
+    console.warn('[useOnlineGame] Failed to persist reconnect session:', e);
+  }
+}
+
+function loadReconnectSession(): ReconnectSession | null {
+  try {
+    const raw = localStorage.getItem(RECONNECT_SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    console.warn('[useOnlineGame] Failed to read reconnect session:', e);
+    return null;
+  }
+}
+
+function clearReconnectSession() {
+  try {
+    localStorage.removeItem(RECONNECT_SESSION_KEY);
+  } catch (e) {
+    console.warn('[useOnlineGame] Failed to clear reconnect session:', e);
+  }
+}
+
 interface PlayerInfo {
   id: string;
   username: string;
@@ -37,7 +74,10 @@ interface OnlineGameState {
   // 再接続時(socket.ioのconnectイベント再発火時)にpendingUsernameが既にnull化されていても
   // user:joinを再送信できるよう、接続確立に使ったユーザー名を保持し続ける
   currentUsername: string | null;
-  
+  // 対局中の再接続をroom:joinで本人確認するためのトークン。room:create/room:joinで
+  // 新規にプレイヤー枠へ入った時にサーバーから発行される
+  sessionToken: string | null;
+
   // ★ アニメーション状態を追加 ★
   winAnimation: boolean;
   loseAnimation: boolean;
@@ -78,7 +118,7 @@ interface OnlineGameState {
   handlePlayerDisconnected: (data: { playerId: string, players: RoomPlayerData[] }) => void;
   handlePlayerReady: (data: { playerId: string, ready: boolean, players: RoomPlayerData[] }) => void;
   handleGameStart: (data: RoomData) => void;
-  handleGameStateUpdate: (data: { gameState: ServerGameState, moveDetails: MoveDetails }) => void;
+  handleGameStateUpdate: (data: { gameState: ServerGameState, moveDetails: MoveDetails | null }) => void;
   handleMatchmakingWaiting: () => void;
   handleMatchmakingMatched: (data: RoomData) => void;
   handleMatchmakingCancelled: () => void;
@@ -205,6 +245,26 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
 
     console.log("Calling joinWithUsername with:", usernameToJoin);
     socketService.joinWithUsername(usernameToJoin);
+
+    // 再接続時、直前まで対局中の部屋にいたなら自動でroom:joinもやり直す。
+    // これが無いと「ソケットの再接続は成功したが部屋には戻れていない」という
+    // 中途半端な状態になり、ユーザーがルームコードを手打ちしないと復帰できない。
+    // ただし発火条件はpendingUsernameの有無だけでは不十分: 初回connect()後に
+    // ルーム未参加のまま同一セッション内で再接続(網の瞬断等)が起きると、
+    // pendingUsernameは既にnullなのに古いlocalStorageセッションで勝手に
+    // 旧ルームへ引き込んでしまう穴があった。in-memoryのsessionToken
+    // (このセッションでroom参加時にのみセットされ、退室/disconnect()でnullに戻る)
+    // が現在のlocalStorage側と一致する場合に限ることで、その穴を塞ぐ。
+    // トレードオフ: TWAでページごと再読み込みされるとin-memory状態は消えるため、
+    // WebView破棄からの復帰時は自動再接続の対象外になる(手動でルームコード再入力が必要)。
+    // 見知らぬ相手のルームに黙って参加してしまう方が実害が大きいため、安全側に倒した。
+    if (!pendingUsername && get().sessionToken) {
+      const session = loadReconnectSession();
+      if (session && session.sessionToken === get().sessionToken && !get().roomId) {
+        console.log("Attempting automatic room rejoin with persisted session:", session.roomId);
+        socketService.joinRoom(session.roomId, session.sessionToken);
+      }
+    }
   };
   const handleDisconnect = () => {
     set(state => ({
@@ -227,18 +287,53 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
   const handleError = (error: any) => {
     console.error('Socket error:', error);
     startTransition(() => {
-        set({ 
-            message: t('online.connectionError'),
-            isConnecting: false,
-            pendingUsername: null
+      const resync = error?.gameState as ServerGameState | undefined;
+      if (resync) {
+        // makeMove()は楽観的にボードを更新してからサーバーへ送るため、サーバーが
+        // 手を拒否した場合はクライアントのボードが実状態と食い違ったままになる。
+        // 送られてきた権威的なgameStateで上書きして復元する（スナップショット保存 →
+        // エラー時に巻き戻す方式は、無関係な理由のgame:error到着時に正常な手まで
+        // 巻き戻してしまう危険があるため採らない）。
+        set({
+          board: resync.board,
+          currentPlayer: resync.currentPlayer,
+          player1Inventory: resync.player1Inventory,
+          player2Inventory: resync.player2Inventory,
+          gamePhase: resync.gamePhase,
+          gameResult: resync.gameResult,
+          winningLine: resync.winningLine || null,
+          message: t('online.invalidMove'),
+          isConnecting: false,
+          pendingUsername: null,
+          selectedPiece: null,
+          aiSelectedPiece: null
         });
-     });
+        // makeMove()の楽観的更新はselectedPiece/aiSelectedPieceもnullにしてしまっているため、
+        // 依然として自分の手番であれば駒を選び直させないと次の一手を指せなくなる
+        // (handleGameStateUpdateと同じガード・同じ手順)
+        const localNum = get().localPlayerNumber;
+        const isMyTurnAfterResync = resync.currentPlayer === (localNum === 1 ? Player.PLAYER1 : Player.PLAYER2);
+        if (resync.gamePhase !== GamePhase.GAME_OVER && isMyTurnAfterResync) {
+          get()._selectRandomPieceForTurn();
+        }
+      } else {
+        set({
+          message: t('online.connectionError'),
+          isConnecting: false,
+          pendingUsername: null
+        });
+      }
+    });
   };
   const handleRoomCreated = (data: RoomData) => {
     console.log('handleRoomCreated called with data:', data);
+    if (data.sessionToken) {
+      saveReconnectSession({ roomId: data.roomId, sessionToken: data.sessionToken });
+    }
     startTransition(() => {
       set({
         roomId: data.roomId,
+        sessionToken: data.sessionToken ?? null,
         players: data.players.map(p => ({
           id: p.id,
           username: p.username,
@@ -269,9 +364,14 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
     const myId = socketService.getSocketId();
     const me = data.players.find(p => p.id === myId);
 
+    if (data.sessionToken) {
+      saveReconnectSession({ roomId: data.roomId, sessionToken: data.sessionToken });
+    }
+
     startTransition(() => {
       set({
         roomId: data.roomId,
+        sessionToken: data.sessionToken ?? get().sessionToken,
         players: data.players.map(p => ({
           id: p.id,
           username: p.username,
@@ -480,7 +580,7 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
     audioStore.playBattle();
     console.log('Set phase to SELECTING_CELL in handleGameStart');
   };
-  const handleGameStateUpdate = (data: { gameState: ServerGameState, moveDetails: MoveDetails }) => {
+  const handleGameStateUpdate = (data: { gameState: ServerGameState, moveDetails: MoveDetails | null }) => {
     console.log('handleGameStateUpdate called with data:', data);
     
     startTransition(() => {
@@ -532,7 +632,7 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
           });
       }, 0);
 
-      if (moveDetails.capturedPiece) {
+      if (moveDetails?.capturedPiece) {
         audioStore.playHit();
       } else {
         audioStore.playPlace();
@@ -597,10 +697,14 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
   };
   const handleMatchmakingMatched = (data: RoomData) => {
     console.log('handleMatchmakingMatched called with data:', data);
+    if (data.sessionToken) {
+      saveReconnectSession({ roomId: data.roomId, sessionToken: data.sessionToken });
+    }
     startTransition(() => {
       set({
         isInMatchmaking: false,
         roomId: data.roomId,
+        sessionToken: data.sessionToken ?? null,
         players: data.players.map(p => ({
           id: p.id,
           username: p.username,
@@ -625,9 +729,11 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
 
   const handleRoomLeftSuccess = () => {
     console.log('handleRoomLeftSuccess called');
+    clearReconnectSession();
     startTransition(() => {
       set({
         roomId: null,
+        sessionToken: null,
         players: [],
         localPlayerNumber: null,
         isSpectator: false,
@@ -710,6 +816,7 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
     message: t('online.connectPrompt'),
     pendingUsername: null,
     currentUsername: null,
+    sessionToken: null,
     isConnecting: false,
     winAnimation: false,
     loseAnimation: false,
@@ -786,8 +893,10 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
       socketService.connect(); 
     },
     disconnect: () => {
-      // ユーザーの意図的な切断。以後の自動再接続でuser:joinを再送信させないためcurrentUsernameも消す
-      set({ currentUsername: null });
+      // ユーザーの意図的な切断。以後の自動再接続でuser:join/room:joinを再送信させないため
+      // currentUsernameと永続化した再接続セッションの両方を消す
+      clearReconnectSession();
+      set({ currentUsername: null, sessionToken: null });
       socketService.disconnect();
     },
     createRoom: () => {

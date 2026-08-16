@@ -1,72 +1,73 @@
 import { Request, Response, NextFunction } from 'express';
 
-// レート制限のための簡易実装
-const requestCounts = new Map<string, { count: number; resetTime: number }>();
+// Express(index.ts)とSocket.IO(routes.ts)の両方で同じ許可オリジンを使うための単一の定義。
+// 2箇所に別々に書くと、片方だけ更新した時に一方だけ古いオリジンでリクエストを拒否する
+// (Socket.IOだけ、あるいはRESTだけが繋がらない)という気づきにくい部分障害につながる。
+export function getAllowedOrigins(): string[] {
+  return process.env.NODE_ENV === 'production'
+    ? ['https://jankenwars.onrender.com']
+    : ['http://localhost:5173', 'http://localhost:5000'];
+}
 
-// 定期的に期限切れエントリを削除（メモリリーク防止）
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, value] of requestCounts) {
-    if (now > value.resetTime) {
-      requestCounts.delete(key);
-    }
+// レート制限用のカウンタ実装。HTTP(rateLimiter)とSocket.IO(checkSocketRateLimit)は
+// キーの種類(IP/socket.id)と超過時の振る舞い(429を返す/静かに破棄する)が異なるだけで、
+// 「窓時間ごとにカウントし、期限切れエントリを間引く」という中身は同じなので共通化する。
+class RateLimitCounter {
+  private counts = new Map<string, { count: number; resetTime: number }>();
+
+  constructor() {
+    // 定期的に期限切れエントリを削除（メモリリーク防止）
+    setInterval(() => {
+      const now = Date.now();
+      for (const [key, value] of this.counts) {
+        if (now > value.resetTime) {
+          this.counts.delete(key);
+        }
+      }
+    }, 60000);
   }
-}, 60000);
+
+  // 呼び出しごとにカウントし、更新後の件数を返す
+  hit(key: string, windowMs: number): number {
+    const now = Date.now();
+    const data = this.counts.get(key);
+
+    if (!data || now > data.resetTime) {
+      this.counts.set(key, { count: 1, resetTime: now + windowMs });
+      return 1;
+    }
+
+    data.count++;
+    return data.count;
+  }
+}
+
+const requestCounts = new RateLimitCounter();
 
 export function rateLimiter(maxRequests: number = 100, windowMs: number = 60000) {
   return (req: Request, res: Response, next: NextFunction) => {
     const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
-    const now = Date.now();
-
-    const clientData = requestCounts.get(clientIp);
-
-    if (!clientData || now > clientData.resetTime) {
-      requestCounts.set(clientIp, {
-        count: 1,
-        resetTime: now + windowMs
-      });
-      return next();
-    }
-
-    if (clientData.count >= maxRequests) {
+    if (requestCounts.hit(clientIp, windowMs) > maxRequests) {
       res.status(429).json({
         error: 'Too many requests. Please try again later.'
       });
       return;
     }
-
-    clientData.count++;
     next();
   };
 }
 
 // Socket.IO イベント用のレート制限（ソケット単位）
-const socketEventCounts = new Map<string, { count: number; resetTime: number }>();
+const socketEventCounts = new RateLimitCounter();
 
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, value] of socketEventCounts) {
-    if (now > value.resetTime) {
-      socketEventCounts.delete(key);
-    }
+// 'ok': 通過。'limited-first': 今回の閾値超過で初めて制限に入った(呼び出し側は警告を1回だけ出す)。
+// 'limited': 既に制限中で、この後は静かに破棄してよい。
+export function checkSocketRateLimit(key: string, maxEvents: number = 60, windowMs: number = 60000): 'ok' | 'limited-first' | 'limited' {
+  const count = socketEventCounts.hit(key, windowMs);
+  if (count > maxEvents) {
+    return count === maxEvents + 1 ? 'limited-first' : 'limited';
   }
-}, 60000);
-
-export function checkSocketRateLimit(key: string, maxEvents: number = 60, windowMs: number = 60000): boolean {
-  const now = Date.now();
-  const data = socketEventCounts.get(key);
-
-  if (!data || now > data.resetTime) {
-    socketEventCounts.set(key, { count: 1, resetTime: now + windowMs });
-    return true;
-  }
-
-  if (data.count >= maxEvents) {
-    return false;
-  }
-
-  data.count++;
-  return true;
+  return 'ok';
 }
 
 // 入力サニタイゼーション

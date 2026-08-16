@@ -175,6 +175,7 @@ export function OnlineGamePage() {
   // ★ セレクターを元に戻す: 個別の状態を取得
   const isOnline = useOnlineGame(state => state.isOnline);
   const isConnected = useOnlineGame(state => state.isConnected);
+  const socketId = useOnlineGame(state => state.socketId);
   const roomId = useOnlineGame(state => state.roomId);
   const players = useOnlineGame(state => state.players); // players 配列自体への参照が必要
   const isSpectator = useOnlineGame(state => state.isSpectator);
