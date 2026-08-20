@@ -8,25 +8,40 @@ JankenWars is a strategic online multiplayer board game based on rock-paper-scis
 
 ## Development Commands
 
-```bash
-# Start development (frontend only with Vite)
-npm run dev
+All scripts are shell-portable and run identically on macOS, Linux and Windows
+(PowerShell or `cmd`). Node is pinned to 20.11.1 via `.nvmrc`, matching `render.yaml`.
 
-# Start development (frontend + backend concurrently)
+```bash
+# Start development (frontend + backend concurrently) - open http://localhost:5001
 npm run dev:full
 
-# Start backend server only
+# Start development (frontend only with Vite, port 5001)
+# Online multiplayer will NOT connect - nothing listens on 5000
+npm run dev
+
+# Start backend server only (Express + Socket.IO, port 5000)
 npm run server-dev
 
-# Build for production
+# Build for production (vite build -> dist/public, then tsc -> dist/server)
 npm run build
 
-# Type check
+# Type check - covers server/ and shared/ only, NOT client/ (see docs/BUG_ANALYSIS.md M-1)
 npm run check
 
-# Lint
+# Lint - currently fails: ESLint is not installed or configured (see docs/BUG_ANALYSIS.md M-2)
 npm run lint
 ```
+
+When adding a script, keep it shell-portable: no `ls`, `rm`, `cls`, subshell
+`( ... || ... )` grouping, or `VAR=value` command prefixes. Those fail or behave
+differently in `cmd.exe`. Use `path.resolve` / `fileURLToPath` for paths, never
+string concatenation with `/`.
+
+## Known Issues
+
+`docs/BUG_ANALYSIS.md` catalogues 28 open findings from an audit of recurring bug
+patterns, including two critical server-side issues (missing janken resolution and a
+crash-on-malformed-payload). Consult it before touching `server/routes.ts`.
 
 ## Architecture
 

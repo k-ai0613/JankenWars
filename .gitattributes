@@ -1,0 +1,49 @@
+# 改行コードの正規化
+# リポジトリ内は常に LF。作業ツリーも LF で取り出すため、
+# Mac と Windows の間でチェックアウトしても差分が発生しない。
+* text=auto eol=lf
+
+# 明示的にテキスト扱いするもの
+*.ts       text eol=lf
+*.tsx      text eol=lf
+*.js       text eol=lf
+*.mjs      text eol=lf
+*.cjs      text eol=lf
+*.json     text eol=lf
+*.css      text eol=lf
+*.html     text eol=lf
+*.md       text eol=lf
+*.yml      text eol=lf
+*.yaml     text eol=lf
+*.xml      text eol=lf
+*.txt      text eol=lf
+*.sh       text eol=lf
+*.gradle   text eol=lf
+*.properties text eol=lf
+gradlew    text eol=lf
+
+# Windows のバッチファイルは CRLF でないと動作しない
+*.bat      text eol=crlf
+*.cmd      text eol=crlf
+
+# バイナリ（改行変換・差分表示の対象外にする）
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.webp     binary
+*.gif      binary
+*.ico      binary
+*.mp3      binary
+*.ogg      binary
+*.wav      binary
+*.woff     binary
+*.woff2    binary
+*.ttf      binary
+*.otf      binary
+*.jar      binary
+*.gltf     binary
+*.glb      binary
+*.keystore binary
+
+# 自動生成ファイル（GitHub の差分表示を折りたたむ）
+package-lock.json linguist-generated=true

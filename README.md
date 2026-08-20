@@ -25,14 +25,44 @@ A strategic turn-based battle game combining the classic rock-paper-scissors mec
 
 ### Prerequisites
 
-- Node.js 18+ 
-- npm or yarn
+- **Node.js 20.11.1** — pinned in `.nvmrc` and matched to the production runtime in `render.yaml`
+- **npm 10+** (bundled with Node 20.11.1)
+
+The project is developed on both macOS and Windows. All npm scripts are shell-portable,
+so the commands below are identical on either platform.
+
+<details>
+<summary><b>macOS / Linux</b> — installing the pinned Node version</summary>
+
+```bash
+# nvm
+nvm install && nvm use          # reads .nvmrc
+
+# or fnm
+fnm use --install-if-missing    # reads .nvmrc
+```
+</details>
+
+<details>
+<summary><b>Windows</b> — installing the pinned Node version</summary>
+
+```powershell
+# fnm (recommended — reads .nvmrc like it does on macOS)
+fnm use --install-if-missing
+
+# nvm-windows does not read .nvmrc, so pass the version explicitly
+nvm install 20.11.1
+nvm use 20.11.1
+```
+
+Use PowerShell or Windows Terminal. No script in this repo requires Git Bash or WSL.
+</details>
 
 ### Installation
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/JankenWars.git
+git clone https://github.com/k-ai0613/JankenWars.git
 cd JankenWars
 ```
 
@@ -41,12 +71,27 @@ cd JankenWars
 npm install
 ```
 
-3. Start the development server:
+3. Start the development servers:
 ```bash
-npm run dev
+npm run dev:full
 ```
 
-The game will be available at `http://localhost:5000`
+Then open **`http://localhost:5001`**.
+
+`dev:full` runs two processes together:
+
+| Process | Port | Purpose |
+|---------|------|---------|
+| Vite dev server | **5001** | The UI you open in the browser |
+| Express + Socket.IO | **5000** | REST API and online multiplayer |
+
+Vite proxies `/api`, `/socket.io` and `/ws` through to port 5000, so you only ever
+visit 5001. Both ports use `strictPort`, so startup fails loudly if either is taken
+rather than silently moving to another port.
+
+`npm run dev` starts **only** the Vite server. Local and AI matches work, but online
+multiplayer will not connect because nothing is listening on port 5000. Use
+`dev:full` unless you are deliberately working on the frontend alone.
 
 ### Building for Production
 
@@ -54,7 +99,8 @@ The game will be available at `http://localhost:5000`
 npm run build
 ```
 
-The built files will be in the `dist` directory.
+This runs `vite build` (client bundle → `dist/public`) followed by `tsc`
+(server type check and emit → `dist/server`). The built files are in `dist`.
 
 ## Game Rules
 
@@ -94,11 +140,47 @@ JankenWars/
 
 ### Available Scripts
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run lint` - Run ESLint
-- `npm run type-check` - Run TypeScript type checking
+Every script below runs identically on macOS, Linux and Windows (PowerShell or `cmd`).
+
+| Script | What it does |
+|--------|--------------|
+| `npm run dev:full` | Vite (5001) + Express/Socket.IO (5000) — **use this for online multiplayer** |
+| `npm run dev` | Vite only (5001) — frontend work, no backend |
+| `npm run server-dev` | Express/Socket.IO only (5000) |
+| `npm run build` | `vite build` → `dist/public`, then `tsc` → `dist/server` |
+| `npm run preview` | Serve the production client bundle |
+| `npm run check` | TypeScript type check (server and shared only — see note) |
+| `npm run db:push` | Apply the Drizzle schema |
+
+> **`npm run lint` is currently not usable.** ESLint is neither installed nor
+> configured, so the script fails on every platform. See `docs/BUG_ANALYSIS.md` (M-2).
+
+> **`npm run check` does not cover the client.** `tsconfig.json` excludes
+> `client/**/*`, so roughly 10,000 lines of React code are never type checked.
+> See `docs/BUG_ANALYSIS.md` (M-1).
+
+### Cross-platform notes
+
+The repository is set up so a checkout behaves the same on macOS and Windows:
+
+- **`.nvmrc`** pins Node to `20.11.1`, the same version `render.yaml` uses in production.
+- **`.gitattributes`** normalises every text file to LF in the repository *and* in the
+  working tree, so switching machines never produces whitespace-only diffs.
+  `*.bat` and `*.cmd` stay CRLF because Windows requires it; binary assets
+  (audio, images, fonts, `gradle-wrapper.jar`) are excluded from conversion.
+- **`.editorconfig`** keeps indentation, charset and final newlines consistent across editors.
+- **npm scripts avoid shell built-ins.** Nothing calls `ls`, `rm`, `cls`, subshell
+  `( … || … )` grouping, or `VAR=value` command prefixes — all of which behave
+  differently or fail outright in `cmd.exe`.
+- **Paths are resolved with `path.resolve` and `fileURLToPath`** throughout
+  `vite.config.ts` and `server/vite.ts`, never by string concatenation.
+
+One caveat worth knowing: macOS and Windows both use case-insensitive filesystems by
+default, while the Render deployment runs on case-sensitive Linux. An import written as
+`./Types` instead of `./types` will work on both of your machines and fail only in
+production. TypeScript's `forceConsistentCasingInFileNames` (on by default in TS 5.x)
+catches this for files covered by `tsconfig.json` — which currently means server code
+only, until M-1 is addressed.
 
 ## Deployment
 
