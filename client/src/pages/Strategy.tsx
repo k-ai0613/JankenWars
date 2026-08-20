@@ -9,6 +9,7 @@ import {
   FaStar, FaLightbulb, FaShieldAlt, FaCrosshairs, FaTrophy,
   FaExclamationTriangle, FaArrowRight
 } from 'react-icons/fa';
+import { BOARD_SIZE, WIN_LENGTH } from '@shared/gameRules';
 
 export function Strategy() {
   const { language } = useLanguage();
@@ -355,7 +356,7 @@ export function Strategy() {
                     </p>
                     <ul className="text-xs text-gray-500 list-disc pl-4">
                       <li>{isJapanese ? '中央を取る練習' : 'Practice taking the center'}</li>
-                      <li>{isJapanese ? '5つ並べる感覚を掴む' : 'Get a feel for aligning 5'}</li>
+                      <li>{isJapanese ? `${WIN_LENGTH}つ並べる感覚を掴む` : `Get a feel for aligning ${WIN_LENGTH}`}</li>
                     </ul>
                   </div>
 

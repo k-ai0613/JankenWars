@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useLanguage } from '../lib/stores/useLanguage';
 import { Header } from '../components/Header';
 import { FaHandRock, FaHandPaper, FaHandScissors, FaGamepad, FaBrain, FaGlobe, FaUsers, FaRocket } from 'react-icons/fa';
+import { BOARD_SIZE, WIN_LENGTH } from '@shared/gameRules';
 
 export function About() {
   const { language } = useLanguage();
@@ -86,7 +87,7 @@ export function About() {
               <p>
                 {isJapanese
                   ? '単純なじゃんけんのルールに、ボードゲームの戦略性を加えることで、誰でも楽しめる奥深いゲーム体験を提供します。先に5つの駒を縦・横・斜めに並べたプレイヤーが勝利します。'
-                  : 'By adding board game strategy to simple rock-paper-scissors rules, we provide a deep gaming experience that anyone can enjoy. The first player to align 5 pieces vertically, horizontally, or diagonally wins.'}
+                  : `By adding board game strategy to simple rock-paper-scissors rules, we provide a deep gaming experience that anyone can enjoy. The first player to align ${WIN_LENGTH} pieces vertically, horizontally, or diagonally wins.`}
               </p>
             </div>
           </div>
@@ -176,12 +177,12 @@ export function About() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-800">
-                    {isJapanese ? '5つ並べて勝利！' : 'Align 5 to Win!'}
+                    {isJapanese ? `${WIN_LENGTH}つ並べて勝利！` : `Align ${WIN_LENGTH} to Win!`}
                   </h3>
                   <p className="text-gray-600">
                     {isJapanese
                       ? '先に5つの駒を一列に並べたプレイヤーの勝利です。'
-                      : 'The first player to align 5 pieces in a row wins the game.'}
+                      : `The first player to align ${WIN_LENGTH} pieces in a row wins the game.`}
                   </p>
                 </div>
               </div>

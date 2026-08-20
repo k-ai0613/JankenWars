@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { BOARD_SIZE, WIN_LENGTH } from '@shared/gameRules';
 
 type Language = 'en' | 'ja';
 
@@ -17,8 +18,8 @@ const defaultTranslations: Record<string, Record<Language, string>> = {
     ja: 'じゃんけんウォーズ'
   },
   'home.description': {
-    en: 'A strategic Rock-Paper-Scissors board game where players battle on a 6x6 grid. Place your pieces to create a line of 5 and claim victory!',
-    ja: '6x6のグリッドで対戦する戦略的じゃんけんボードゲーム。駒を配置して5つ並べて勝利を収めましょう！'
+    en: 'A strategic Rock-Paper-Scissors board game where players battle on a {boardSize}x{boardSize} grid. Place your pieces to create a line of {winLength} and claim victory!',
+    ja: '{boardSize}x{boardSize}のグリッドで対戦する戦略的じゃんけんボードゲーム。駒を配置して{winLength}つ並べて勝利を収めましょう！'
   },
   'home.playLocal': {
     en: 'Play Local Game',
@@ -41,8 +42,8 @@ const defaultTranslations: Record<string, Record<Language, string>> = {
     ja: '目的'
   },
   'home.objective.description': {
-    en: 'Be the first to place 5 of your pieces in a row (horizontally, vertically, or diagonally) on the 6x6 grid.',
-    ja: '6x6のグリッドで自分の駒を5つ一列に並べる（横、縦、斜め）最初のプレイヤーになりましょう。'
+    en: 'Be the first to place {winLength} of your pieces in a row (horizontally, vertically, or diagonally) on the {boardSize}x{boardSize} grid.',
+    ja: '{boardSize}x{boardSize}のグリッドで自分の駒を{winLength}つ一列に並べる（横、縦、斜め）最初のプレイヤーになりましょう。'
   },
   'home.gameplay': {
     en: 'Gameplay',
@@ -496,6 +497,250 @@ const defaultTranslations: Record<string, Record<Language, string>> = {
     ja: '達人'
   },
   
+
+  // 汎用ラベル
+  'loading': {
+    en: "Loading...",
+    ja: "読み込み中..."
+  },
+  'player1': {
+    en: "Player 1",
+    ja: "プレイヤー1"
+  },
+  'player2': {
+    en: "Player 2",
+    ja: "プレイヤー2"
+  },
+  'aiPlayer': {
+    en: "AI",
+    ja: "AI"
+  },
+  'backToLobby': {
+    en: "Back to Lobby",
+    ja: "ロビーに戻る"
+  },
+  'useSpecialPiece': {
+    en: "Use Special Piece",
+    ja: "特殊駒を使う"
+  },
+  // ゲーム内ステータスメッセージ
+  'message.gameOver': {
+    en: "Game over",
+    ja: "ゲーム終了"
+  },
+  'message.gameDraw': {
+    en: "It's a draw",
+    ja: "引き分けです"
+  },
+  'message.gameError': {
+    en: "Something went wrong. Please try again.",
+    ja: "エラーが発生しました。もう一度お試しください。"
+  },
+  'message.drawRound': {
+    en: "This round is a draw",
+    ja: "このラウンドは引き分けです"
+  },
+  'message.player1WinRound': {
+    en: "Player 1 wins the round",
+    ja: "プレイヤー1がラウンドを取りました"
+  },
+  'message.player2WinRound': {
+    en: "Player 2 wins the round",
+    ja: "プレイヤー2がラウンドを取りました"
+  },
+  'message.player1Selected': {
+    en: "Player 1 selected a piece",
+    ja: "プレイヤー1が駒を選びました"
+  },
+  'message.player2Selected': {
+    en: "Player 2 selected a piece",
+    ja: "プレイヤー2が駒を選びました"
+  },
+  'message.player2SelectPiece': {
+    en: "Player 2, choose a piece",
+    ja: "プレイヤー2は駒を選んでください"
+  },
+  'message.selectionError': {
+    en: "That piece cannot be selected right now",
+    ja: "いまはその駒を選べません"
+  },
+  'message.placementError': {
+    en: "You cannot place a piece there",
+    ja: "そこには駒を置けません"
+  },
+  'message.resetting': {
+    en: "Resetting...",
+    ja: "リセット中..."
+  },
+  'message.boardReset': {
+    en: "Board cleared",
+    ja: "盤面をリセットしました"
+  },
+  'message.inventoryReset': {
+    en: "Pieces restocked",
+    ja: "持ち駒をリセットしました"
+  },
+  'message.scoresReset': {
+    en: "Scores cleared",
+    ja: "スコアをリセットしました"
+  },
+  'message.aiSelected': {
+    en: "AI selected a piece",
+    ja: "AIが駒を選びました"
+  },
+  'message.aiNoMove': {
+    en: "The AI has no legal move",
+    ja: "AIが置ける場所はありません"
+  },
+  'message.aiError': {
+    en: "The AI could not take its turn",
+    ja: "AIの手番でエラーが発生しました"
+  },
+  // オンライン対戦
+  'online.connecting': {
+    en: "Connecting...",
+    ja: "接続中..."
+  },
+  'online.connected': {
+    en: "Connected",
+    ja: "接続しました"
+  },
+  'online.disconnected': {
+    en: "Disconnected from the server",
+    ja: "サーバーとの接続が切れました"
+  },
+  'online.connectPrompt': {
+    en: "Enter a name to play online",
+    ja: "オンライン対戦する名前を入力してください"
+  },
+  'online.connectionError': {
+    en: "Could not reach the server. Please try again.",
+    ja: "サーバーに接続できませんでした。もう一度お試しください。"
+  },
+  'online.creatingRoom': {
+    en: "Creating a room...",
+    ja: "ルームを作成中..."
+  },
+  'online.roomCreated': {
+    en: "Room created. Share the code with your opponent.",
+    ja: "ルームを作成しました。対戦相手にコードを共有してください。"
+  },
+  'online.roomCreationError': {
+    en: "Could not create the room. Please try again.",
+    ja: "ルームを作成できませんでした。もう一度お試しください。"
+  },
+  'online.roomJoinError': {
+    en: "Could not join that room. Check the code and try again.",
+    ja: "ルームに参加できませんでした。コードを確認してください。"
+  },
+  'online.joinedRoom': {
+    en: "Joined the room",
+    ja: "ルームに参加しました"
+  },
+  'online.joinedAsSpectator': {
+    en: "Joined as a spectator",
+    ja: "観戦者として参加しました"
+  },
+  'online.leftRoom': {
+    en: "You left the room",
+    ja: "ルームから退出しました"
+  },
+  'online.copyRoomCode': {
+    en: "Copy room code",
+    ja: "ルームコードをコピー"
+  },
+  'online.enterValidRoomCode': {
+    en: "Enter a valid 8-character room code",
+    ja: "8文字のルームコードを入力してください"
+  },
+  'online.playerJoined': {
+    en: "joined the room",
+    ja: "さんが参加しました"
+  },
+  'online.playerLeft': {
+    en: "left the room",
+    ja: "さんが退出しました"
+  },
+  'online.opponentLeft': {
+    en: "Your opponent left. You win.",
+    ja: "対戦相手が退出しました。あなたの勝ちです。"
+  },
+  'online.aPlayer': {
+    en: "A player",
+    ja: "プレイヤー"
+  },
+  'online.anotherPlayer': {
+    en: "Another player",
+    ja: "別のプレイヤー"
+  },
+  'online.loadingPlayerInfo': {
+    en: "Loading player info...",
+    ja: "プレイヤー情報を読み込み中..."
+  },
+  'online.autoReadying': {
+    en: "Getting ready automatically...",
+    ja: "自動で準備しています..."
+  },
+  'online.waitingForAllReady': {
+    en: "Waiting for both players to be ready",
+    ja: "全員の準備完了を待っています"
+  },
+  'online.waitingForMatch': {
+    en: "Looking for an opponent...",
+    ja: "対戦相手を探しています..."
+  },
+  'online.matchFound': {
+    en: "Opponent found",
+    ja: "対戦相手が見つかりました"
+  },
+  'online.matchmakingCancelled': {
+    en: "Matchmaking cancelled",
+    ja: "マッチングをキャンセルしました"
+  },
+  'online.gameStarted': {
+    en: "The game has started",
+    ja: "ゲームを開始しました"
+  },
+  'online.waitingForOpponent': {
+    en: "Waiting for your opponent...",
+    ja: "相手の手番を待っています..."
+  },
+  'online.invalidMove': {
+    en: "You cannot place a piece there",
+    ja: "そこには駒を置けません"
+  },
+  'online.errorPieceNotSelected': {
+    en: "No piece is selected",
+    ja: "駒が選択されていません"
+  },
+  'online.noPieceLeft': {
+    en: "You have none of that piece left",
+    ja: "その駒は残っていません"
+  },
+  'online.noPiecesError': {
+    en: "You have no pieces left",
+    ja: "持ち駒がありません"
+  },
+  'online.onlySpecialLeft': {
+    en: "Only your special piece is left",
+    ja: "残りは特殊駒だけです"
+  },
+  'online.youWin': {
+    en: "You win!",
+    ja: "あなたの勝ちです！"
+  },
+  'online.youLose': {
+    en: "You lose",
+    ja: "あなたの負けです"
+  },
+  'online.draw': {
+    en: "It's a draw",
+    ja: "引き分けです"
+  },
+  'online.wins': {
+    en: "wins!",
+    ja: "さんの勝ちです！"
+  },
   // 言語切り替え
   'toggleLanguage': {
     en: 'Switch to Japanese',
@@ -513,9 +758,21 @@ export const useLanguage = create<LanguageState>((set, get) => ({
 
   t: (key: string) => {
     const { language, translations } = get();
-    if (translations[key] && translations[key][language]) {
-      return translations[key][language];
+    const template = translations[key]?.[language];
+
+    if (template === undefined) {
+      // キーが見つからない場合はキー自体を返す。開発時のみ警告を出して
+      // 生キーが画面に出たままになるのを防ぐ。
+      if (import.meta.env.DEV) {
+        console.warn(`[i18n] missing translation for "${key}" (${language})`);
+      }
+      return key;
     }
-    return key; // フォールバック: キーが見つからない場合はキー自体を返す
+
+    // ルール文言を定数から組み立てる。「5つ並べる」という説明のまま
+    // 実装が 4 連だった食い違いを構造的に防ぐ。
+    return template
+      .replace(/\{winLength\}/g, String(WIN_LENGTH))
+      .replace(/\{boardSize\}/g, String(BOARD_SIZE));
   }
 }));

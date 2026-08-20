@@ -4,7 +4,7 @@ A strategic turn-based battle game combining the classic rock-paper-scissors mec
 
 ## Features
 
-- **Strategic Gameplay**: Place and move your pieces on a 7x7 board to capture your opponent's flag
+- **Strategic Gameplay**: Place pieces on a 6x6 board and line up four in a row
 - **Rock-Paper-Scissors Battles**: Engage in battles using classic janken rules when pieces meet
 - **Multiple Game Modes**: 
   - Local vs AI with adjustable difficulty
@@ -104,38 +104,54 @@ This runs `vite build` (client bundle → `dist/public`) followed by `tsc`
 
 ## Game Rules
 
-### Objective
-Capture your opponent's flag or eliminate all their pieces to win.
+Board size and win length are defined once in `shared/gameRules.ts`
+(`BOARD_SIZE = 6`, `WIN_LENGTH = 4`) and every UI string reads from them.
 
-### Piece Types
-- **Rock**: Defeats Scissors
-- **Paper**: Defeats Rock  
-- **Scissors**: Defeats Paper
-- **Flag**: Must be protected - if captured, you lose
+### Objective
+Be the first to line up **4** of your pieces in a row — horizontally, vertically
+or diagonally — on the **6x6** board.
+
+### Pieces
+Each player starts with 7 rock, 7 paper, 7 scissors and 1 special piece.
+
+- **Rock** beats Scissors
+- **Scissors** beats Paper
+- **Paper** beats Rock
+- **Special**: can only be placed on an empty cell, cannot capture, and cannot be
+  captured. It still counts toward a line.
 
 ### Gameplay
-1. Each player starts with 8 pieces (2 of each type + 1 flag)
-2. Take turns moving pieces one square at a time
-3. When pieces meet on the same square, they battle using janken rules
-4. The winner stays on the square, the loser is removed
-5. First to capture the opponent's flag wins
+1. On your turn you place one piece from your inventory.
+2. Any piece may go on an empty cell.
+3. To take an opponent's cell you must **win the janken battle** against the piece
+   already there. An equal piece counts as a loss for the attacker.
+4. A cell that has been through a janken battle is locked — no one can play it again.
+5. The game is a draw when the board fills up, or when both players run out of
+   pieces, without either reaching 4 in a row.
+
+The server validates all of the above with the same `shared/gameRules.ts` code the
+client uses, so a modified client cannot make an illegal move.
 
 ## Development
 
 ### Project Structure
 ```
 JankenWars/
+├── shared/           # Single source of truth for both sides
+│   ├── gameTypes.ts  # Enums, Cell, Board, Position, ...
+│   ├── gameRules.ts  # BOARD_SIZE, WIN_LENGTH, isValidMove, applyMove, ...
+│   └── events.ts     # Socket.IO event names and payload types
 ├── client/           # React frontend
-│   ├── src/
-│   │   ├── components/   # UI components
-│   │   ├── lib/         # Utilities and stores
-│   │   ├── pages/       # Page components
-│   │   └── locales/     # i18n translations
-│   └── public/          # Static assets
-├── server/           # Express backend
-│   ├── index.ts      # Server entry point
-│   └── routes.ts     # API routes
-└── package.json      # Dependencies and scripts
+│   └── src/
+│       ├── components/  # UI components
+│       ├── lib/         # Stores, socket client, AI
+│       └── pages/       # Page components
+├── server/           # Express + Socket.IO backend
+│   ├── index.ts      # Entry point, CORS, security headers
+│   ├── routes.ts     # REST endpoints and Socket.IO handlers
+│   └── security.ts   # Origin allowlist, rate limiting, validation
+├── tests/            # Regression tests (npm test)
+└── docs/             # BUG_ANALYSIS.md
 ```
 
 ### Available Scripts
@@ -149,15 +165,14 @@ Every script below runs identically on macOS, Linux and Windows (PowerShell or `
 | `npm run server-dev` | Express/Socket.IO only (5000) |
 | `npm run build` | `vite build` → `dist/public`, then `tsc` → `dist/server` |
 | `npm run preview` | Serve the production client bundle |
-| `npm run check` | TypeScript type check (server and shared only — see note) |
+| `npm run check` | TypeScript type check — server, shared **and** client |
+| `npm run lint` | ESLint (flat config in `eslint.config.js`) |
+| `npm test` | Regression tests: shared rules, i18n coverage, live Socket.IO server |
 | `npm run db:push` | Apply the Drizzle schema |
 
-> **`npm run lint` is currently not usable.** ESLint is neither installed nor
-> configured, so the script fails on every platform. See `docs/BUG_ANALYSIS.md` (M-2).
-
-> **`npm run check` does not cover the client.** `tsconfig.json` excludes
-> `client/**/*`, so roughly 10,000 lines of React code are never type checked.
-> See `docs/BUG_ANALYSIS.md` (M-1).
+`npm test` boots the real server from `server/routes.ts` and drives it with
+`socket.io-client`, so it checks actual behaviour rather than mocks. It covers
+every finding in `docs/BUG_ANALYSIS.md` that had a reproducible failure.
 
 ### Cross-platform notes
 
@@ -179,8 +194,8 @@ One caveat worth knowing: macOS and Windows both use case-insensitive filesystem
 default, while the Render deployment runs on case-sensitive Linux. An import written as
 `./Types` instead of `./types` will work on both of your machines and fail only in
 production. TypeScript's `forceConsistentCasingInFileNames` (on by default in TS 5.x)
-catches this for files covered by `tsconfig.json` — which currently means server code
-only, until M-1 is addressed.
+catches this, and `npm run check` now covers the client as well as the server, so
+a casing mistake fails locally instead of only in production.
 
 ## Deployment
 
