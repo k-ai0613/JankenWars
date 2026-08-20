@@ -45,7 +45,7 @@ function App() {
         }
       } catch (error) {
         setServerConnected(false);
-        console.log('サーバーヘルスチェック失敗 (正常時は無視可能):', error?.message || error);
+        console.log('サーバーヘルスチェック失敗 (正常時は無視可能):', error instanceof Error ? error.message : error);
       }
     };
 

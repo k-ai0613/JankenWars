@@ -177,6 +177,7 @@ export function OnlineGamePage() {
   const isConnected = useOnlineGame(state => state.isConnected);
   const roomId = useOnlineGame(state => state.roomId);
   const players = useOnlineGame(state => state.players); // players 配列自体への参照が必要
+  const socketId = useOnlineGame(state => state.socketId);
   const isSpectator = useOnlineGame(state => state.isSpectator);
   const isInMatchmaking = useOnlineGame(state => state.isInMatchmaking);
   const gamePhase = useOnlineGame(state => state.gamePhase);
@@ -905,7 +906,7 @@ export function OnlineGamePage() {
   
   // ★ アニメーションクリア用のuseEffectを追加 ★
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    let timer: ReturnType<typeof setTimeout>;
     if (winAnimation) {
       timer = setTimeout(() => clearWinAnimation(), 3000); // 3秒後にクリア
     } else if (loseAnimation) {

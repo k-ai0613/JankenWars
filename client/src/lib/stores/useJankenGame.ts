@@ -107,13 +107,13 @@ const createState = (set, get) => ({
   setSelectedPiece: (piece) => {
     const currentPhase = get().phase;
     // DEBUG_GAME_FLOW: setSelectedPiece が呼ばれた時のログ（本番では削除）
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.log(`[DEBUG_GAME_FLOW] setSelectedPiece called. Target piece: ${piece}, Current phase: ${currentPhase}, Current selectedPiece: ${get().selectedPiece}`);
     }
 
     // 特殊駒以外の手動選択をブロック（AIモード時のみ）
     if (piece !== null && piece !== PieceType.SPECIAL && get().isAIEnabled) {
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         console.log(`[DEBUG_GAME_FLOW] Manual selection blocked for ${piece}. Only SPECIAL pieces can be manually selected in AI mode.`);
       }
       return;
@@ -122,7 +122,7 @@ const createState = (set, get) => ({
     // ユーザーが駒を選択解除する場合（nullを設定）
     if (piece === null) {
       // DEBUG_GAME_FLOW: 駒の選択解除
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         console.log('[DEBUG_GAME_FLOW] Deselecting piece.');
       }
       set((state) => ({
@@ -135,7 +135,7 @@ const createState = (set, get) => ({
     // ゲームの準備フェーズまたはセル選択フェーズのみ駒を選択可能
     if (currentPhase === GamePhase.READY || currentPhase === GamePhase.SELECTING_CELL) {
       // DEBUG_GAME_FLOW: 駒選択が許可されたフェーズ
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         console.log(`[DEBUG_GAME_FLOW] Phase allows piece selection (${currentPhase}). Attempting to select: ${piece}`);
       }
 
@@ -162,25 +162,25 @@ const createState = (set, get) => ({
 
           } else {
             // インベントリに駒がない場合
-            if (process.env.NODE_ENV === 'development') {
+            if (import.meta.env.DEV) {
               console.warn(`[DEBUG_GAME_FLOW] Cannot select piece ${piece}: not available in inventory`);
             }
           }
         } else {
           // 無効な駒タイプが渡された場合
-          if (process.env.NODE_ENV === 'development') {
+          if (import.meta.env.DEV) {
             console.warn(`[DEBUG_GAME_FLOW] Invalid piece type: ${piece}`);
           }
         }
       } else {
         // インベントリがundefinedまたはEMPTYが選択された場合
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env.DEV) {
           console.warn(`[DEBUG_GAME_FLOW] Cannot select piece ${piece}: inventory is undefined or piece is EMPTY`);
         }
       }
     } else {
       // 駒選択が許可されないフェーズの場合
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         console.warn(
           `[DEBUG_GAME_FLOW] Cannot select piece. Phase does not allow selection: ${currentPhase}, Attempted piece: ${piece}`
         );

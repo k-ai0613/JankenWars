@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes.js";
 import { setupVite, serveStatic, log } from "./vite.js";
-import { rateLimiter, validateInput } from "./security.js";
+import { rateLimiter, validateInput, isOriginAllowed } from "./security.js";
 
 const app = express();
 
@@ -22,14 +22,11 @@ app.use((req, res, next) => {
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('Keep-Alive', 'timeout=30, max=1000');
   
-  // CORS設定 - 本番環境では特定のオリジンのみ許可
-  const allowedOrigins = process.env.NODE_ENV === 'production' 
-    ? ['https://jankenwars.onrender.com'] 
-    : ['http://localhost:5173', 'http://localhost:5000'];
-  
+  // CORS設定 - 許可オリジンは ALLOWED_ORIGINS で上書きできる
   const origin = req.headers.origin;
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
+  if (isOriginAllowed(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin as string);
+    res.setHeader('Vary', 'Origin');
   }
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -84,8 +81,14 @@ app.use((req, res, next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    res.status(status).json({ message });
-    throw err;
+    log(`Unhandled request error (${status}): ${message}`);
+    console.error(err);
+
+    // 以前はレスポンス送信後に throw していたため、Express の最終ハンドラが
+    // 送信済みヘッダに再度書き込もうとしてエラーが二重に処理されていた。
+    if (!res.headersSent) {
+      res.status(status).json({ message });
+    }
   });
 
   // importantly only setup vite in development and after
@@ -142,10 +145,31 @@ app.use((req, res, next) => {
   });
 
   // 未処理のエラーをキャッチ
+  //
+  // 以前は即座に process.exit(1) していたため、不正な Socket.IO ペイロード
+  // 1通で全ルームの対局が消えていた。個々のハンドラは routes.ts 側で
+  // try/catch 済みなので、ここへ到達するのは想定外の障害のみ。
+  // ログを残して稼働を続け、繰り返す場合のみ停止する。
+  let uncaughtCount = 0;
+  const UNCAUGHT_LIMIT = 10;
+  const UNCAUGHT_WINDOW = 60_000;
+  let uncaughtWindowStart = Date.now();
+
   process.on('uncaughtException', (error) => {
     log(`Uncaught Exception: ${error.message}`);
     console.error(error);
-    process.exit(1);
+
+    const now = Date.now();
+    if (now - uncaughtWindowStart > UNCAUGHT_WINDOW) {
+      uncaughtWindowStart = now;
+      uncaughtCount = 0;
+    }
+
+    uncaughtCount++;
+    if (uncaughtCount >= UNCAUGHT_LIMIT) {
+      log(`${uncaughtCount} uncaught exceptions within a minute - shutting down for a restart`);
+      process.exit(1);
+    }
   });
 
   process.on('unhandledRejection', (reason, promise) => {

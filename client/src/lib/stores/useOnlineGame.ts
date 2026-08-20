@@ -2,7 +2,7 @@ import { create, StateCreator } from 'zustand';
 import { startTransition } from 'react';
 import { socketService, RoomData, RoomPlayerData, GameState as ServerGameState, MoveDetails } from '../socketService';
 import { Board, Player, PieceType, Position, GameResult, GamePhase, PlayerInventory, WinningLine } from '../types';
-import { createEmptyBoard, selectCellForPlayer, createInitialInventory, checkWin, checkDraw, isValidMove } from '../gameUtils';
+import { createEmptyBoard, selectCellForPlayer, createInitialInventory, checkWin, checkDraw, isValidMove, applyMove } from '../gameUtils';
 import { useAudio } from './useAudio';
 import { useLanguage } from './useLanguage';
 
@@ -74,8 +74,8 @@ interface OnlineGameState {
   handlePlayerLeft: (data: { playerId: string, players: RoomPlayerData[] }) => void;
   handlePlayerReady: (data: { playerId: string, ready: boolean, players: RoomPlayerData[] }) => void;
   handleGameStart: (data: RoomData) => void;
-  handleGameStateUpdate: (data: { gameState: ServerGameState, moveDetails: MoveDetails }) => void;
-  handleGameResult: (result: any) => void;
+  handleGameStateUpdate: (data: { gameState: ServerGameState, moveDetails: MoveDetails | null }) => void;
+  handleGameForceEnd: (data: { message: string }) => void;
   handleMatchmakingWaiting: () => void;
   handleMatchmakingMatched: (data: RoomData) => void;
   handleMatchmakingCancelled: () => void;
@@ -464,7 +464,7 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
     audioStore.playBattle();
     console.log('Set phase to SELECTING_CELL in handleGameStart');
   };
-  const handleGameStateUpdate = (data: { gameState: ServerGameState, moveDetails: MoveDetails }) => {
+  const handleGameStateUpdate = (data: { gameState: ServerGameState, moveDetails: MoveDetails | null }) => {
     console.log('handleGameStateUpdate called with data:', data);
     
     startTransition(() => {
@@ -516,10 +516,14 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
           });
       }, 0);
 
-      if (moveDetails.capturedPiece) {
-        audioStore.playHit();
-      } else {
-        audioStore.playPlace();
+      // 観戦者の初回同期や再接続時は moveDetails が null で届くため、
+      // その場合は効果音を鳴らさない。
+      if (moveDetails) {
+        if (moveDetails.capturedPiece) {
+          audioStore.playHit();
+        } else {
+          audioStore.playPlace();
+        }
       }
       
       // 状態更新後に駒選択を実行
@@ -573,8 +577,24 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
       }
     });
   };
-  const handleGameResult = (result: any) => {
-    console.log('handleGameResult called with result (potentially redundant):', result);
+  // 対局中に相手が退出したことをサーバから知らされたときの処理。
+  // 以前はサーバが game:force:end を送っていたのに待ち受ける側が存在せず、
+  // 残されたプレイヤーには何も通知されなかった。
+  const handleGameForceEnd = (data: { message: string }) => {
+    console.log('Game force-ended by server:', data?.message);
+    const state = get();
+    if (state.isSpectator || state.gamePhase === GamePhase.GAME_OVER) return;
+
+    startTransition(() => {
+      set({
+        gamePhase: GamePhase.GAME_OVER,
+        gameResult:
+          state.localPlayerNumber === 1 ? GameResult.PLAYER1_WIN : GameResult.PLAYER2_WIN,
+        message: t('online.opponentLeft'),
+        selectedPiece: null,
+        aiSelectedPiece: null,
+      });
+    });
   };
   const handleMatchmakingWaiting = () => {
     console.log('handleMatchmakingWaiting called');
@@ -762,7 +782,7 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
         onPlayerReady: handlePlayerReady,
         onGameStart: handleGameStart,
         onGameStateUpdate: handleGameStateUpdate,
-        onGameResult: handleGameResult,
+        onGameForceEnd: handleGameForceEnd,
         onMatchmakingWaiting: handleMatchmakingWaiting,
         onMatchmakingMatched: handleMatchmakingMatched,
         onMatchmakingCancelled: handleMatchmakingCancelled,
@@ -890,19 +910,23 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
       }
 
       set((state) => {
-        const nextBoard = [...state.board.map(row => [...row])];
         const owner = state.currentPlayer;
         const inventoryKey = owner === Player.PLAYER1 ? 'player1Inventory' : 'player2Inventory';
         const nextInventory = { ...state[inventoryKey] };
 
         nextInventory[pieceToMove as keyof PlayerInventory]--;
 
-        const targetCell = nextBoard[position.row][position.col];
-        if (targetCell.piece === PieceType.EMPTY) {
-          nextBoard[position.row][position.col] = { piece: pieceToMove, owner, hasBeenUsed: false };
+        // 共有ルールで盤面を更新する（サーバと同一のコード）
+        const { board: nextBoard, capturedPiece } = applyMove(
+          state.board,
+          position,
+          pieceToMove,
+          owner,
+        );
+
+        if (capturedPiece === null) {
           audioStore.playPlace();
         } else {
-          nextBoard[position.row][position.col] = { piece: pieceToMove, owner, hasBeenUsed: true };
           audioStore.playHit();
         }
 
@@ -913,17 +937,20 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
         let nextMessage = t('online.waitingForOpponent');
         const nextCurrentPlayer = owner === Player.PLAYER1 ? Player.PLAYER2 : Player.PLAYER1;
 
+        // 引き分け判定は消費後の在庫で行う。以前は消費前の在庫を渡していたため
+        // サーバの判定と1手ずれていた。
+        const nextP1Inventory = owner === Player.PLAYER1 ? nextInventory : state.player1Inventory;
+        const nextP2Inventory = owner === Player.PLAYER2 ? nextInventory : state.player2Inventory;
+
         if (checkWin(nextBoard, owner)) {
             nextResult = owner === Player.PLAYER1 ? GameResult.PLAYER1_WIN : GameResult.PLAYER2_WIN;
             nextPhase = GamePhase.GAME_OVER;
             nextMessage = t('online.youWin');
             audioStore.playVictory();
-            socketService.sendGameResult(roomId, nextResult);
-        } else if (checkDraw(nextBoard, state.player1Inventory, state.player2Inventory)) {
+        } else if (checkDraw(nextBoard, nextP1Inventory, nextP2Inventory)) {
             nextResult = GameResult.DRAW;
             nextPhase = GamePhase.GAME_OVER;
             nextMessage = t('online.draw');
-            socketService.sendGameResult(roomId, nextResult);
         }
         
         return {
@@ -962,7 +989,7 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
     handlePlayerReady,
     handleGameStart,
     handleGameStateUpdate,
-    handleGameResult,
+    handleGameForceEnd,
     handleMatchmakingWaiting,
     handleMatchmakingMatched,
     handleMatchmakingCancelled,

@@ -27,7 +27,7 @@ class ErrorBoundary extends Component<Props, State> {
     console.error(`Error caught by ErrorBoundary${this.props.name ? ` (${this.props.name})` : ''}:`, error);
     
     // 開発環境でのみ詳細なエラー情報をログに出力
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.debug('Error details:', {
         message: error.message,
         stack: error.stack,
@@ -49,7 +49,7 @@ class ErrorBoundary extends Component<Props, State> {
           <p className="text-red-600 text-sm mt-1">
             ページを再読み込みしてください。
           </p>
-          {process.env.NODE_ENV === 'development' && this.state.error && (
+          {import.meta.env.DEV && this.state.error && (
             <div className="mt-2 p-2 bg-gray-100 rounded text-xs font-mono overflow-auto max-h-40">
               <p>{this.state.error.message}</p>
               <pre>{this.state.error.stack}</pre>

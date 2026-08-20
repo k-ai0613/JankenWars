@@ -29,7 +29,7 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(registrations => {
       console.log(`[DEBUG] Found ${registrations.length} service worker registrations`);
       
-      for(let registration of registrations) {
+      for(const registration of registrations) {
         registration.unregister().then(success => {
           console.log('[DEBUG] ServiceWorker unregistered:', success);
         }).catch(err => {
@@ -51,7 +51,7 @@ if ('serviceWorker' in navigator) {
           console.log('[DEBUG] All caches cleared');
           
           // 開発環境でのみ: ページのハードリロードを促す
-          if (process.env.NODE_ENV === 'development') {
+          if (import.meta.env.DEV) {
             const shouldReload = sessionStorage.getItem('cache_cleared');
             if (!shouldReload) {
               console.log('[DEBUG] First time clearing cache in this session. Marking for reload.');
@@ -65,7 +65,7 @@ if ('serviceWorker' in navigator) {
       }
       
       // 開発モードでは完全に無効化
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         console.log('[DEBUG] Service workers are disabled in development mode');
       } else {
         // 本番環境でのみ再登録
