@@ -1,6 +1,5 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
-import { Board, Cell, GamePhase, GameResult, PieceType, Player, Position, normalizePlayer, PlayerInventory, WinningLine } from '../types';
+import { Board, Cell, GamePhase, GameResult, PieceType, Player, Position, normalizePlayer, playerMessageKey, PlayerInventory, WinningLine } from '../types';
 import { 
   checkDraw, 
   checkWin, 
@@ -17,6 +16,9 @@ import { useLanguage } from './useLanguage';
 import { pieces } from '../../config/jankenPieces';
 import { StateCreator } from 'zustand';
 import { soundService } from '../soundService';
+
+/** 着手を見せるためのターン切り替え遅延（ミリ秒） */
+const TURN_SWITCH_DELAY_MS = 200;
 
 interface JankenGameState {
   board: Board;
@@ -38,7 +40,6 @@ interface JankenGameState {
   player1Inventory: ReturnType<typeof createInitialInventory>;
   player2Inventory: ReturnType<typeof createInitialInventory>;
   message: string;
-  jankenBattleCells: Position[];
   captureAnimation: Position | null;
   winAnimation: boolean;
   loseAnimation: boolean;
@@ -75,18 +76,6 @@ interface JankenGameState {
   selectCell: (position: Position) => void;
 }
 
-// persist で保存する状態の型を定義
-interface PersistedGameState {
-  player1Inventory: PlayerInventory;
-  player2Inventory: PlayerInventory;
-  player1Score: number;
-  player2Score: number;
-  currentRound: number;
-  board: Board;
-  isAIEnabled: boolean;
-  initialAIDifficulty: AIDifficulty;
-}
-
 // 型定義を避けて通常の関数として定義
 const createState = (set, get) => ({
   board: createEmptyBoard(),
@@ -107,13 +96,13 @@ const createState = (set, get) => ({
   setSelectedPiece: (piece) => {
     const currentPhase = get().phase;
     // DEBUG_GAME_FLOW: setSelectedPiece が呼ばれた時のログ（本番では削除）
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.log(`[DEBUG_GAME_FLOW] setSelectedPiece called. Target piece: ${piece}, Current phase: ${currentPhase}, Current selectedPiece: ${get().selectedPiece}`);
     }
 
     // 特殊駒以外の手動選択をブロック（AIモード時のみ）
     if (piece !== null && piece !== PieceType.SPECIAL && get().isAIEnabled) {
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         console.log(`[DEBUG_GAME_FLOW] Manual selection blocked for ${piece}. Only SPECIAL pieces can be manually selected in AI mode.`);
       }
       return;
@@ -122,7 +111,7 @@ const createState = (set, get) => ({
     // ユーザーが駒を選択解除する場合（nullを設定）
     if (piece === null) {
       // DEBUG_GAME_FLOW: 駒の選択解除
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         console.log('[DEBUG_GAME_FLOW] Deselecting piece.');
       }
       set((state) => ({
@@ -135,7 +124,7 @@ const createState = (set, get) => ({
     // ゲームの準備フェーズまたはセル選択フェーズのみ駒を選択可能
     if (currentPhase === GamePhase.READY || currentPhase === GamePhase.SELECTING_CELL) {
       // DEBUG_GAME_FLOW: 駒選択が許可されたフェーズ
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         console.log(`[DEBUG_GAME_FLOW] Phase allows piece selection (${currentPhase}). Attempting to select: ${piece}`);
       }
 
@@ -162,25 +151,25 @@ const createState = (set, get) => ({
 
           } else {
             // インベントリに駒がない場合
-            if (process.env.NODE_ENV === 'development') {
+            if (import.meta.env.DEV) {
               console.warn(`[DEBUG_GAME_FLOW] Cannot select piece ${piece}: not available in inventory`);
             }
           }
         } else {
           // 無効な駒タイプが渡された場合
-          if (process.env.NODE_ENV === 'development') {
+          if (import.meta.env.DEV) {
             console.warn(`[DEBUG_GAME_FLOW] Invalid piece type: ${piece}`);
           }
         }
       } else {
         // インベントリがundefinedまたはEMPTYが選択された場合
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env.DEV) {
           console.warn(`[DEBUG_GAME_FLOW] Cannot select piece ${piece}: inventory is undefined or piece is EMPTY`);
         }
       }
     } else {
       // 駒選択が許可されないフェーズの場合
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         console.warn(
           `[DEBUG_GAME_FLOW] Cannot select piece. Phase does not allow selection: ${currentPhase}, Attempted piece: ${piece}`
         );
@@ -190,7 +179,6 @@ const createState = (set, get) => ({
   player1Inventory: createInitialInventory(),
   player2Inventory: createInitialInventory(),
   message: 'message.welcome',
-  jankenBattleCells: [],
   captureAnimation: null,
   winAnimation: false,
   loseAnimation: false,
@@ -326,7 +314,6 @@ const createState = (set, get) => ({
       player1Inventory: createInitialInventory(),
       player2Inventory: createInitialInventory(),
       message: 'message.welcome', // 初期メッセージに戻す
-      jankenBattleCells: [],
       captureAnimation: null,
       winAnimation: false,
       loseAnimation: false,
@@ -529,8 +516,8 @@ const createState = (set, get) => ({
       // より分かりやすいメッセージを表示
       set({ 
         message: currentPlayer === Player.PLAYER1 
-          ? 'まず駒を選択してください（左パネルから）' 
-          : 'message.player2SelectPiece' 
+          ? 'message.selectPieceFirst'
+          : 'message.player2SelectPiece'
       });
       
       // 一定時間後に元のメッセージに戻す
@@ -579,7 +566,7 @@ const createState = (set, get) => ({
       // 有効な移動先でない場合
       console.log(`[DEBUG_GAME_FLOW] selectCell: Invalid move for piece ${selectedPiece} at position (${position.row}, ${position.col}).`);
       // 無効な移動メッセージを表示
-      set({ message: 'その場所には駒を配置できません' });
+      set({ message: 'message.invalidMove' });
       
       // 一定時間後に元のメッセージに戻す
       setTimeout(() => {
@@ -655,70 +642,57 @@ const createState = (set, get) => ({
       
       // 新しい盤面を作成
       const newBoard = selectCellForPlayerUtil(position, currentPlayer, selectedPiece, board);
-      
-      // 効果音を再生
-      soundService.play('place');
-      
-      // 状態を更新（一括更新）
-      const stateUpdate = currentPlayer === Player.PLAYER1
-        ? { 
-            player1Inventory: currentInventory,
-            board: newBoard,
-            selectedPiece: null,
+
+      // 勝敗判定は盤面更新と同じ set の中で確定させる。
+      // 以前は 100ms 後の setTimeout で判定していたため、その間だけ
+      // 「勝利しているのに phase は SELECTING_CELL」という中間状態が露出していた。
+      const nextPlayer1Inventory =
+        currentPlayer === Player.PLAYER1 ? currentInventory : get().player1Inventory;
+      const nextPlayer2Inventory =
+        currentPlayer === Player.PLAYER2 ? currentInventory : get().player2Inventory;
+
+      const winLine = findWinningLine(newBoard, currentPlayer);
+      const isDraw = !winLine && checkDraw(newBoard, nextPlayer1Inventory, nextPlayer2Inventory);
+
+      const inventoryKey = currentPlayer === Player.PLAYER1 ? 'player1Inventory' : 'player2Inventory';
+      const outcome = winLine
+        ? {
+            phase: GamePhase.GAME_OVER,
+            result: currentPlayer === Player.PLAYER1 ? GameResult.PLAYER1_WIN : GameResult.PLAYER2_WIN,
+            message: `message.${playerMessageKey(currentPlayer)}Win`,
+            winningLine: winLine,
           }
-        : { 
-            player2Inventory: currentInventory,
-            board: newBoard,
-            selectedPiece: null,
-          };
-      
-      set(stateUpdate);
-      
-      // ゲーム終了判定を遅延実行
-      setTimeout(() => {
-        try {
-          const currentState = get();
-          
-          // 勝利判定
-          const winLine = findWinningLine(currentState.board, currentPlayer);
-          if (winLine) {
-            set({
-              phase: GamePhase.GAME_OVER,
-              result: currentPlayer === Player.PLAYER1 ? GameResult.PLAYER1_WIN : GameResult.PLAYER2_WIN,
-              message: `message.${normalizePlayer(currentPlayer)}Win`,
-              winningLine: winLine
-            });
-            soundService.play('victory');
-            return;
-          }
-          
-          // 引き分け判定
-          if (checkDraw(currentState.board, currentState.player1Inventory, currentState.player2Inventory)) {
-            set({
+        : isDraw
+          ? {
               phase: GamePhase.GAME_OVER,
               result: GameResult.DRAW,
               message: 'message.gameDraw',
-              winningLine: null
-            });
-            soundService.play('battle');
-            return;
-          }
-          
-          // ゲームが続行する場合、ターンを切り替え
-          console.log('[useJankenGame] No win or draw. Switching turn.');
-          setTimeout(() => {
+              winningLine: null,
+            }
+          : {};
+
+      set({
+        [inventoryKey]: currentInventory,
+        board: newBoard,
+        selectedPiece: null,
+        ...outcome,
+      } as Partial<JankenGameState>);
+
+      soundService.play(winLine ? 'victory' : isDraw ? 'battle' : 'place');
+
+      if (!winLine && !isDraw) {
+        // 着手が見えるようにターン切り替えだけ少し遅らせる。
+        // この間 selectedPiece は null なので二重着手は起きない。
+        setTimeout(() => {
+          try {
             get().switchTurn();
-          }, 200); // より短い遅延でターン切り替え
-          
-        } catch (error) {
-          console.error('[DEBUG] Error in post-placement processing:', error);
-          set({ 
-            message: 'message.gameError',
-            isAIThinking: false
-          });
-        }
-      }, 100);
-      
+          } catch (error) {
+            console.error('[useJankenGame] Error switching turn:', error);
+            set({ message: 'message.gameError', isAIThinking: false });
+          }
+        }, TURN_SWITCH_DELAY_MS);
+      }
+
     } catch (error) {
       console.error('[DEBUG] Critical error in placePiece:', error);
       set({ 
@@ -868,7 +842,7 @@ const createState = (set, get) => ({
 
       // 次のプレイヤーを決定
       const nextPlayer = currentPlayer === Player.PLAYER1 ? Player.PLAYER2 : Player.PLAYER1;
-      const nextMessage = `message.${normalizePlayer(nextPlayer)}Turn`;
+      const nextMessage = `message.${playerMessageKey(nextPlayer)}Turn`;
       
       // 状態を一括更新（バッチ化）
       set({
@@ -918,31 +892,11 @@ const createState = (set, get) => ({
 
 export { createState };
 
-// Zustandのバージョン間の型互換性問題を解決するために型アサーションを使用
-// リセットループを防ぐためにpersistをいったん無効化
+// 永続化は無効。localStorage から復元した盤面と進行中の状態が食い違い、
+// リセットループを起こしていたため。有効化する場合は partialize で
+// board を除外し、復元後に整合性を検証すること。
 const useJankenGame = create<JankenGameState>()(
   (createState as any)
-  // 以下のpersistミドルウェアをコメントアウトしてローカルストレージの問題を解決
-  /*
-  persist(
-    (createState as any),
-    {
-      name: 'janken-game-storage',
-      storage: typeof window !== 'undefined' ? createJSONStorage(() => localStorage) : undefined,
-      partialize: (state) => ({
-        player1Inventory: state.player1Inventory,
-        player2Inventory: state.player2Inventory,
-        player1Score: state.player1Score,
-        player2Score: state.player2Score,
-        currentRound: state.currentRound,
-        board: state.board,
-        isAIEnabled: state.isAIEnabled,
-        initialAIDifficulty: state.initialAIDifficulty,
-      }),
-      version: 0,
-    }
-  )
-  */
 );
 
 export default useJankenGame;

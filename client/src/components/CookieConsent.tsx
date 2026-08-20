@@ -12,13 +12,19 @@ export function getConsentStatus(): ConsentStatus {
   return null;
 }
 
+// 広告ユニット側 (AdBanner / InterstitialAd) と同じ環境変数を使う。
+// 以前はここだけ ID がハードコードされており、VITE_ADSENSE_CLIENT を
+// 別の値に変えるとスクリプトと広告ユニットの発行元が食い違っていた。
+const ADSENSE_CLIENT = import.meta.env.VITE_ADSENSE_CLIENT || 'ca-pub-4697036546722306';
+
 export function loadAdSenseScript() {
   if (document.getElementById('adsense-script')) return;
+  if (!ADSENSE_CLIENT) return;
   const script = document.createElement('script');
   script.id = 'adsense-script';
   script.async = true;
   script.src =
-    'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4697036546722306';
+    `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`;
   script.crossOrigin = 'anonymous';
   document.head.appendChild(script);
 }

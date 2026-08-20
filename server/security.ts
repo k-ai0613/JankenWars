@@ -1,11 +1,42 @@
 import { Request, Response, NextFunction } from 'express';
-import crypto from 'crypto';
+import { BOARD_SIZE } from '../shared/gameRules.js';
+import { PieceType, isPieceType } from '../shared/gameTypes.js';
 
-// レート制限のための簡易実装
+// ---------------------------------------------------------------------------
+// Allowed origins
+// ---------------------------------------------------------------------------
+
+const DEFAULT_DEV_ORIGINS = ['http://localhost:5173', 'http://localhost:5001', 'http://localhost:5000'];
+const DEFAULT_PROD_ORIGINS = ['https://jankenwars.onrender.com'];
+
+/**
+ * Origins allowed to talk to this server, over HTTP and over Socket.IO alike.
+ *
+ * ALLOWED_ORIGINS (comma separated) overrides the defaults. It was documented
+ * in .env.example and CLAUDE.md but never actually read.
+ */
+export function getAllowedOrigins(): string[] {
+  const fromEnv = process.env.ALLOWED_ORIGINS;
+  if (fromEnv) {
+    const origins = fromEnv.split(',').map((o) => o.trim()).filter(Boolean);
+    if (origins.length > 0) return origins;
+  }
+  return process.env.NODE_ENV === 'production' ? DEFAULT_PROD_ORIGINS : DEFAULT_DEV_ORIGINS;
+}
+
+export function isOriginAllowed(origin: string | undefined): boolean {
+  if (!origin) return false;
+  return getAllowedOrigins().includes(origin);
+}
+
+// ---------------------------------------------------------------------------
+// HTTP rate limiting
+// ---------------------------------------------------------------------------
+
 const requestCounts = new Map<string, { count: number; resetTime: number }>();
 
 // 定期的に期限切れエントリを削除（メモリリーク防止）
-setInterval(() => {
+const requestSweeper = setInterval(() => {
   const now = Date.now();
   for (const [key, value] of requestCounts) {
     if (now > value.resetTime) {
@@ -13,10 +44,11 @@ setInterval(() => {
     }
   }
 }, 60000);
+requestSweeper.unref();
 
 export function rateLimiter(maxRequests: number = 100, windowMs: number = 60000) {
   return (req: Request, res: Response, next: NextFunction) => {
-    const clientIp = req.ip || req.connection.remoteAddress || 'unknown';
+    const clientIp = req.ip || req.socket?.remoteAddress || 'unknown';
     const now = Date.now();
 
     const clientData = requestCounts.get(clientIp);
@@ -24,14 +56,14 @@ export function rateLimiter(maxRequests: number = 100, windowMs: number = 60000)
     if (!clientData || now > clientData.resetTime) {
       requestCounts.set(clientIp, {
         count: 1,
-        resetTime: now + windowMs
+        resetTime: now + windowMs,
       });
       return next();
     }
 
     if (clientData.count >= maxRequests) {
       res.status(429).json({
-        error: 'Too many requests. Please try again later.'
+        error: 'Too many requests. Please try again later.',
       });
       return;
     }
@@ -41,10 +73,72 @@ export function rateLimiter(maxRequests: number = 100, windowMs: number = 60000)
   };
 }
 
-// 入力サニタイゼーション
-export function sanitizeInput(input: any): any {
+// ---------------------------------------------------------------------------
+// Socket.IO rate limiting
+// ---------------------------------------------------------------------------
+
+interface SocketBucket {
+  count: number;
+  resetTime: number;
+}
+
+const socketBuckets = new Map<string, Map<string, SocketBucket>>();
+
+const socketSweeper = setInterval(() => {
+  const now = Date.now();
+  for (const [socketId, buckets] of socketBuckets) {
+    for (const [event, bucket] of buckets) {
+      if (now > bucket.resetTime) buckets.delete(event);
+    }
+    if (buckets.size === 0) socketBuckets.delete(socketId);
+  }
+}, 60000);
+socketSweeper.unref();
+
+/**
+ * Per-socket, per-event budget. Returns false once the socket is over it.
+ *
+ * The HTTP limiter only covers /api, so every Socket.IO event was previously
+ * unmetered: 300 room:create calls from one socket all succeeded.
+ */
+export function allowSocketEvent(
+  socketId: string,
+  event: string,
+  maxEvents: number,
+  windowMs: number = 60000,
+): boolean {
+  const now = Date.now();
+  let buckets = socketBuckets.get(socketId);
+  if (!buckets) {
+    buckets = new Map();
+    socketBuckets.set(socketId, buckets);
+  }
+
+  const bucket = buckets.get(event);
+  if (!bucket || now > bucket.resetTime) {
+    buckets.set(event, { count: 1, resetTime: now + windowMs });
+    return true;
+  }
+
+  if (bucket.count >= maxEvents) return false;
+
+  bucket.count++;
+  return true;
+}
+
+/** Drop a disconnected socket's buckets. */
+export function releaseSocketLimits(socketId: string): void {
+  socketBuckets.delete(socketId);
+}
+
+// ---------------------------------------------------------------------------
+// Input sanitisation
+// ---------------------------------------------------------------------------
+
+const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+export function sanitizeInput(input: unknown): unknown {
   if (typeof input === 'string') {
-    // HTMLエンティティのエスケープ
     return input
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -53,99 +147,75 @@ export function sanitizeInput(input: any): any {
       .replace(/'/g, '&#x27;')
       .replace(/\//g, '&#x2F;');
   }
-  
+
   if (Array.isArray(input)) {
     return input.map(sanitizeInput);
   }
-  
+
   if (input && typeof input === 'object') {
-    const sanitized: any = {};
-    for (const key in input) {
-      if (input.hasOwnProperty(key)) {
-        sanitized[key] = sanitizeInput(input[key]);
-      }
+    // Null prototype and an explicit key filter: assigning a "__proto__" key
+    // onto a normal object literal mutates its prototype instead of adding a
+    // property.
+    const sanitized: Record<string, unknown> = Object.create(null);
+    for (const key of Object.keys(input as Record<string, unknown>)) {
+      if (FORBIDDEN_KEYS.has(key)) continue;
+      sanitized[key] = sanitizeInput((input as Record<string, unknown>)[key]);
     }
     return sanitized;
   }
-  
+
   return input;
 }
 
-// 入力検証ミドルウェア
 export function validateInput(req: Request, res: Response, next: NextFunction) {
-  // ペイロードサイズの検証
-  if (JSON.stringify(req.body).length > 100000) { // 100KB制限
+  // ペイロードサイズの検証（100KB制限）
+  if (req.body !== undefined && JSON.stringify(req.body ?? null).length > 100000) {
     return res.status(413).json({ error: 'Payload too large' });
   }
-  
-  // 基本的な入力サニタイゼーション
+
   if (req.body) {
     req.body = sanitizeInput(req.body);
   }
-  
-  if (req.query) {
-    req.query = sanitizeInput(req.query);
-  }
-  
-  if (req.params) {
-    req.params = sanitizeInput(req.params);
-  }
-  
+
+  // req.query and req.params are getter-only in newer Express versions, so
+  // they are sanitised at the point of use rather than reassigned here.
+
   next();
 }
 
-// ルームIDの検証
-export function validateRoomId(roomId: string): boolean {
-  // UUIDの最初の8文字の形式をチェック
-  const roomIdPattern = /^[a-f0-9]{8}$/i;
-  return roomIdPattern.test(roomId);
+// ---------------------------------------------------------------------------
+// Domain validation
+// ---------------------------------------------------------------------------
+
+/** Room IDs are the first 8 hex characters of a UUID. */
+export function validateRoomId(roomId: unknown): roomId is string {
+  return typeof roomId === 'string' && /^[a-f0-9]{8}$/i.test(roomId);
 }
 
-// ユーザー名の検証（日本語文字も許可）
-export function validateUsername(username: string): boolean {
-  // 1-20文字、英数字・アンダースコア・日本語文字を許可
-  const usernamePattern = /^[\w\u3000-\u303F\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\u{20000}-\u{2A6DF}]{1,20}$/u;
+/** 1-20文字、英数字・アンダースコア・日本語文字を許可 */
+export function validateUsername(username: unknown): username is string {
+  if (typeof username !== 'string') return false;
+  // \w + 全角スペース/句読点・ひらがな・カタカナ・漢字・拡張漢字
+  const usernamePattern =
+    /^[\w\u3000-\u303F\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\u{20000}-\u{2A6DF}]{1,20}$/u;
   return usernamePattern.test(username);
 }
 
-// ゲームの移動の検証
-export function validateGameMove(position: any, piece: any): boolean {
-  // positionが適切な形式か確認
-  if (!position || typeof position !== 'object') return false;
-  if (typeof position.row !== 'number' || typeof position.col !== 'number') return false;
-  if (!Number.isInteger(position.row) || !Number.isInteger(position.col)) return false;
-  if (position.row < 0 || position.row >= 6 || position.col < 0 || position.col >= 6) return false;
+/** Pieces a player may actually place. EMPTY is not one of them. */
+const PLACEABLE_PIECES: PieceType[] = [
+  PieceType.ROCK,
+  PieceType.PAPER,
+  PieceType.SCISSORS,
+  PieceType.SPECIAL,
+];
 
-  // pieceが有効な値か確認（文字列enum）
-  const validPieces = ['ROCK', 'PAPER', 'SCISSORS', 'SPECIAL'];
-  if (!validPieces.includes(piece)) return false;
+export function validateGameMove(position: unknown, piece: unknown): boolean {
+  if (!position || typeof position !== 'object' || Array.isArray(position)) return false;
 
-  return true;
-}
+  const { row, col } = position as { row: unknown; col: unknown };
+  if (typeof row !== 'number' || typeof col !== 'number') return false;
+  if (!Number.isInteger(row) || !Number.isInteger(col)) return false;
+  if (row < 0 || row >= BOARD_SIZE || col < 0 || col >= BOARD_SIZE) return false;
 
-// CSRFトークンの生成
-export function generateCSRFToken(): string {
-  return crypto.randomBytes(32).toString('hex');
-}
-
-// CSRFトークンの検証
-export function validateCSRFToken(req: Request, res: Response, next: NextFunction) {
-  // WebSocketの場合はスキップ
-  if (req.path.startsWith('/socket.io')) {
-    return next();
-  }
-  
-  // GETリクエストはスキップ
-  if (req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS') {
-    return next();
-  }
-  
-  const token = req.headers['x-csrf-token'] || req.body?.csrfToken;
-  const sessionToken = (req as any).session?.csrfToken;
-  
-  if (!token || !sessionToken || token !== sessionToken) {
-    return res.status(403).json({ error: 'Invalid CSRF token' });
-  }
-  
-  next();
+  return isPieceType(piece) && PLACEABLE_PIECES.includes(piece);
 }

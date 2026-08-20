@@ -4,7 +4,7 @@ A strategic turn-based battle game combining the classic rock-paper-scissors mec
 
 ## Features
 
-- **Strategic Gameplay**: Place and move your pieces on a 7x7 board to capture your opponent's flag
+- **Strategic Gameplay**: Place pieces on a 6x6 board and line up four in a row
 - **Rock-Paper-Scissors Battles**: Engage in battles using classic janken rules when pieces meet
 - **Multiple Game Modes**: 
   - Local vs AI with adjustable difficulty
@@ -25,14 +25,44 @@ A strategic turn-based battle game combining the classic rock-paper-scissors mec
 
 ### Prerequisites
 
-- Node.js 18+ 
-- npm or yarn
+- **Node.js 20.11.1** — pinned in `.nvmrc` and matched to the production runtime in `render.yaml`
+- **npm 10+** (bundled with Node 20.11.1)
+
+The project is developed on both macOS and Windows. All npm scripts are shell-portable,
+so the commands below are identical on either platform.
+
+<details>
+<summary><b>macOS / Linux</b> — installing the pinned Node version</summary>
+
+```bash
+# nvm
+nvm install && nvm use          # reads .nvmrc
+
+# or fnm
+fnm use --install-if-missing    # reads .nvmrc
+```
+</details>
+
+<details>
+<summary><b>Windows</b> — installing the pinned Node version</summary>
+
+```powershell
+# fnm (recommended — reads .nvmrc like it does on macOS)
+fnm use --install-if-missing
+
+# nvm-windows does not read .nvmrc, so pass the version explicitly
+nvm install 20.11.1
+nvm use 20.11.1
+```
+
+Use PowerShell or Windows Terminal. No script in this repo requires Git Bash or WSL.
+</details>
 
 ### Installation
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/JankenWars.git
+git clone https://github.com/k-ai0613/JankenWars.git
 cd JankenWars
 ```
 
@@ -41,12 +71,27 @@ cd JankenWars
 npm install
 ```
 
-3. Start the development server:
+3. Start the development servers:
 ```bash
-npm run dev
+npm run dev:full
 ```
 
-The game will be available at `http://localhost:5000`
+Then open **`http://localhost:5001`**.
+
+`dev:full` runs two processes together:
+
+| Process | Port | Purpose |
+|---------|------|---------|
+| Vite dev server | **5001** | The UI you open in the browser |
+| Express + Socket.IO | **5000** | REST API and online multiplayer |
+
+Vite proxies `/api`, `/socket.io` and `/ws` through to port 5000, so you only ever
+visit 5001. Both ports use `strictPort`, so startup fails loudly if either is taken
+rather than silently moving to another port.
+
+`npm run dev` starts **only** the Vite server. Local and AI matches work, but online
+multiplayer will not connect because nothing is listening on port 5000. Use
+`dev:full` unless you are deliberately working on the frontend alone.
 
 ### Building for Production
 
@@ -54,51 +99,103 @@ The game will be available at `http://localhost:5000`
 npm run build
 ```
 
-The built files will be in the `dist` directory.
+This runs `vite build` (client bundle → `dist/public`) followed by `tsc`
+(server type check and emit → `dist/server`). The built files are in `dist`.
 
 ## Game Rules
 
-### Objective
-Capture your opponent's flag or eliminate all their pieces to win.
+Board size and win length are defined once in `shared/gameRules.ts`
+(`BOARD_SIZE = 6`, `WIN_LENGTH = 4`) and every UI string reads from them.
 
-### Piece Types
-- **Rock**: Defeats Scissors
-- **Paper**: Defeats Rock  
-- **Scissors**: Defeats Paper
-- **Flag**: Must be protected - if captured, you lose
+### Objective
+Be the first to line up **4** of your pieces in a row — horizontally, vertically
+or diagonally — on the **6x6** board.
+
+### Pieces
+Each player starts with 7 rock, 7 paper, 7 scissors and 1 special piece.
+
+- **Rock** beats Scissors
+- **Scissors** beats Paper
+- **Paper** beats Rock
+- **Special**: can only be placed on an empty cell, cannot capture, and cannot be
+  captured. It still counts toward a line.
 
 ### Gameplay
-1. Each player starts with 8 pieces (2 of each type + 1 flag)
-2. Take turns moving pieces one square at a time
-3. When pieces meet on the same square, they battle using janken rules
-4. The winner stays on the square, the loser is removed
-5. First to capture the opponent's flag wins
+1. On your turn you place one piece from your inventory.
+2. Any piece may go on an empty cell.
+3. To take an opponent's cell you must **win the janken battle** against the piece
+   already there. An equal piece counts as a loss for the attacker.
+4. A cell that has been through a janken battle is locked — no one can play it again.
+5. The game is a draw when the board fills up, or when both players run out of
+   pieces, without either reaching 4 in a row.
+
+The server validates all of the above with the same `shared/gameRules.ts` code the
+client uses, so a modified client cannot make an illegal move.
 
 ## Development
 
 ### Project Structure
 ```
 JankenWars/
+├── shared/           # Single source of truth for both sides
+│   ├── gameTypes.ts  # Enums, Cell, Board, Position, ...
+│   ├── gameRules.ts  # BOARD_SIZE, WIN_LENGTH, isValidMove, applyMove, ...
+│   └── events.ts     # Socket.IO event names and payload types
 ├── client/           # React frontend
-│   ├── src/
-│   │   ├── components/   # UI components
-│   │   ├── lib/         # Utilities and stores
-│   │   ├── pages/       # Page components
-│   │   └── locales/     # i18n translations
-│   └── public/          # Static assets
-├── server/           # Express backend
-│   ├── index.ts      # Server entry point
-│   └── routes.ts     # API routes
-└── package.json      # Dependencies and scripts
+│   └── src/
+│       ├── components/  # UI components
+│       ├── lib/         # Stores, socket client, AI
+│       └── pages/       # Page components
+├── server/           # Express + Socket.IO backend
+│   ├── index.ts      # Entry point, CORS, security headers
+│   ├── routes.ts     # REST endpoints and Socket.IO handlers
+│   └── security.ts   # Origin allowlist, rate limiting, validation
+├── tests/            # Regression tests (npm test)
+└── docs/             # BUG_ANALYSIS.md
 ```
 
 ### Available Scripts
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run lint` - Run ESLint
-- `npm run type-check` - Run TypeScript type checking
+Every script below runs identically on macOS, Linux and Windows (PowerShell or `cmd`).
+
+| Script | What it does |
+|--------|--------------|
+| `npm run dev:full` | Vite (5001) + Express/Socket.IO (5000) — **use this for online multiplayer** |
+| `npm run dev` | Vite only (5001) — frontend work, no backend |
+| `npm run server-dev` | Express/Socket.IO only (5000) |
+| `npm run build` | `vite build` → `dist/public`, then `tsc` → `dist/server` |
+| `npm run preview` | Serve the production client bundle |
+| `npm run check` | TypeScript type check — server, shared **and** client |
+| `npm run lint` | ESLint (flat config in `eslint.config.js`) |
+| `npm test` | Regression tests: shared rules, i18n coverage, live Socket.IO server |
+| `npm run db:push` | Apply the Drizzle schema |
+
+`npm test` boots the real server from `server/routes.ts` and drives it with
+`socket.io-client`, so it checks actual behaviour rather than mocks. It covers
+every finding in `docs/BUG_ANALYSIS.md` that had a reproducible failure.
+
+### Cross-platform notes
+
+The repository is set up so a checkout behaves the same on macOS and Windows:
+
+- **`.nvmrc`** pins Node to `20.11.1`, the same version `render.yaml` uses in production.
+- **`.gitattributes`** normalises every text file to LF in the repository *and* in the
+  working tree, so switching machines never produces whitespace-only diffs.
+  `*.bat` and `*.cmd` stay CRLF because Windows requires it; binary assets
+  (audio, images, fonts, `gradle-wrapper.jar`) are excluded from conversion.
+- **`.editorconfig`** keeps indentation, charset and final newlines consistent across editors.
+- **npm scripts avoid shell built-ins.** Nothing calls `ls`, `rm`, `cls`, subshell
+  `( … || … )` grouping, or `VAR=value` command prefixes — all of which behave
+  differently or fail outright in `cmd.exe`.
+- **Paths are resolved with `path.resolve` and `fileURLToPath`** throughout
+  `vite.config.ts` and `server/vite.ts`, never by string concatenation.
+
+One caveat worth knowing: macOS and Windows both use case-insensitive filesystems by
+default, while the Render deployment runs on case-sensitive Linux. An import written as
+`./Types` instead of `./types` will work on both of your machines and fail only in
+production. TypeScript's `forceConsistentCasingInFileNames` (on by default in TS 5.x)
+catches this, and `npm run check` now covers the client as well as the server, so
+a casing mistake fails locally instead of only in production.
 
 ## Deployment
 

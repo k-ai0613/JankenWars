@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { motion } from 'framer-motion';
 import { useLanguage } from '../lib/stores/useLanguage';
+import { BOARD_SIZE, WIN_LENGTH } from '@shared/gameRules';
 import { Header } from '../components/Header';
 import { FaHandRock, FaHandPaper, FaHandScissors, FaStar, FaLightbulb, FaTrophy, FaExclamationTriangle } from 'react-icons/fa';
 
@@ -45,8 +46,8 @@ export function HowToPlay() {
               </h3>
               <p className="text-gray-700 text-lg">
                 {isJapanese
-                  ? '6x6のボード上で、自分の駒を縦・横・斜めに5つ並べたプレイヤーが勝利！'
-                  : 'Be the first to align 5 of your pieces vertically, horizontally, or diagonally on the 6x6 board!'}
+                  ? `${BOARD_SIZE}x${BOARD_SIZE}のボード上で、自分の駒を縦・横・斜めに${WIN_LENGTH}つ並べたプレイヤーが勝利！`
+                  : `Be the first to align ${WIN_LENGTH} of your pieces vertically, horizontally, or diagonally on the ${BOARD_SIZE}x${BOARD_SIZE} board!`}
               </p>
             </div>
 
@@ -206,7 +207,7 @@ export function HowToPlay() {
                   </li>
                   <li>
                     {isJapanese
-                      ? '5つ並べる列の一部として使える'
+                      ? `${WIN_LENGTH}つ並べる列の一部として使える`
                       : 'Counts as part of your 5-in-a-row'}
                   </li>
                 </ul>
@@ -277,13 +278,13 @@ export function HowToPlay() {
             <ul className="list-disc pl-6 space-y-2 text-gray-700">
               <li>
                 {isJapanese
-                  ? 'ボードがすべて埋まっても、どちらも5つ並べられなかった場合'
-                  : 'The board is full but neither player has 5 in a row'}
+                  ? `ボードがすべて埋まっても、どちらも${WIN_LENGTH}つ並べられなかった場合`
+                  : `The board is full but neither player has ${WIN_LENGTH} in a row`}
               </li>
               <li>
                 {isJapanese
-                  ? '両プレイヤーが全ての駒を使い切っても、5つ並べられなかった場合'
-                  : 'Both players run out of pieces without achieving 5 in a row'}
+                  ? `両プレイヤーが全ての駒を使い切っても、${WIN_LENGTH}つ並べられなかった場合`
+                  : `Both players run out of pieces without achieving ${WIN_LENGTH} in a row`}
               </li>
             </ul>
           </div>

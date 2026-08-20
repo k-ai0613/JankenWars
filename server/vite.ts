@@ -27,7 +27,7 @@ export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
-      allowedHosts: true as true,
+      allowedHosts: true as const,
   };
 
   const vite = await createViteServer({
@@ -139,8 +139,15 @@ export function serveStatic(app: Express) {
     next();
   });
 
-  app.use(express.static(staticPath, {
+  // .well-known だけを明示的に配信する。
+  // 以前は dotfiles: 'allow' で dist/public 配下のあらゆるドットファイルが
+  // 公開対象になっていた（assetlinks.json のためだけの設定だった）。
+  app.use('/.well-known', express.static(path.join(staticPath, '.well-known'), {
     dotfiles: 'allow',
+  }));
+
+  app.use(express.static(staticPath, {
+    dotfiles: 'ignore',
     setHeaders: (res, filePath) => {
       if (filePath.endsWith('.js')) {
         res.setHeader('Content-Type', 'application/javascript');

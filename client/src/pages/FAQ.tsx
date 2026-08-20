@@ -5,6 +5,7 @@ import { useLanguage } from '../lib/stores/useLanguage';
 import { Header } from '../components/Header';
 import { AdBanner } from '../components/ads';
 import { FaQuestionCircle, FaChevronDown, FaChevronUp, FaGamepad, FaUsers, FaBrain, FaShieldAlt, FaMobile } from 'react-icons/fa';
+import { BOARD_SIZE, WIN_LENGTH } from '@shared/gameRules';
 
 interface FAQItem {
   questionEn: string;
@@ -20,8 +21,8 @@ const faqData: FAQItem[] = [
     category: 'gameplay',
     questionEn: 'What is the goal of JankenWars?',
     questionJa: 'JankenWarsのゴールは何ですか？',
-    answerEn: 'The goal is to be the first player to align 5 of your pieces in a row - vertically, horizontally, or diagonally - on the 6x6 game board. You place rock, paper, and scissors pieces strategically while using Janken (rock-paper-scissors) rules to capture opponent pieces.',
-    answerJa: '6x6のゲームボード上で、縦・横・斜めのいずれかの方向に自分の駒を5つ並べることが目標です。グー・チョキ・パーの駒を戦略的に配置し、じゃんけんのルールで相手の駒を取りながら勝利を目指します。',
+    answerEn: `The goal is to be the first player to align ${WIN_LENGTH} of your pieces in a row - vertically, horizontally, or diagonally - on the ${BOARD_SIZE}x${BOARD_SIZE} game board. You place rock, paper, and scissors pieces strategically while using Janken (rock-paper-scissors) rules to capture opponent pieces.`,
+    answerJa: `${BOARD_SIZE}x${BOARD_SIZE}のゲームボード上で、縦・横・斜めのいずれかの方向に自分の駒を${WIN_LENGTH}つ並べることが目標です。グー・チョキ・パーの駒を戦略的に配置し、じゃんけんのルールで相手の駒を取りながら勝利を目指します。`,
   },
   {
     category: 'gameplay',
@@ -35,7 +36,7 @@ const faqData: FAQItem[] = [
     questionEn: 'What is the Special Piece and how do I use it?',
     questionJa: '特殊駒とは何ですか？どのように使いますか？',
     answerEn: 'Each player has one Special Piece (marked with a star). It can only be placed on empty squares, cannot capture opponent pieces, and cannot be captured by opponents. It counts as part of your 5-in-a-row. Use it strategically to secure important positions that cannot be taken away.',
-    answerJa: '各プレイヤーは1つの特殊駒（星マーク）を持っています。空いているマスにのみ配置でき、相手の駒を取ることも、相手に取られることもできません。5つ並べる列の一部としてカウントされます。奪われない重要な位置を確保するために戦略的に使いましょう。',
+    answerJa: `各プレイヤーは1つの特殊駒（星マーク）を持っています。空いているマスにのみ配置でき、相手の駒を取ることも、相手に取られることもできません。${WIN_LENGTH}つ並べる列の一部としてカウントされます。奪われない重要な位置を確保するために戦略的に使いましょう。`,
   },
   {
     category: 'gameplay',
@@ -55,8 +56,8 @@ const faqData: FAQItem[] = [
     category: 'gameplay',
     questionEn: 'What are the draw conditions?',
     questionJa: '引き分けの条件は何ですか？',
-    answerEn: 'The game ends in a draw if: (1) The board is completely filled without either player achieving 5 in a row, or (2) Both players run out of pieces without achieving 5 in a row.',
-    answerJa: '以下の場合、ゲームは引き分けとなります：(1) どちらのプレイヤーも5つ並べられないままボードが全て埋まった場合、(2) 5つ並べられないまま両プレイヤーが駒を使い切った場合。',
+    answerEn: `The game ends in a draw if: (1) The board is completely filled without either player achieving ${WIN_LENGTH} in a row, or (2) Both players run out of pieces without achieving ${WIN_LENGTH} in a row.`,
+    answerJa: `以下の場合、ゲームは引き分けとなります：(1) どちらのプレイヤーも${WIN_LENGTH}つ並べられないままボードが全て埋まった場合、(2) ${WIN_LENGTH}つ並べられないまま両プレイヤーが駒を使い切った場合。`,
   },
   // Online Questions
   {

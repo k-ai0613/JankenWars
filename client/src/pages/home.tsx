@@ -9,6 +9,7 @@ import { useLanguage } from '../lib/stores/useLanguage';
 import { Switch } from "../components/ui/switch";
 import { Label } from "../components/ui/label";
 import { AdBanner } from '../components/ads';
+import { BOARD_SIZE, WIN_LENGTH } from '@shared/gameRules';
 
 // AI難易度ボタンのスタイルを統一するためのヘルパー
 const difficultyButtonVariants = {
@@ -363,11 +364,11 @@ export function Home() {
                 {getLanguageContent(
                   <ul className="list-disc pl-5 space-y-1">
                     <li>If the board fills up without any winner, the game ends in a draw.</li>
-                    <li>If both players run out of pieces without achieving 5 in a row, the game ends in a draw.</li>
+                    <li>If both players run out of pieces without achieving {WIN_LENGTH} in a row, the game ends in a draw.</li>
                   </ul>,
                   <ul className="list-disc pl-5 space-y-1">
                     <li>ボードがいっぱいになり、勝者がいない場合、ゲームは引き分けとなります。</li>
-                    <li>5つ並べることなく両プレイヤーが駒を使い切った場合、ゲームは引き分けとなります。</li>
+                    <li>{WIN_LENGTH}つ並べることなく両プレイヤーが駒を使い切った場合、ゲームは引き分けとなります。</li>
                   </ul>
                 )}
               </div>
