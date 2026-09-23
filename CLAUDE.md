@@ -102,7 +102,8 @@ Deployed on Render with auto-deploy from main branch.
 - `localPlayerNumber` in online games must come from server response
 - AI mode uses `isAIEnabled` flag in game store
 - Janken battles lock cells permanently via `Cell.hasBeenUsed`, set in `selectCellForPlayer`
-  (`client/src/lib/gameUtils.ts`) and used by both local/AI and online mode. `jankenBattleCells`
+  (`client/src/lib/gameUtils.ts`) for local/AI mode, and inline in `game:move` (`server/routes.ts`)
+  plus the optimistic update in `makeMove` (`useOnlineGame.ts`) for online mode. `jankenBattleCells`
   in `useJankenGame.ts` is declared/initialized/reset only — it is never written to or read from,
   so it has no effect on gameplay; do not treat it as a second locking mechanism
 - Game rooms not in progress auto-delete after 30 minutes of inactivity. Rooms with a game in
@@ -112,3 +113,7 @@ Deployed on Render with auto-deploy from main branch.
   after reconnecting — a disconnected player must manually re-enter the room code via `room:join`
   within the grace period, so this mainly helps brief network blips, not intentional navigation away
 - Special piece (SPECIAL) cannot be captured and cannot capture others
+- Online games: the server deals each turn's piece (`gameState.dealtPiece`, drawn by `drawDealtPiece`
+  in `server/gameUtils.ts`); `game:move` rejects any piece other than the dealt one or SPECIAL.
+  The client must not roll its own random piece. Games start only via `startGame` in `routes.ts`
+  (called from `player:ready` and on matchmaking), and clients auto-send `player:ready` on join and rematch

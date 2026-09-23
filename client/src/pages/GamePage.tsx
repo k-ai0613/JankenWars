@@ -4,7 +4,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import PlayerInfo from '../components/game/PlayerInfo';
 import GameBoard from '../components/game/GameBoard';
-import { Player, PieceType, GamePhase, type PlayerInventory, Position } from '../lib/types';
+import { Player, PieceType, GamePhase, GameResult, type PlayerInventory, Position } from '../lib/types';
 import { useJankenGame } from '../lib/stores/useJankenGame';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { soundService } from '../lib/soundService';
@@ -52,6 +52,7 @@ function ClientOnlyGamePage() {
     player1Score,
     player2Score,
     placePiece,
+    result,
   } = useJankenGame();
 
   // ゲーム終了時に広告を表示
@@ -178,6 +179,20 @@ function ClientOnlyGamePage() {
     }
   };
 
+  // 対局終了時の結果表示（AI戦ではプレイヤー1が人間）
+  const getResultText = () => {
+    if (result === GameResult.DRAW) {
+      return t('message.gameDraw');
+    }
+    if (result === GameResult.PLAYER1_WIN) {
+      return isAIEnabled ? t('message.youWin') : t('message.player1Win');
+    }
+    if (result === GameResult.PLAYER2_WIN) {
+      return isAIEnabled ? t('message.aiWins') : t('message.player2Win');
+    }
+    return '';
+  };
+
   const getBoardStateText = () => {
     console.log('[GamePage] getBoardStateText called:', {
       isAIEnabled,
@@ -186,6 +201,11 @@ function ClientOnlyGamePage() {
       phase
     });
     
+    // 終了後も「駒を選択してください」「AIが考え中」のままにしない
+    if (phase === GamePhase.GAME_OVER) {
+      return getResultText();
+    }
+
     if (!selectedPiece) {
       if (isAIEnabled) {
         if (currentPlayer === Player.PLAYER1) {
@@ -410,8 +430,22 @@ function ClientOnlyGamePage() {
           </div>
           
           {/* 右側のゲームボード */}
-          <div className="flex-grow mt-1 md:mt-0">
+          <div className="relative flex-grow mt-1 md:mt-0">
             <GameBoard />
+            {/* 対局結果（これが無いと勝敗・引き分けが画面に出ない） */}
+            {phase === GamePhase.GAME_OVER && (
+              <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-3 bg-black/40 rounded">
+                <p className="text-3xl md:text-5xl font-bold text-white drop-shadow text-center px-2">
+                  {getResultText()}
+                </p>
+                <button
+                  onClick={handleResetGame}
+                  className="px-4 py-2 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition"
+                >
+                  {t('game.reset')}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

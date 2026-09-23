@@ -30,6 +30,7 @@ import {
   checkWin,
   checkDraw,
   findWinningLine,
+  drawDealtPiece,
 } from "./gameUtils.js";
 
 // サーバーの起動時間を記録
@@ -56,6 +57,9 @@ interface GameState {
   gameResult: GameResult;
   lastMove?: { player: Player; piece: PieceType; position: Position } | null;
   winningLine?: WinningLine | null;
+  // 手番のプレイヤーに配られた通常駒。game:move ではこの駒か特殊駒しか受け付けない。
+  // null は「配る通常駒が無い（特殊駒しか置けない）」か、対局が進行していない状態。
+  dealtPiece: PieceType | null;
 }
 
 interface GameRoom {
@@ -180,6 +184,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       methods: ["GET", "POST"]
     }
   });
+
+  // 2人そろって ready になったルームで対局を開始する。player:ready とマッチング成立の
+  // 両方から呼ぶ（マッチングでは両者を ready:true で着席させるため、ここを通らないと
+  // 誰も player:ready を送らないまま対局が始まらない）。
+  function startGame(roomId: string, room: GameRoom) {
+    const player1Inventory = createInitialInventory();
+    room.inProgress = true;
+    room.gameState = {
+      board: createEmptyBoard(),
+      player1Inventory,
+      player2Inventory: createInitialInventory(),
+      currentPlayer: Player.PLAYER1,
+      currentTurn: 1,
+      gamePhase: GamePhase.SELECTING_CELL,
+      gameResult: GameResult.ONGOING,
+      lastMove: null,
+      winningLine: null,
+      dealtPiece: drawDealtPiece(player1Inventory),
+    };
+
+    io.to(roomId).emit("game:start", {
+      roomId,
+      players: Object.entries(room.players).map(([id, data]) => ({
+        id,
+        username: data.username,
+        playerNumber: data.playerNumber,
+        ready: data.ready
+      })),
+      gameState: room.gameState
+    });
+    log(`Game started in room ${roomId} with ${Object.keys(room.players).length} players`);
+    log(`Players with numbers: ${JSON.stringify(Object.entries(room.players).map(([id, data]) => ({id: id.substring(0,8), username: data.username, playerNumber: data.playerNumber})))}`);
+  }
 
   // 対局中に切断されたまま猶予期間(DISCONNECT_GRACE_PERIOD)を超えたプレイヤーを退室させ、
   // 残り1人になった場合はその人を勝者として対局を終了する。
@@ -452,6 +489,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // 既存プレイヤーの再接続 - socket IDを更新
         const [oldSocketId, playerData] = existingPlayerEntry;
         delete room.players[oldSocketId];
+        // 切断猶予中に対局が決着した場合、disconnectedAt が残ったままになる。
+        // 消さないと次の対局の開始直後に猶予切れとして退室させられ、相手の勝ちにされる。
+        delete playerData.disconnectedAt;
         room.players[socket.id] = playerData;
 
         socket.join(roomId);
@@ -499,10 +539,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } else {
         const newPlayerToken = uuidv4();
+        // 空いている座席の番号を割り当てる。常に 2 にすると、プレイヤー1が抜けた部屋へ
+        // 入った人も 2 になり、2人とも「プレイヤー2」で誰も指せない対局が始まってしまう。
+        const isSeat1Taken = Object.values(room.players).some(p => p.playerNumber === 1);
         room.players[socket.id] = {
           username,
           ready: false,
-          playerNumber: 2,
+          playerNumber: isSeat1Taken ? 2 : 1,
           sessionToken: newPlayerToken
         };
 
@@ -558,31 +601,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       log(`Players ready status: ${JSON.stringify(Object.entries(room.players).map(([id, data]) => ({id: id.substring(0,8), username: data.username, ready: data.ready})))}`);
       
       if (allReady && playerCount === 2 && !room.inProgress) {
-        room.inProgress = true;
-        room.gameState = {
-          board: createEmptyBoard(),
-          player1Inventory: createInitialInventory(),
-          player2Inventory: createInitialInventory(),
-          currentPlayer: Player.PLAYER1,
-          currentTurn: 1,
-          gamePhase: GamePhase.SELECTING_CELL,
-          gameResult: GameResult.ONGOING,
-          lastMove: null,
-          winningLine: null,
-        };
-
-        io.to(roomId).emit("game:start", {
-          roomId,
-          players: Object.entries(room.players).map(([id, data]) => ({
-            id,
-            username: data.username,
-            playerNumber: data.playerNumber,
-            ready: data.ready
-          })),
-          gameState: room.gameState
-        });
-        log(`Game started in room ${roomId} with ${playerCount} players`);
-        log(`Players with numbers: ${JSON.stringify(Object.entries(room.players).map(([id, data]) => ({id: id.substring(0,8), username: data.username, playerNumber: data.playerNumber})))}`);
+        startGame(roomId, room);
       }
     });
     
@@ -605,7 +624,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       updateRoomActivity(roomId);
       
       if (!validateGameMove(position, piece)) {
-        socket.emit("game:error", { message: "Invalid move data" });
+        // 楽観的に盤面を更新済みのクライアントを戻せるよう、分かる範囲で権威的な状態を添える
+        socket.emit("game:error", { message: "Invalid move data", gameState: gameRooms[roomId]?.gameState ?? undefined });
         return;
       }
       
@@ -617,7 +637,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (!room.inProgress || !room.gameState) {
-        socket.emit("game:error", { message: "Game not in progress" });
+        socket.emit("game:error", { message: "Game not in progress", gameState: room.gameState ?? undefined });
         return;
       }
 
@@ -631,7 +651,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const playerInfo = room.players[playerSocketId];
 
       if (!playerInfo) {
-        socket.emit("game:error", { message: "Player not in room" });
+        socket.emit("game:error", { message: "Player not in room", gameState: room.gameState });
         return;
       }
 
@@ -657,6 +677,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const playerInventory = currentPlayer === Player.PLAYER1 ? gameState.player1Inventory : gameState.player2Inventory;
       if (playerInventory[piece] <= 0) {
         socket.emit("game:error", { message: "Piece not in inventory", gameState });
+        return;
+      }
+
+      // 置けるのは配られた駒か特殊駒だけ。駒の選択をクライアント任せにすると、
+      // 改造クライアントが毎手好きな駒を選べてしまう。
+      if (piece !== PieceType.SPECIAL && piece !== gameState.dealtPiece) {
+        socket.emit("game:error", { message: "Piece not dealt", gameState });
         return;
       }
       
@@ -699,6 +726,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         gameState.currentPlayer = currentPlayer === Player.PLAYER1 ? Player.PLAYER2 : Player.PLAYER1;
         gameState.currentTurn = gameState.currentTurn === 1 ? 2 : 1;
       }
+
+      // 次の手番のプレイヤーに駒を配る（決着したら配らない）
+      gameState.dealtPiece = gameState.gamePhase === GamePhase.GAME_OVER
+        ? null
+        : drawDealtPiece(gameState.currentPlayer === Player.PLAYER1 ? gameState.player1Inventory : gameState.player2Inventory);
 
       // 対局が決着した場合は room.inProgress を戻す。これを怠ると room:leave/切断猶予/
       // 30分非アクティブ削除など inProgress を見て分岐する処理が「対局中」のまま扱い続け、
@@ -776,6 +808,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         gameResult: GameResult.ONGOING,
         lastMove: null,
         winningLine: null,
+        dealtPiece: null,
       };
 
       for (const id in room.players) {
@@ -817,7 +850,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const wasInProgress = room.inProgress;
         if (wasInProgress) {
           room.inProgress = false;
-          room.gameState = null;
           // 対局を終了させるので、切断猶予中のまま残っている幽霊プレイヤーも一緒に退室させる。
           // 放置すると誰にも回収されないまま部屋に居座り続け、次に同じルームコードへ
           // 入室した第三者が幽霊を相手にした対局を掴んでしまう。
@@ -825,6 +857,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (ghostData.disconnectedAt !== undefined) {
               delete room.players[ghostSocketId];
             }
+          }
+          // 残ったプレイヤーの ready を戻す。残したままだと、この部屋へ入ってきた第三者の
+          // auto-ready に相乗りされ、同意なく新しい対局に組み込まれる（切断猶予切れの経路と同じ扱い）
+          for (const data of Object.values(room.players)) {
+            data.ready = false;
+          }
+          const remainingEntries = Object.values(room.players);
+          if (remainingEntries.length === 1 && room.gameState && room.gameState.gameResult === GameResult.ONGOING) {
+            // 退室は棄権として扱い、残ったプレイヤーの勝ちをサーバー側でも確定させる
+            // （これをしないとクライアントだけが勝ちを表示し、サーバーには結果が残らない）
+            room.gameState.gamePhase = GamePhase.GAME_OVER;
+            room.gameState.gameResult = remainingEntries[0].playerNumber === 1 ? GameResult.PLAYER1_WIN : GameResult.PLAYER2_WIN;
+            room.gameState.dealtPiece = null;
+          } else {
+            room.gameState = null;
           }
         }
 
@@ -849,9 +896,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           log(`Notified remaining players in room ${roomId} about ${username} leaving.`);
         }
 
-        if (wasInProgress) {
-          log(`Player left during an ongoing game in room ${roomId}. Game state was reset.`);
-          io.to(roomId).emit("game:force:end", { message: "Opponent left the game." });
+        // player:left の後に送ること。先に GAME_OVER を送ると、クライアントの handlePlayerLeft が
+        // GAME_OVER 後の分岐で gamePhase を READY に巻き戻してしまう。
+        if (wasInProgress && room.gameState) {
+          log(`Player left during an ongoing game in room ${roomId}. Remaining player wins.`);
+          io.to(roomId).emit("game:state:update", {
+            gameState: room.gameState,
+            moveDetails: null
+          });
         }
       } else {
         log(`Player ${playerSocketId} attempted to leave room ${roomId}, but was not found in the room.`);
@@ -937,6 +989,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         
         log(`Matched players: ${player1.username} and ${player2.username} in room ${roomId}`);
+
+        // 両者を ready:true で着席させているので、ここで開始しないと対局が始まらない
+        startGame(roomId, gameRooms[roomId]);
       } else {
         socket.emit("matchmaking:waiting");
       }

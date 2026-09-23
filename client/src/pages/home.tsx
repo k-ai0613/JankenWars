@@ -306,13 +306,13 @@ export function Home() {
                 {getLanguageContent(
                   <>
                     <li>Players take turns placing pieces on the board.</li>
-                    <li>On your turn, you'll receive a random piece (Rock, Paper, or Scissors).</li>
+                    <li>Online and against the AI, you receive a random piece (Rock, Paper, or Scissors) on your turn. In local 2-player games, you choose your piece.</li>
                     <li>Place your piece on an empty square OR capture an opponent's piece using Janken (Rock-Paper-Scissors) rules.</li>
                     <li>Squares used in a Janken battle become locked and cannot be used again.</li>
                     <li>You cannot move your pieces once placed.</li>
                   </>,
                   <>
-                    <li>あなたの番になると、ランダムな駒（グー、パー、またはチョキ）を受け取ります。</li>
+                    <li>オンライン対戦とAI対戦では、あなたの番にランダムな駒（グー、パー、またはチョキ）が配られます。ローカルの2人対戦では置く駒を自分で選べます。</li>
                     <li>空いているマスに自分の駒を置くか、じゃんけんルールを使って相手の駒を取り替えます。</li>
                     <li>使いたいマスに既に相手の駒がある場合、じゃんけん勝負になります。</li>
                     <li>一度じゃんけん勝負が行われたマスは、再び使うことができません。</li>
@@ -329,14 +329,14 @@ export function Home() {
                     <li>Scissors beats Paper</li>
                     <li>Paper beats Rock</li>
                     <li>When you win: Remove opponent's piece and place yours</li>
-                    <li>When you lose: Your piece cannot be placed there</li>
+                    <li>If your piece would lose or tie: You cannot place it there</li>
                   </>,
                   <>
                     <li>グーはチョキに勝つ</li>
                     <li>チョキはパーに勝つ</li>
                     <li>パーはグーに勝つ</li>
                     <li>勝った場合：相手の駒を取り除き、自分の駒を置く</li>
-                    <li>負けた場合：その場所に駒を置くことはできません</li>
+                    <li>負け・あいこになる場合：その場所に駒を置くことはできません</li>
                   </>
                 )}
               </ul>
@@ -363,11 +363,11 @@ export function Home() {
                 {getLanguageContent(
                   <ul className="list-disc pl-5 space-y-1">
                     <li>If the board fills up without any winner, the game ends in a draw.</li>
-                    <li>If both players run out of pieces without achieving 5 in a row, the game ends in a draw.</li>
+                    <li>If both players run out of pieces without achieving 4 in a row, the game ends in a draw.</li>
                   </ul>,
                   <ul className="list-disc pl-5 space-y-1">
                     <li>ボードがいっぱいになり、勝者がいない場合、ゲームは引き分けとなります。</li>
-                    <li>5つ並べることなく両プレイヤーが駒を使い切った場合、ゲームは引き分けとなります。</li>
+                    <li>4つ並べることなく両プレイヤーが駒を使い切った場合、ゲームは引き分けとなります。</li>
                   </ul>
                 )}
               </div>

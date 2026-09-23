@@ -85,8 +85,8 @@ export function About() {
               </p>
               <p>
                 {isJapanese
-                  ? '単純なじゃんけんのルールに、ボードゲームの戦略性を加えることで、誰でも楽しめる奥深いゲーム体験を提供します。先に5つの駒を縦・横・斜めに並べたプレイヤーが勝利します。'
-                  : 'By adding board game strategy to simple rock-paper-scissors rules, we provide a deep gaming experience that anyone can enjoy. The first player to align 5 pieces vertically, horizontally, or diagonally wins.'}
+                  ? '単純なじゃんけんのルールに、ボードゲームの戦略性を加えることで、誰でも楽しめる奥深いゲーム体験を提供します。先に4つの駒を縦・横・斜めに並べたプレイヤーが勝利します。'
+                  : 'By adding board game strategy to simple rock-paper-scissors rules, we provide a deep gaming experience that anyone can enjoy. The first player to align 4 pieces vertically, horizontally, or diagonally wins.'}
               </p>
             </div>
           </div>
@@ -150,8 +150,8 @@ export function About() {
                   </h3>
                   <p className="text-gray-600">
                     {isJapanese
-                      ? '毎ターン、ランダムに与えられる駒をボードに配置します。'
-                      : 'Each turn, place the randomly given piece on the board.'}
+                      ? '毎ターン、駒をボードに配置します（オンライン対戦とAI対戦ではランダムに配られた駒）。'
+                      : 'Each turn, place a piece on the board (online and against the AI, the piece is dealt at random).'}
                   </p>
                 </div>
               </div>
@@ -165,8 +165,8 @@ export function About() {
                   </h3>
                   <p className="text-gray-600">
                     {isJapanese
-                      ? '相手の駒があるマスに置くと、じゃんけんの勝敗で決まります。'
-                      : 'When placing on a square with an opponent\'s piece, the outcome is determined by rock-paper-scissors rules.'}
+                      ? '相手の駒にじゃんけんで勝てる駒なら、そのマスに置いて相手の駒を取れます。'
+                      : 'If your piece beats an opponent\'s piece in rock-paper-scissors, you can place it on that square and capture it.'}
                   </p>
                 </div>
               </div>
@@ -176,12 +176,12 @@ export function About() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-800">
-                    {isJapanese ? '5つ並べて勝利！' : 'Align 5 to Win!'}
+                    {isJapanese ? '4つ並べて勝利！' : 'Align 4 to Win!'}
                   </h3>
                   <p className="text-gray-600">
                     {isJapanese
-                      ? '先に5つの駒を一列に並べたプレイヤーの勝利です。'
-                      : 'The first player to align 5 pieces in a row wins the game.'}
+                      ? '先に4つの駒を一列に並べたプレイヤーの勝利です。'
+                      : 'The first player to align 4 pieces in a row wins the game.'}
                   </p>
                 </div>
               </div>

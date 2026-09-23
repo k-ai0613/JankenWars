@@ -4,10 +4,11 @@ A strategic turn-based battle game combining the classic rock-paper-scissors mec
 
 ## Features
 
-- **Strategic Gameplay**: Place and move your pieces on a 7x7 board to capture your opponent's flag
-- **Rock-Paper-Scissors Battles**: Engage in battles using classic janken rules when pieces meet
+- **Strategic Gameplay**: Place pieces on a 6x6 board and be the first to line up 4
+- **Rock-Paper-Scissors Captures**: Capture an opponent's piece by placing a piece that beats it
 - **Multiple Game Modes**: 
-  - Local vs AI with adjustable difficulty
+  - Local 2-player on one device
+  - vs AI with 6 difficulty levels
   - Online multiplayer battles
 - **Multi-language Support**: Available in English and Japanese
 - **Immersive Audio**: Background music and sound effects enhance the gaming experience
@@ -59,20 +60,19 @@ The built files will be in the `dist` directory.
 ## Game Rules
 
 ### Objective
-Capture your opponent's flag or eliminate all their pieces to win.
+Be the first to line up 4 of your pieces in a row (horizontally, vertically, or diagonally) on the 6x6 board.
 
-### Piece Types
-- **Rock**: Defeats Scissors
-- **Paper**: Defeats Rock  
-- **Scissors**: Defeats Paper
-- **Flag**: Must be protected - if captured, you lose
+### Pieces
+- Each player has 7 Rock, 7 Paper, 7 Scissors and 1 Special piece
+- **Rock** beats Scissors, **Scissors** beats Paper, **Paper** beats Rock
+- **Special**: can only be placed on an empty square; it cannot capture and cannot be captured. It counts toward your line
 
 ### Gameplay
-1. Each player starts with 8 pieces (2 of each type + 1 flag)
-2. Take turns moving pieces one square at a time
-3. When pieces meet on the same square, they battle using janken rules
-4. The winner stays on the square, the loser is removed
-5. First to capture the opponent's flag wins
+1. Player 1 moves first; players then alternate, placing one piece per turn (pieces never move)
+2. Online and against the AI, your piece (Rock/Paper/Scissors) is dealt at random each turn; you may place your Special piece instead. In local 2-player games, you choose your piece
+3. Place the piece on an empty square, or on an opponent's piece that it beats in janken to capture it. A piece that would lose or tie cannot be placed there
+4. A square where a capture happened is locked: no one can place a piece there again
+5. The game is a draw if the board fills up, or both players run out of pieces, without a line of 4
 
 ## Development
 

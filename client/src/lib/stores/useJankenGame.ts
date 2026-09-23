@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage, StateStorage } from 'zustand/middleware';
-import { Board, Cell, GamePhase, GameResult, PieceType, Player, Position, normalizePlayer, PlayerInventory, WinningLine } from '../types';
+import { Board, Cell, GamePhase, GameResult, PieceType, Player, Position, PlayerInventory, WinningLine } from '../types';
 import { 
   checkDraw, 
   checkWin, 
@@ -125,9 +125,14 @@ const createState = (set, get) => ({
       if (process.env.NODE_ENV === 'development') {
         console.log('[DEBUG_GAME_FLOW] Deselecting piece.');
       }
+      // AIモードでは通常駒は自動で配られ手動で選び直せないため、特殊駒の選択を解除したら
+      // 配られていた駒に戻す。戻さないと特殊駒しか置けなくなる。
       set((state) => ({
         ...state,
-        selectedPiece: null,
+        selectedPiece: state.isAIEnabled && state.selectedPiece === PieceType.SPECIAL
+          ? state.previousSelectedPiece
+          : null,
+        previousSelectedPiece: null,
       }));
       return;
     }
@@ -157,6 +162,10 @@ const createState = (set, get) => ({
             set((state) => ({
               ...state,
               selectedPiece: piece,
+              // 特殊駒に切り替える前の駒を覚えておき、選択解除時に戻せるようにする
+              previousSelectedPiece: piece === PieceType.SPECIAL && state.selectedPiece !== PieceType.SPECIAL
+                ? state.selectedPiece
+                : state.previousSelectedPiece,
               phase: GamePhase.SELECTING_CELL, // 駒選択後はセル選択フェーズに
             }));
 
@@ -673,51 +682,49 @@ const createState = (set, get) => ({
           };
       
       set(stateUpdate);
-      
-      // ゲーム終了判定を遅延実行
-      setTimeout(() => {
-        try {
-          const currentState = get();
-          
-          // 勝利判定
-          const winLine = findWinningLine(currentState.board, currentPlayer);
-          if (winLine) {
-            set({
-              phase: GamePhase.GAME_OVER,
-              result: currentPlayer === Player.PLAYER1 ? GameResult.PLAYER1_WIN : GameResult.PLAYER2_WIN,
-              message: `message.${normalizePlayer(currentPlayer)}Win`,
-              winningLine: winLine
-            });
-            soundService.play('victory');
-            return;
-          }
-          
-          // 引き分け判定
-          if (checkDraw(currentState.board, currentState.player1Inventory, currentState.player2Inventory)) {
-            set({
-              phase: GamePhase.GAME_OVER,
-              result: GameResult.DRAW,
-              message: 'message.gameDraw',
-              winningLine: null
-            });
-            soundService.play('battle');
-            return;
-          }
-          
-          // ゲームが続行する場合、ターンを切り替え
-          console.log('[useJankenGame] No win or draw. Switching turn.');
-          setTimeout(() => {
-            get().switchTurn();
-          }, 200); // より短い遅延でターン切り替え
-          
-        } catch (error) {
-          console.error('[DEBUG] Error in post-placement processing:', error);
-          set({ 
-            message: 'message.gameError',
-            isAIThinking: false
+
+      // 勝敗判定と手番交代は配置と同じ同期処理の中で行う。遅延させると、その間は
+      // 同じプレイヤーの手番・SELECTING_CELL のまま残り、続けてもう1手打ててしまう
+      // （さらに交代処理が2回走って手番が同じプレイヤーに戻り、相手の手番が飛ぶ）。
+      try {
+        const currentState = get();
+
+        // 勝利判定
+        const winLine = findWinningLine(currentState.board, currentPlayer);
+        if (winLine) {
+          set({
+            phase: GamePhase.GAME_OVER,
+            result: currentPlayer === Player.PLAYER1 ? GameResult.PLAYER1_WIN : GameResult.PLAYER2_WIN,
+            message: currentPlayer === Player.PLAYER1 ? 'message.player1Win' : 'message.player2Win',
+            winningLine: winLine
           });
+          soundService.play('victory');
+          return;
         }
-      }, 100);
+
+        // 引き分け判定
+        if (checkDraw(currentState.board, currentState.player1Inventory, currentState.player2Inventory)) {
+          set({
+            phase: GamePhase.GAME_OVER,
+            result: GameResult.DRAW,
+            message: 'message.gameDraw',
+            winningLine: null
+          });
+          soundService.play('battle');
+          return;
+        }
+
+        // ゲームが続行する場合、ターンを切り替え
+        console.log('[useJankenGame] No win or draw. Switching turn.');
+        get().switchTurn();
+
+      } catch (error) {
+        console.error('[DEBUG] Error in post-placement processing:', error);
+        set({
+          message: 'message.gameError',
+          isAIThinking: false
+        });
+      }
       
     } catch (error) {
       console.error('[DEBUG] Critical error in placePiece:', error);
@@ -868,13 +875,14 @@ const createState = (set, get) => ({
 
       // 次のプレイヤーを決定
       const nextPlayer = currentPlayer === Player.PLAYER1 ? Player.PLAYER2 : Player.PLAYER1;
-      const nextMessage = `message.${normalizePlayer(nextPlayer)}Turn`;
+      const nextMessage = nextPlayer === Player.PLAYER1 ? 'message.player1Turn' : 'message.player2Turn';
       
       // 状態を一括更新（バッチ化）
       set({
         currentPlayer: nextPlayer,
         message: nextMessage,
         selectedPiece: null, // 駒の選択をリセット
+        previousSelectedPiece: null,
       });
       
       // React DOM更新完了を待ってから次の処理
@@ -889,7 +897,7 @@ const createState = (set, get) => ({
             console.log('[DEBUG] switchTurn: Executing AI move');
             get().makeAIPieceSelection();
           }
-        }, 0);
+        }, 300); // 手番交代を同期化した分、AIが即座に打ち返さないよう従来と同程度の間を置く
       } else if (isAIEnabled && nextPlayer === Player.PLAYER1) {
         // AIモードのプレイヤー1のターン - 基本駒の自動選択を実行（遅延なし）
         setTimeout(() => {

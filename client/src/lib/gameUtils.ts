@@ -1,5 +1,8 @@
 import { Board, Cell, GameResult, PieceType, Player, PlayerInventory, Position, WinningLine } from './types';
 
+// 勝利に必要な連続数（server/gameUtils.ts の WIN_LENGTH と必ず一致させる）
+export const WIN_LENGTH = 4;
+
 // Type guard to check if a piece is a combat piece (Rock, Paper, or Scissors)
 function isCombatPiece(piece: PieceType | null): piece is PieceType.ROCK | PieceType.PAPER | PieceType.SCISSORS {
   return piece === PieceType.ROCK || piece === PieceType.PAPER || piece === PieceType.SCISSORS;
@@ -147,12 +150,12 @@ export const checkDraw = (
 export const findWinningLine = (board: Board, player: Player): WinningLine | null => {
   // Check horizontal
   for (let row = 0; row < 6; row++) {
-    for (let col = 0; col <= 2; col++) {
+    for (let col = 0; col <= 6 - WIN_LENGTH; col++) {
       let consecutive = 0;
       const positions: Position[] = [];
       
-      // 4つの連続をチェック
-      for (let i = 0; i < 4; i++) {
+      // WIN_LENGTH 個の連続をチェック
+      for (let i = 0; i < WIN_LENGTH; i++) {
         if (board[row][col + i].owner === player && board[row][col + i].piece !== PieceType.EMPTY) {
           consecutive++;
           positions.push({ row, col: col + i });
@@ -163,8 +166,8 @@ export const findWinningLine = (board: Board, player: Player): WinningLine | nul
         }
       }
       
-      // 4つ連続していれば勝利ライン
-      if (consecutive === 4) {
+      // WIN_LENGTH 個連続していれば勝利ライン
+      if (consecutive === WIN_LENGTH) {
         return { positions, player };
       }
     }
@@ -172,12 +175,12 @@ export const findWinningLine = (board: Board, player: Player): WinningLine | nul
 
   // Check vertical
   for (let col = 0; col < 6; col++) {
-    for (let row = 0; row <= 2; row++) {
+    for (let row = 0; row <= 6 - WIN_LENGTH; row++) {
       let consecutive = 0;
       const positions: Position[] = [];
       
-      // 4つの連続をチェック
-      for (let i = 0; i < 4; i++) {
+      // WIN_LENGTH 個の連続をチェック
+      for (let i = 0; i < WIN_LENGTH; i++) {
         if (board[row + i][col].owner === player && board[row + i][col].piece !== PieceType.EMPTY) {
           consecutive++;
           positions.push({ row: row + i, col });
@@ -188,21 +191,21 @@ export const findWinningLine = (board: Board, player: Player): WinningLine | nul
         }
       }
       
-      // 4つ連続していれば勝利ライン
-      if (consecutive === 4) {
+      // WIN_LENGTH 個連続していれば勝利ライン
+      if (consecutive === WIN_LENGTH) {
         return { positions, player };
       }
     }
   }
 
   // Check diagonal (top-left to bottom-right)
-  for (let row = 0; row <= 2; row++) {
-    for (let col = 0; col <= 2; col++) {
+  for (let row = 0; row <= 6 - WIN_LENGTH; row++) {
+    for (let col = 0; col <= 6 - WIN_LENGTH; col++) {
       let consecutive = 0;
       const positions: Position[] = [];
       
-      // 4つの連続をチェック
-      for (let i = 0; i < 4; i++) {
+      // WIN_LENGTH 個の連続をチェック
+      for (let i = 0; i < WIN_LENGTH; i++) {
         if (row + i < 6 && col + i < 6 && board[row + i][col + i].owner === player && board[row + i][col + i].piece !== PieceType.EMPTY) {
           consecutive++;
           positions.push({ row: row + i, col: col + i });
@@ -213,21 +216,21 @@ export const findWinningLine = (board: Board, player: Player): WinningLine | nul
         }
       }
       
-      // 4つ連続していれば勝利ライン
-      if (consecutive === 4) {
+      // WIN_LENGTH 個連続していれば勝利ライン
+      if (consecutive === WIN_LENGTH) {
         return { positions, player };
       }
     }
   }
 
   // Check diagonal (top-right to bottom-left)
-  for (let row = 0; row <= 2; row++) {
-    for (let col = 3; col < 6; col++) {
+  for (let row = 0; row <= 6 - WIN_LENGTH; row++) {
+    for (let col = WIN_LENGTH - 1; col < 6; col++) {
       let consecutive = 0;
       const positions: Position[] = [];
       
-      // 4つの連続をチェック
-      for (let i = 0; i < 4; i++) {
+      // WIN_LENGTH 個の連続をチェック
+      for (let i = 0; i < WIN_LENGTH; i++) {
         if (row + i < 6 && col - i >= 0 && board[row + i][col - i].owner === player && board[row + i][col - i].piece !== PieceType.EMPTY) {
           consecutive++;
           positions.push({ row: row + i, col: col - i });
@@ -238,8 +241,8 @@ export const findWinningLine = (board: Board, player: Player): WinningLine | nul
         }
       }
       
-      // 4つ連続していれば勝利ライン
-      if (consecutive === 4) {
+      // WIN_LENGTH 個連続していれば勝利ライン
+      if (consecutive === WIN_LENGTH) {
         return { positions, player };
       }
     }
@@ -249,7 +252,7 @@ export const findWinningLine = (board: Board, player: Player): WinningLine | nul
   return null;
 };
 
-// Checks if there are 4 in a row for the given player
+// Checks if there are WIN_LENGTH in a row for the given player
 export const checkWin = (board: Board, player: Player): boolean => {
   return findWinningLine(board, player) !== null;
 };

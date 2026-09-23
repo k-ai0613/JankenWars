@@ -77,19 +77,19 @@ export function Strategy() {
                   </h3>
                   <p className="text-gray-600 mb-3">
                     {isJapanese
-                      ? '相手がどの方向で並べようとしているかを常に意識しましょう。4つ並んでいる場合は、次のターンで5つ目を置かれる前にブロックする必要があります。'
-                      : 'Always pay attention to which direction your opponent is trying to align pieces. If they have 4 in a row, you must block before they place the 5th piece.'}
+                      ? '相手がどの方向で並べようとしているかを常に意識しましょう。3つ並んでいる場合は、次のターンで4つ目を置かれる前にブロックする必要があります。'
+                      : 'Always pay attention to which direction your opponent is trying to align pieces. If they have 3 in a row, you must block before they place the 4th piece.'}
                   </p>
                 </div>
 
                 <div className="border-l-4 border-green-500 pl-4">
                   <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                    {isJapanese ? '3. じゃんけんの確率を理解する' : '3. Understand Janken Probabilities'}
+                    {isJapanese ? '3. じゃんけんの相性を理解する' : '3. Understand Janken Matchups'}
                   </h3>
                   <p className="text-gray-600 mb-3">
                     {isJapanese
-                      ? 'じゃんけんバトルは本質的に33%の勝率です。重要な場面でリスクを取るかどうかを慎重に判断しましょう。'
-                      : 'Janken battles inherently have a 33% win rate. Carefully decide when to take risks in critical situations.'}
+                      ? '相手の駒を取れるのは、自分の駒がじゃんけんで勝つときだけです（負け・あいこになる駒は置けません）。配られた駒で取れる相手の駒を見極めましょう。'
+                      : 'You can only capture an opponent\'s piece when your piece beats it (a losing or tied piece cannot be placed there). Look for the opponent pieces your current piece can capture.'}
                   </p>
                   <div className="grid grid-cols-3 gap-2 mt-3">
                     <div className="text-center p-3 bg-blue-50 rounded-lg">
@@ -130,8 +130,8 @@ export function Strategy() {
                   </h3>
                   <p className="text-gray-600 mb-3">
                     {isJapanese
-                      ? '同時に複数の方向で4つ並べる状況を作ることで、相手は全てをブロックできなくなります。これは「フォーク」と呼ばれる強力な戦略です。'
-                      : 'By creating situations where you have 4 pieces aligned in multiple directions simultaneously, your opponent cannot block everything. This powerful strategy is called a "fork".'}
+                      ? 'あと1つで4つになる列を同時に複数の方向で作ることで、相手は全てをブロックできなくなります。これは「フォーク」と呼ばれる強力な戦略です。'
+                      : 'By creating multiple lines that are one piece away from 4 at the same time, your opponent cannot block everything. This powerful strategy is called a "fork".'}
                   </p>
                   <div className="bg-blue-50 p-4 rounded-lg">
                     <div className="text-sm text-blue-800">
@@ -205,12 +205,12 @@ export function Strategy() {
 
                 <div className="border-l-4 border-purple-500 pl-4">
                   <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                    {isJapanese ? '2. 犠牲戦略' : '2. Sacrifice Strategy'}
+                    {isJapanese ? '2. ロック戦略' : '2. Lock Strategy'}
                   </h3>
                   <p className="text-gray-600 mb-3">
                     {isJapanese
-                      ? '時には意図的にじゃんけんバトルに負けることで、より良い位置を確保できることがあります。マスをロックすることで相手の計画を妨害できます。'
-                      : 'Sometimes intentionally losing a Janken battle can secure a better position. Locking a square can disrupt your opponent\'s plans.'}
+                      ? '相手の駒を取ったマスはロックされ、以後どちらも置けなくなります。相手の列の要になっている駒を取れば、そのマスを二度と使わせずに済みます。'
+                      : 'A square where you capture a piece becomes locked, and no one can place there again. Capturing a key piece in your opponent\'s line keeps them from ever using that square.'}
                   </p>
                 </div>
 
@@ -264,8 +264,8 @@ export function Strategy() {
                     </h4>
                     <p className="text-sm text-yellow-700">
                       {isJapanese
-                        ? '4つ並んでいる状態で、5つ目として配置して確実に勝利'
-                        : 'Place as the 5th piece when you have 4 aligned for certain victory'}
+                        ? '3つ並んでいる状態で、4つ目を置いて勝利を決める'
+                        : 'Place the 4th piece when you have 3 aligned to win'}
                     </p>
                   </div>
 
@@ -355,7 +355,7 @@ export function Strategy() {
                     </p>
                     <ul className="text-xs text-gray-500 list-disc pl-4">
                       <li>{isJapanese ? '中央を取る練習' : 'Practice taking the center'}</li>
-                      <li>{isJapanese ? '5つ並べる感覚を掴む' : 'Get a feel for aligning 5'}</li>
+                      <li>{isJapanese ? '4つ並べる感覚を掴む' : 'Get a feel for aligning 4'}</li>
                     </ul>
                   </div>
 

@@ -1,5 +1,5 @@
 import { Board, Cell, PieceType, Player, PlayerInventory, Position } from './types';
-import { isValidMove, determineWinner, getRandomPiece } from './gameUtils';
+import { isValidMove, determineWinner, getRandomPiece, selectCellForPlayer, checkWin, WIN_LENGTH } from './gameUtils';
 
 // AI difficulty levels
 export enum AIDifficulty {
@@ -104,14 +104,22 @@ const evaluateMove = (
     
     // Award points based on consecutive pieces and open ends
     if (count >= 2) score += count * 3; // Base score for a line
-    if (count >= 3) score += 10; // Bonus for 3 in a row
-    if (count >= 4) score += 50; // Big bonus for 4 in a row (potential win next move)
+    if (count >= WIN_LENGTH - 2) score += 10; // Bonus for a line two pieces short of a win
+    if (count >= WIN_LENGTH - 1) score += 50; // One piece away from a win (potential win next move)
     
     // Lines with open ends are more valuable - they can be extended
     score += openEnds * count * 2; // Reward open-ended lines more
-    
-    // A line with pieces that already has 4 in a row is a winning move
-    if (count >= 5) score += 1000; // Immediate win
+  }
+  
+  // ===== DECISIVE MOVES =====
+  // 連の長さの推定ではなく、実際に打った後の盤面で勝敗を判定する。
+  // 推定の加点だけでは、取り手の加点が勝ち手を上回り、即勝ちを逃すことがある。
+  if (checkWin(selectCellForPlayer(position, player, piece, board), player)) {
+    score += 1000; // Immediate win
+  } else if (board[row][col].piece === PieceType.EMPTY &&
+             checkWin(selectCellForPlayer(position, opponent, PieceType.ROCK, board), opponent)) {
+    // 相手がこの空きマスに置けば勝つ → ここを埋めて阻止する
+    score += 500;
   }
   
   // ===== DEFENSIVE SCORING =====
@@ -178,8 +186,8 @@ const calculateDefensiveValue = (board: Board, position: Position, opponent: Pla
     
     // Blocking opponent's line becomes increasingly important as they get closer to winning
     if (opponentCount >= 2) defensiveScore += opponentCount * 5;
-    if (opponentCount >= 3) defensiveScore += 15; // Critical to block 3 in a row
-    if (opponentCount >= 4) defensiveScore += 80; // Extremely critical to block 4 in a row
+    if (opponentCount >= WIN_LENGTH - 2) defensiveScore += 15; // Opponent line two pieces short of a win
+    if (opponentCount >= WIN_LENGTH - 1) defensiveScore += 80; // Opponent is one piece away from a win
     
     // Open-ended opponent lines are more dangerous
     defensiveScore += openEnds * opponentCount * 3;

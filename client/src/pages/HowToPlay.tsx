@@ -45,8 +45,8 @@ export function HowToPlay() {
               </h3>
               <p className="text-gray-700 text-lg">
                 {isJapanese
-                  ? '6x6のボード上で、自分の駒を縦・横・斜めに5つ並べたプレイヤーが勝利！'
-                  : 'Be the first to align 5 of your pieces vertically, horizontally, or diagonally on the 6x6 board!'}
+                  ? '6x6のボード上で、自分の駒を縦・横・斜めに4つ並べたプレイヤーが勝利！'
+                  : 'Be the first to align 4 of your pieces vertically, horizontally, or diagonally on the 6x6 board!'}
               </p>
             </div>
 
@@ -66,8 +66,8 @@ export function HowToPlay() {
                     </p>
                     <p className="text-gray-600">
                       {isJapanese
-                        ? 'ターン開始時に、グー・チョキ・パーのいずれかの駒がランダムに与えられます。'
-                        : 'At the start of your turn, you receive a random piece: Rock, Paper, or Scissors.'}
+                        ? 'オンライン対戦とAI対戦では、ターン開始時にグー・チョキ・パーのいずれかがランダムに配られます（ローカルの2人対戦では自分で選べます）。'
+                        : 'Online and against the AI, you receive a random piece (Rock, Paper, or Scissors) at the start of your turn. In local 2-player games, you choose your piece.'}
                     </p>
                   </div>
                 </div>
@@ -96,8 +96,8 @@ export function HowToPlay() {
                     </p>
                     <p className="text-gray-600">
                       {isJapanese
-                        ? '相手の駒があるマスに置いた場合、じゃんけんの勝敗が決まります。'
-                        : 'If placing on an opponent\'s piece, the winner is determined by rock-paper-scissors rules.'}
+                        ? '相手の駒にじゃんけんで勝てる駒なら、そのマスに置いて相手の駒を取れます（負け・あいこになる駒は置けません）。'
+                        : 'If your piece beats an opponent\'s piece in rock-paper-scissors, you can place it there and capture it (a losing or tied piece cannot be placed there).'}
                     </p>
                   </div>
                 </div>
@@ -206,8 +206,8 @@ export function HowToPlay() {
                   </li>
                   <li>
                     {isJapanese
-                      ? '5つ並べる列の一部として使える'
-                      : 'Counts as part of your 5-in-a-row'}
+                      ? '4つ並べる列の一部として使える'
+                      : 'Counts as part of your 4-in-a-row'}
                   </li>
                 </ul>
                 <p className="text-indigo-600 font-medium">
@@ -242,8 +242,8 @@ export function HowToPlay() {
                 </h3>
                 <p className="text-gray-600">
                   {isJapanese
-                    ? '同時に複数の方向で4つ並べると、相手は防ぎきれません。'
-                    : 'Setting up multiple lines of 4 makes it impossible for your opponent to block all.'}
+                    ? 'あと1つで4つになる列を同時に複数作ると、相手は防ぎきれません。'
+                    : 'Setting up multiple lines that are one piece away from 4 makes it impossible for your opponent to block all.'}
                 </p>
               </div>
               <div className="p-4 bg-indigo-50 rounded-lg">
@@ -277,13 +277,13 @@ export function HowToPlay() {
             <ul className="list-disc pl-6 space-y-2 text-gray-700">
               <li>
                 {isJapanese
-                  ? 'ボードがすべて埋まっても、どちらも5つ並べられなかった場合'
-                  : 'The board is full but neither player has 5 in a row'}
+                  ? 'ボードがすべて埋まっても、どちらも4つ並べられなかった場合'
+                  : 'The board is full but neither player has 4 in a row'}
               </li>
               <li>
                 {isJapanese
-                  ? '両プレイヤーが全ての駒を使い切っても、5つ並べられなかった場合'
-                  : 'Both players run out of pieces without achieving 5 in a row'}
+                  ? '両プレイヤーが全ての駒を使い切っても、4つ並べられなかった場合'
+                  : 'Both players run out of pieces without achieving 4 in a row'}
               </li>
             </ul>
           </div>

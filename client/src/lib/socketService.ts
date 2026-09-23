@@ -61,6 +61,8 @@ export interface GameState {
   gameResult: GameResult;
   lastMove?: { player: Player; piece: PieceType; position: Position } | null;
   winningLine?: WinningLine | null;
+  // 手番のプレイヤーに配られた通常駒（サーバーが決める）。null は特殊駒しか置けない状態
+  dealtPiece?: PieceType | null;
 }
 
 // ★ 追加: MoveDetails 型 (サーバーから送られてくる手の詳細)

@@ -85,6 +85,9 @@ interface OnlineGameState {
   
   // ★ 勝利ライン情報を追加 ★
   winningLine: WinningLine | null;
+
+  // サーバーが手番のプレイヤーに配った通常駒。null は特殊駒しか置けない状態
+  dealtPiece: PieceType | null;
   
   // Connection methods
   connect: (username: string) => void;
@@ -117,7 +120,7 @@ interface OnlineGameState {
   handlePlayerLeft: (data: { playerId: string, players: RoomPlayerData[] }) => void;
   handlePlayerDisconnected: (data: { playerId: string, players: RoomPlayerData[] }) => void;
   handlePlayerReady: (data: { playerId: string, ready: boolean, players: RoomPlayerData[] }) => void;
-  handleGameStart: (data: RoomData) => void;
+  handleGameStart: (data: RoomData & { gameState?: ServerGameState }) => void;
   handleGameStateUpdate: (data: { gameState: ServerGameState, moveDetails: MoveDetails | null }) => void;
   handleMatchmakingWaiting: () => void;
   handleMatchmakingMatched: (data: RoomData) => void;
@@ -152,7 +155,8 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
     aiSelectedPiece: null,
     currentPlayer: Player.PLAYER1,
     gameResult: GameResult.ONGOING,
-    winningLine: null
+    winningLine: null,
+    dealtPiece: null
   });
 
   const _selectRandomPieceForTurn = () => {
@@ -172,13 +176,13 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
     const currentInventory = currentPlayer === Player.PLAYER1 ? player1Inventory : player2Inventory;
     console.log('[_selectRandomPieceForTurn] Current inventory:', JSON.stringify(currentInventory));
 
-    const playablePieces = [PieceType.ROCK, PieceType.PAPER, PieceType.SCISSORS] as const;
-    const availablePieces = playablePieces.filter(piece => currentInventory[piece as keyof PlayerInventory] > 0);
+    // 駒はサーバーが配る（dealtPiece）。ここで乱数を引くと、サーバー側の配布と食い違う
+    const chosenPiece = get().dealtPiece;
 
-    console.log('[_selectRandomPieceForTurn] Available standard pieces:', availablePieces);
+    console.log('[_selectRandomPieceForTurn] Dealt piece:', chosenPiece);
 
-    if (availablePieces.length === 0) {
-      console.warn("[_selectRandomPieceForTurn] No available standard pieces!");
+    if (!chosenPiece) {
+      console.warn("[_selectRandomPieceForTurn] No standard piece was dealt!");
       if (currentInventory[PieceType.SPECIAL] > 0) {
          console.log('[_selectRandomPieceForTurn] Only special piece left.');
         set({ 
@@ -197,10 +201,8 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
       return;
     }
 
-    const randomIndex = Math.floor(Math.random() * availablePieces.length);
-    const chosenPiece = availablePieces[randomIndex];
 
-    console.log(`[_selectRandomPieceForTurn] Randomly chose: ${chosenPiece}. Preparing to set state...`);
+    console.log(`[_selectRandomPieceForTurn] Using dealt piece: ${chosenPiece}. Preparing to set state...`);
 
     startTransition(() => {
         console.log(`[_selectRandomPieceForTurn] Setting aiSelectedPiece to: ${chosenPiece}`);
@@ -302,6 +304,7 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
           gamePhase: resync.gamePhase,
           gameResult: resync.gameResult,
           winningLine: resync.winningLine || null,
+          dealtPiece: resync.dealtPiece ?? null,
           message: t('online.invalidMove'),
           isConnecting: false,
           pendingUsername: null,
@@ -387,30 +390,19 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
         ...resetBoardAndInventories()
       });
 
-      // 自分がまだ準備未完了の場合のみ自動で準備完了に設定
+      // 自分がまだ準備未完了なら、相手の状態にかかわらず自動で準備完了にする。
+      // 「相手が ready のときだけ」にすると、相手の auto-ready（部屋作成から500ms後）より
+      // 先に入室した場合や、相手の ready が対局終了で戻された部屋に入った場合に、
+      // 手動の準備ボタンが無いため誰も ready にならず対局が始まらない。
+      // 相手が ready でなければ開始はしないので、相手の同意なく始まることはない。
       if (me && !me.ready) {
-        // すでに2人揃っていて、相手が準備完了している場合は即座にready
-        if (data.players.length === 2) {
-          const opponent = data.players.find(p => p.id !== myId);
-          if (opponent?.ready) {
-            console.log('Opponent is already ready, setting self ready immediately');
-            setTimeout(() => {
-              const { roomId } = get();
-              if (roomId) {
-                socketService.toggleReady(roomId);
-              }
-            }, 100);
+        setTimeout(() => {
+          const { roomId } = get();
+          if (roomId) {
+            console.log('Auto setting player ready after joining room');
+            socketService.toggleReady(roomId);
           }
-        } else {
-          // 1人だけの場合は少し遅延してから準備完了に
-          setTimeout(() => {
-            const { roomId } = get();
-            if (roomId) {
-              console.log('Auto setting player ready after joining room');
-              socketService.toggleReady(roomId);
-            }
-          }, 500);
-        }
+        }, 100);
       } else if (me?.ready) {
         console.log('Player is already ready - skipping auto-ready logic');
       }
@@ -536,7 +528,7 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
       }
     }
   };
-  const handleGameStart = (data: RoomData) => {
+  const handleGameStart = (data: RoomData & { gameState?: ServerGameState }) => {
     console.log('handleGameStart called with data:', data);
     console.log('Current game phase before start:', get().gamePhase);
     console.log('Players ready status:', get().players.map(p => `${p.username}: ${p.ready}`));
@@ -557,6 +549,7 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
           currentPlayer: Player.PLAYER1, 
           aiSelectedPiece: null, 
           selectedPiece: null,
+          dealtPiece: data.gameState?.dealtPiece ?? null,
           localPlayerNumber: (me?.playerNumber as 1 | 2) ?? get().localPlayerNumber
         });
         
@@ -588,7 +581,8 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
       const state = get();
       
       const localNum = get().localPlayerNumber;
-      const isMyNewTurn = gameState.currentPlayer === (localNum === 1 ? Player.PLAYER1 : Player.PLAYER2);
+      // 観戦者（localNum が null）は手番を持たない。ガードしないと P2 の手番で「あなたの番」と表示される
+      const isMyNewTurn = localNum !== null && gameState.currentPlayer === (localNum === 1 ? Player.PLAYER1 : Player.PLAYER2);
       
       const newState: Partial<OnlineGameState> = {
         board: gameState.board,
@@ -607,6 +601,7 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
         loseAnimation: false,
         drawAnimation: false,
         winningLine: gameState.winningLine || null,
+        dealtPiece: gameState.dealtPiece ?? null,
       };
       
       console.log('[handleGameStateUpdate] State BEFORE set:', {
@@ -747,7 +742,9 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
   };
 
   const handleGameRematchInitiated = (data: RoomData & { gameState: ServerGameState }) => {
-    console.log('[useOnlineGame] handleGameRematchInitiated called with data:', data);
+    console.log('Rematch initiated:', data);
+    const myId = socketService.getSocketId();
+    const me = data.players.find(p => p.id === myId);
     startTransition(() => {
       set({
         roomId: data.roomId,
@@ -761,32 +758,33 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
         player1Inventory: data.gameState.player1Inventory,
         player2Inventory: data.gameState.player2Inventory,
         currentPlayer: data.gameState.currentPlayer,
-        gamePhase: GamePhase.SELECTING_CELL, // READY から SELECTING_CELL に変更
+        // サーバーは READY（全員 ready=false）に戻して両者の準備を待つ。ここで SELECTING_CELL に
+        // すると、始まっていない対局の盤面に手を打てて "Game not in progress" で拒否され続ける。
+        gamePhase: GamePhase.READY,
         gameResult: GameResult.ONGOING,
-        message: t('online.gameStarted'), // メッセージも更新
+        message: t('online.waitingForAllReady'),
         selectedPiece: null,
         aiSelectedPiece: null,
+        dealtPiece: null,
+        // 前局の勝利ライン・演出を残すと、空の盤面に前局の結果が表示されたままになる
+        winningLine: null,
+        winAnimation: false,
+        loseAnimation: false,
+        drawAnimation: false,
       });
-
-      // ゲームリセット後に適切なプレイヤーの駒を自動選択
-      setTimeout(() => {
-        // ローカルプレイヤーがどちらなのかを確認
-        const localNum = get().localPlayerNumber;
-        const currentPlayerEnum = get().currentPlayer;
-        // 自分のターンかどうかを判定
-        const isMyTurn = localNum === (currentPlayerEnum === Player.PLAYER1 ? 1 : 2);
-        
-        console.log(`[handleGameRematchInitiated] Checking if it's my turn: local=${localNum}, current=${currentPlayerEnum}, isMyTurn=${isMyTurn}`);
-        
-        if (isMyTurn) {
-          console.log('[handleGameRematchInitiated] It is my turn, selecting random piece.');
-          get()._selectRandomPieceForTurn();
-        } else {
-          console.log('[handleGameRematchInitiated] Not my turn, waiting for opponent.');
-        }
-      }, 300); // ステート更新後に実行するために少し遅延
     });
+
+    // 手動の準備ボタンは無いため、プレイヤーは自動で準備完了にする（2人そろえばサーバーが game:start を送る）
+    if (me && !me.ready) {
+      setTimeout(() => {
+        const { roomId } = get();
+        if (roomId) {
+          socketService.toggleReady(roomId);
+        }
+      }, 100);
+    }
   };
+
 
   const endGame = (result: GameResult) => {
     console.log('endGame action called with result:', result);
@@ -822,6 +820,7 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
     loseAnimation: false,
     drawAnimation: false,
     winningLine: null,
+    dealtPiece: null,
   };
 
   const setSelectedPiece = (piece: PieceType | null) => {
@@ -1043,7 +1042,12 @@ const onlineGameSlice: StateCreator<OnlineGameState> = (set, get) => {
             nextPhase = GamePhase.GAME_OVER;
             nextMessage = t('online.youWin');
             audioStore.playVictory();
-        } else if (checkDraw(nextBoard, state.player1Inventory, state.player2Inventory)) {
+        } else if (checkDraw(
+            nextBoard,
+            // 今回消費した分を反映した在庫で判定する（サーバーも減算後に判定している）
+            inventoryKey === 'player1Inventory' ? nextInventory : state.player1Inventory,
+            inventoryKey === 'player2Inventory' ? nextInventory : state.player2Inventory
+        )) {
             nextResult = GameResult.DRAW;
             nextPhase = GamePhase.GAME_OVER;
             nextMessage = t('online.draw');

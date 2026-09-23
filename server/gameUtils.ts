@@ -73,6 +73,17 @@ export function createInitialInventory(): PlayerInventory {
   };
 }
 
+// 手番のプレイヤーに配る駒を、在庫にある通常駒（グー・チョキ・パー）からランダムに選ぶ。
+// 配布をサーバーで決めないと、改造クライアントが毎手好きな駒を選べてしまう。
+// 通常駒が尽きている場合は null（そのプレイヤーは特殊駒しか置けない）。
+export function drawDealtPiece(inventory: PlayerInventory): PieceType | null {
+  const available = [PieceType.ROCK, PieceType.PAPER, PieceType.SCISSORS].filter(p => inventory[p] > 0);
+  if (available.length === 0) {
+    return null;
+  }
+  return available[Math.floor(Math.random() * available.length)];
+}
+
 export function isValidMove(
   board: Board,
   position: Position,
